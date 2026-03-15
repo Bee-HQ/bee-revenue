@@ -191,6 +191,28 @@ Available tools: `discover_channels`, `add_channel`, `remove_channel`, `snowball
 uv run pytest tests/ -v   # 66 tests
 ```
 
+## Future Work / TODOs
+
+- [ ] **Screenplay Analyzer** — `bee-research analyze screenplay <youtube_url>` command that:
+  - Pulls transcript via youtube-transcript-api
+  - Breaks down script structure (hook, tension points, cliffhangers, resolution)
+  - Maps to screenplay frameworks (Save The Cat beats, Story Grid, Hero's Journey for true crime)
+  - Scores retention techniques (open loops, pattern interrupts, curiosity gaps)
+  - Identifies section timing (intro %, buildup %, climax %, resolution %)
+  - Outputs a production blueprint (title formula, script template, voiceover notes, visual cues)
+  - Available via both CLI and MCP server
+  - Reference: `research/youtube-screenplay-analysis-ai-scriptwriting.md`
+
+- [ ] **Transcript-powered content gap analysis** — improve `analyze gaps` to use transcripts for deeper topic extraction (currently title/tag only)
+
+- [ ] **Historical tracking** — scheduled re-fetches (cron) to track channel growth over time
+
+- [ ] **Web dashboard** — FastAPI + frontend for visual analysis (adapters/rest.py)
+
+- [ ] **Jupyter notebook support** — import services directly for interactive analysis
+
+- [ ] **Multi-platform support** — add fetchers for TikTok, Instagram (using tools from `research/social-media-content-research-analytics-tools.md`)
+
 ## Dependencies
 
 typer, rich, yt-dlp, scrapetube, youtube-transcript-api, mcp (optional)
