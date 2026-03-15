@@ -18,6 +18,7 @@ Compiled: 2026-03-14
 | 06 | [Claude-Assisted Trading Workflows](06-claude-assisted-trading-workflows.md) | How Claude can help, 5 workflows, 7 buildable tools, MCP integrations, 7-phase beginner roadmap, project ideas |
 | 07 | [Open-Source Prediction Projects](07-opensource-prediction-projects.md) | 19+ GitHub projects that predict anything — MiroFish (24K stars), OpenBB (63K), Freqtrade (47K), FinGPT (18K), Chronos, FinRL, prediction market bots |
 | 08 | [Real-World Results & Evidence](08-real-world-results-and-evidence.md) | Honest analysis: 97% of day traders lose money, Polymarket whale Theo made $85M, what actually works vs doesn't, evidence-based strategies |
+| 09 | [Stock Move Explainer Tools](09-stock-move-explainer-tools.md) | 11 commercial tools, 9 APIs, 15+ open-source projects, 6 MCP servers for "why did this stock move?" — Benzinga WIIM, LevelFields, FinBERT, Indian market tools |
 
 ---
 
