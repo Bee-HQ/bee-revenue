@@ -72,6 +72,24 @@ def add(
 
 
 @app.command()
+def remove(
+    channel_ids: list[str] = typer.Argument(..., help="Channel IDs to remove"),
+):
+    """Remove channels and all their data (videos, transcripts, group memberships)."""
+    db = Database()
+    try:
+        for ch_id in channel_ids:
+            ch = db.get_channel(ch_id)
+            name = ch["name"] if ch else ch_id
+            if db.delete_channel(ch_id):
+                console.print(f"[green]Removed:[/green] {name} ({ch_id})")
+            else:
+                console.print(f"[yellow]Not found:[/yellow] {ch_id}")
+    finally:
+        db.close()
+
+
+@app.command()
 def fetch(
     target: str = typer.Argument(..., help="Channel ID or niche group name"),
     transcripts: bool = typer.Option(False, "--transcripts", help="Also fetch transcripts"),

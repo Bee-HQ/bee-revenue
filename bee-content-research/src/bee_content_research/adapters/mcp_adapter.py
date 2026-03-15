@@ -55,6 +55,19 @@ def snowball_discover(channel_url: str, depth: int = 1) -> str:
 
 
 @mcp.tool()
+def remove_channel(channel_id: str) -> str:
+    """Remove a channel and all its data (videos, transcripts, group memberships)."""
+    db = _db()
+    try:
+        ch = db.get_channel(channel_id)
+        name = ch["name"] if ch else channel_id
+        deleted = db.delete_channel(channel_id)
+        return json.dumps({"deleted": deleted, "channel_id": channel_id, "name": name})
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def fetch_channel(channel_id: str, include_transcripts: bool = False) -> str:
     """Fetch video data for a single channel."""
     db = _db()

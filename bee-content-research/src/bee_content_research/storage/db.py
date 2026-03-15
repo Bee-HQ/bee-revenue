@@ -74,6 +74,18 @@ class Database:
         rows = self.execute("SELECT * FROM channels ORDER BY name").fetchall()
         return [dict(r) for r in rows]
 
+    def delete_channel(self, channel_id: str) -> bool:
+        """Delete a channel and all its videos, transcripts, and group memberships."""
+        ch = self.get_channel(channel_id)
+        if not ch:
+            return False
+        self.execute("DELETE FROM transcripts WHERE video_id IN (SELECT id FROM videos WHERE channel_id = ?)", (channel_id,))
+        self.execute("DELETE FROM videos WHERE channel_id = ?", (channel_id,))
+        self.execute("DELETE FROM niche_group_channels WHERE channel_id = ?", (channel_id,))
+        self.execute("DELETE FROM channels WHERE id = ?", (channel_id,))
+        self.commit()
+        return True
+
     # --- Video operations ---
 
     def upsert_video(self, video: dict):
