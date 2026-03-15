@@ -1,0 +1,41 @@
+# bee-revenue
+
+Exploring and building automated revenue streams — content, trading, and AI-powered services.
+
+## Projects
+
+### [bee-content-research](bee-content-research/)
+YouTube competitor analysis CLI + MCP server. Discover niches, find content gaps, detect viral outliers, benchmark competitors — all without API keys.
+
+**Status:** Built and working (v0.1.0)
+**Stack:** Python, typer, yt-dlp, scrapetube, youtube-transcript-api, SQLite
+**Features:**
+- 8 analyzers: content gaps, outlier detection, title patterns, engagement, benchmarks, SEO, timing, regional/language
+- Channel discovery via keyword search and snowball
+- CLI with rich terminal output + MCP server (23 tools)
+- 66 tests passing
+
+### [bee-content-automation](bee-content-automation/)
+Content production pipeline — from topic selection to video publishing. Takes research insights from bee-content-research and automates script writing, voiceover, video assembly, thumbnails, and uploads.
+
+**Status:** Research phase
+**Research covers:** AI video generators, voiceover/TTS tools, editing tools, cost breakdowns, production workflows, legal landscape
+
+### [bee-trading](bee-trading/)
+Research on automated trading, prediction markets, and AI/ML-powered market analysis.
+
+**Status:** Research phase
+**Research covers:** Stock market fundamentals, automated trading bots, prediction markets, AI/ML market prediction, trading tools ecosystem, Claude-assisted trading workflows
+
+### [research](research/)
+General revenue research — monetization strategies, faceless YouTube channel case studies, regional/language opportunities, platform arbitrage.
+
+## Structure
+
+```
+bee-revenue/
+├── bee-content-research/       # YouTube competitor analysis tool (Python CLI + MCP)
+├── bee-content-automation/     # Content production pipeline (research phase)
+├── bee-trading/                # Trading & prediction markets (research phase)
+└── research/                   # General monetization research
+```
