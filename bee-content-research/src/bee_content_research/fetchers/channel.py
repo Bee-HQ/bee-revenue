@@ -8,7 +8,7 @@ from datetime import datetime
 def parse_channel_metadata(raw: dict, discovered_via: str = "manual") -> dict:
     """Parse yt-dlp or scrapetube output into our channel schema."""
     return {
-        "id": raw.get("id") or raw.get("channel_id", ""),
+        "id": raw.get("channel_id") or raw.get("id", ""),
         "name": raw.get("channel") or raw.get("uploader", ""),
         "handle": raw.get("uploader_id", ""),
         "subscriber_count": raw.get("channel_follower_count", 0),

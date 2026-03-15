@@ -31,10 +31,11 @@ def test_parse_channel_metadata_missing_fields():
     assert ch["discovered_via"] == "keyword:test"
 
 
-def test_parse_channel_metadata_prefers_id_over_channel_id():
-    raw = {"id": "UCAAA", "channel_id": "UCBBB"}
+def test_parse_channel_metadata_prefers_channel_id_over_id():
+    """channel_id is the actual channel; id is the video ID from yt-dlp."""
+    raw = {"id": "video_id_123", "channel_id": "UCchannel123"}
     ch = parse_channel_metadata(raw)
-    assert ch["id"] == "UCAAA"
+    assert ch["id"] == "UCchannel123"
 
 
 def test_parse_channel_metadata_prefers_channel_over_uploader():
