@@ -46,21 +46,7 @@ check_prereqs() {
     info "Checking prerequisites..."
     info "Platform: $(uname -s) $(uname -m)"
 
-    # Python 3.11+
-    if command -v python3 &>/dev/null; then
-        PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-        PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
-        PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
-        if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 11 ]; then
-            ok "Python $PY_VER"
-        else
-            fail "Python 3.11+ required (found $PY_VER). Install via: $(install_hint python3)"
-        fi
-    else
-        fail "Python not found. Install via: $(install_hint python3)"
-    fi
-
-    # uv
+    # uv (install first — it manages Python for us)
     if command -v uv &>/dev/null; then
         ok "uv $(uv --version 2>/dev/null | head -1)"
     else
@@ -68,6 +54,15 @@ check_prereqs() {
         curl -LsSf https://astral.sh/uv/install.sh | sh
         export PATH="$HOME/.local/bin:$PATH"
         ok "uv installed"
+    fi
+
+    # Python 3.11+ (managed by uv, no global install needed)
+    if uv python find '>=3.11' &>/dev/null; then
+        ok "Python >=3.11 available via uv"
+    else
+        info "Installing Python 3.11 via uv..."
+        uv python install 3.11
+        ok "Python 3.11 installed via uv"
     fi
 
     # git
