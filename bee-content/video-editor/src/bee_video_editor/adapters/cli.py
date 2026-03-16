@@ -216,6 +216,8 @@ def trim_footage(
 @app.command()
 def assemble(
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    transition_name: str | None = typer.Option(None, "--transition", "-t", help="Apply xfade transition between segments"),
+    transition_duration: float = typer.Option(1.0, "--transition-duration", help="Transition duration (seconds)"),
 ):
     """Assemble all segments into the final video."""
     from bee_video_editor.services.production import ProductionConfig, assemble_final
@@ -223,7 +225,7 @@ def assemble(
     config = ProductionConfig(project_dir=Path(project_dir))
 
     console.print("[bold]Assembling final video...[/bold]")
-    result = assemble_final(config)
+    result = assemble_final(config, transition=transition_name, transition_duration=transition_duration)
 
     if result:
         console.print(f"[bold green]Done! Final video: {result}[/bold green]")
@@ -276,6 +278,120 @@ def status(
             files = list(d.glob("*"))
             if files:
                 console.print(f"  {subdir}/: {len(files)} files")
+
+
+@app.command()
+def effects(
+    input_file: str = typer.Argument(..., help="Input video file"),
+    output_file: str = typer.Argument(..., help="Output video file"),
+    color: str | None = typer.Option(None, "--color", "-c", help="Color grade preset"),
+    speed_factor: float | None = typer.Option(None, "--speed", help="Speed factor (0.25-4.0)"),
+    text: str | None = typer.Option(None, "--text", help="Burn text onto video"),
+    text_position: str = typer.Option("bottom", "--text-pos", help="Text position (top/center/bottom)"),
+    text_start: float | None = typer.Option(None, "--text-start", help="Text start time (seconds)"),
+    text_end: float | None = typer.Option(None, "--text-end", help="Text end time (seconds)"),
+    fade: bool = typer.Option(False, "--fade", help="Add 1s fade in/out"),
+):
+    """Apply effects to a video clip (color grade, speed, text, fade)."""
+    from bee_video_editor.processors.ffmpeg import (
+        COLOR_GRADE_PRESETS,
+        add_fade,
+        color_grade,
+        drawtext,
+        speed,
+    )
+
+    current_input = input_file
+    result = None
+
+    if color:
+        if color not in COLOR_GRADE_PRESETS:
+            console.print(f"[red]Unknown preset: {color}[/red]")
+            console.print(f"[dim]Available: {', '.join(sorted(COLOR_GRADE_PRESETS))}[/dim]")
+            raise typer.Exit(1)
+        tmp = output_file if not (speed_factor or text or fade) else str(Path(output_file).with_suffix(".color.mp4"))
+        result = color_grade(current_input, tmp, preset=color)
+        current_input = str(result)
+        console.print(f"[green]Applied color grade: {color}[/green]")
+
+    if speed_factor:
+        tmp = output_file if not (text or fade) else str(Path(output_file).with_suffix(".speed.mp4"))
+        result = speed(current_input, tmp, factor=speed_factor)
+        current_input = str(result)
+        console.print(f"[green]Applied speed: {speed_factor}x[/green]")
+
+    if text:
+        pos_map = {"top": "50", "center": "(h-th)/2", "bottom": "h-th-50"}
+        y = pos_map.get(text_position, "h-th-50")
+        tmp = output_file if not fade else str(Path(output_file).with_suffix(".text.mp4"))
+        result = drawtext(current_input, tmp, text=text, y=y, start=text_start, end=text_end, box=True)
+        current_input = str(result)
+        console.print(f"[green]Applied text overlay[/green]")
+
+    if fade:
+        result = add_fade(current_input, output_file)
+        console.print(f"[green]Applied fade in/out[/green]")
+
+    if result:
+        # Clean up intermediate files
+        for suffix in [".color.mp4", ".speed.mp4", ".text.mp4"]:
+            tmp = Path(output_file).with_suffix(suffix)
+            if tmp.exists() and str(tmp) != output_file:
+                tmp.unlink()
+        console.print(f"[bold green]Output: {output_file}[/bold green]")
+    else:
+        console.print("[yellow]No effects specified. Use --color, --speed, --text, or --fade.[/yellow]")
+
+
+@app.command()
+def transition(
+    clip_a: str = typer.Argument(..., help="First clip"),
+    clip_b: str = typer.Argument(..., help="Second clip"),
+    output_file: str = typer.Argument(..., help="Output file"),
+    name: str = typer.Option("fade", "--name", "-n", help="Transition name"),
+    duration: float = typer.Option(1.0, "--duration", "-d", help="Transition duration (seconds)"),
+):
+    """Apply a transition between two clips using xfade."""
+    from bee_video_editor.processors.ffmpeg import XFADE_TRANSITIONS, xfade
+
+    if name not in XFADE_TRANSITIONS:
+        console.print(f"[red]Unknown transition: {name}[/red]")
+        console.print(f"[dim]Available: {', '.join(XFADE_TRANSITIONS[:15])}...[/dim]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]Applying {name} transition ({duration}s)...[/bold]")
+    result = xfade(clip_a, clip_b, output_file, transition=name, duration=duration)
+    console.print(f"[bold green]Output: {result}[/bold green]")
+
+
+@app.command()
+def list_effects():
+    """List all available effects, transitions, and color presets."""
+    from bee_video_editor.processors.ffmpeg import COLOR_GRADE_PRESETS, XFADE_TRANSITIONS
+
+    console.print("\n[bold]Color Grade Presets[/bold]")
+    table = Table()
+    table.add_column("Preset", style="cyan")
+    table.add_column("Filter", style="dim")
+    for name, filt in sorted(COLOR_GRADE_PRESETS.items()):
+        table.add_row(name, filt[:60] + ("..." if len(filt) > 60 else ""))
+    console.print(table)
+
+    console.print("\n[bold]xfade Transitions[/bold]")
+    # Print in columns
+    cols = 4
+    rows = []
+    for i in range(0, len(XFADE_TRANSITIONS), cols):
+        chunk = XFADE_TRANSITIONS[i:i + cols]
+        rows.append("  ".join(f"{t:<16}" for t in chunk))
+    for row in rows:
+        console.print(f"  {row}")
+
+    console.print("\n[bold]Ken Burns Effects[/bold]")
+    for kb in ["zoom_in", "zoom_out", "pan_left", "pan_right", "pan_up", "pan_down", "zoom_in_pan_right"]:
+        console.print(f"  {kb}")
+
+    console.print()
 
 
 @app.command()
