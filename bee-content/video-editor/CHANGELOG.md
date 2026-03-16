@@ -5,6 +5,19 @@ All notable changes to bee-video-editor are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- ROADMAP.md with prioritized improvement plan (v0.3.1 → v0.5.0)
+- Screenshot infrastructure: `docs/screenshots/`, capture checklist, README integration
+- Default storyboard and project directory pre-filled in web editor and API
+
+### Fixed
+
+- API server version now matches pyproject.toml (was 0.2.0, now 0.3.0)
+
+
 ## [0.3.0] - 2026-03-16
 
 ### Added
