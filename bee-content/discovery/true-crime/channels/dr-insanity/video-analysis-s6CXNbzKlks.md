@@ -256,32 +256,50 @@ ffmpeg -y -i input.mp4 \
 
 This is a critical visual technique that isn't obvious from the transcript alone. Dr Insanity builds **composited screen mockups** and **picture-in-picture layouts** that make the video feel like you're watching a detective's investigation unfold on their own screen.
 
-#### 5.2a "Detective's Computer" Screen Mockups
+#### 5.2a "Detective's Computer" Screen Mockups (Confirmed from Frames)
 
-During investigation/research sections, the video shows a **fake Windows desktop** composited to look like a detective's computer screen:
+During investigation/research sections, the video shows a **fake Windows desktop** composited to look like a detective's computer screen. Key details confirmed from actual video frames:
 
-- **Background:** Windows desktop (visible taskbar, wallpaper)
-- **"Photo Viewer" windows:** Photos of suspects/victims displayed in Windows Photo Viewer windows, slightly overlapping, as if someone just opened them
-- **Dark data panel overlay (left side):** A custom-built "REPORTS" panel with labeled fields:
+- **Background:** Windows desktop with a **red/warm-tinted wallpaper** — NOT the default blue Windows wallpaper. The warm red tint matches the crime/danger theme. Has **lens flare / light streak effects** on the right side adding depth and cinematic polish.
+- **"Photo Viewer" windows:** Multiple Photo Viewer windows with standard Windows chrome (File, Edit, Image, View, Help menu bar), slightly overlapping, containing:
+  - **B&W victim photo** (Craig holding a puppy — warm, humanizing)
+  - **"MISSING PERSON ALERT" flyer** — a full mock-up or sourced flyer with Craig's photo, physical description, last known location details, and a red "PLEASE HELP US FIND CRAIG!" banner
+- **Dark "REPORTS" data panel (left side):** Custom overlay with labeled fields:
   - `Name: Craig Thetford`
   - `Age: 60 Years Old`
   - `Address: 97 Heatherwood...`
   - `Demo: [highlighted in red]`
-- **Effect:** Viewer feels like they're looking over the detective's shoulder at their workstation. Bridges the gap when no real footage exists for research/database scenes.
+- **Effect:** Viewer feels like they're looking over the detective's shoulder. Bridges the gap when no real footage exists for database/research scenes.
+- **Multiple variants:** Different desktop mockups are used at different investigation stages — sometimes with just photos, sometimes with the missing person flyer, sometimes with data panels.
 
 **How to build:**
 ```python
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-# 1. Start with a Windows desktop screenshot (1920x1080)
+# 1. Start with a RED-TINTED Windows desktop (1920x1080)
+# Use a Windows 10/11 wallpaper, shift hue to warm red
 bg = Image.open("windows-desktop-bg.png")
+# Apply red tint: reduce blue/green channels, boost red
+r, g, b = bg.split()
+bg = Image.merge('RGB', (r, g.point(lambda x: int(x * 0.6)), b.point(lambda x: int(x * 0.5))))
 
-# 2. Create "Photo Viewer" mockup windows with suspect photos
-# Use a Photo Viewer window frame template, paste photo inside
-photo_window = create_photo_viewer_window("dena-photo.jpg", title="Photo Viewer")
-bg.paste(photo_window, (600, 50))  # Position on desktop
+# 2. Add lens flare / light streak on right side
+# Overlay a pre-made lens flare PNG with alpha blending
+flare = Image.open("lens-flare.png").resize((600, 800))
+bg.paste(flare, (1400, 100), flare)
 
-# 3. Create dark "REPORTS" data panel (left side)
+# 3. Create "Photo Viewer" window with victim B&W photo
+# Build window chrome (title bar, menu bar, close/min/max buttons)
+photo = Image.open("craig-puppy.jpg").convert('L')  # Convert to B&W
+window = create_photo_viewer_window(photo, title="Photo Viewer")
+bg.paste(window, (50, 80))
+
+# 4. Create "Photo Viewer" window with Missing Person flyer
+flyer = Image.open("missing-person-flyer.png")
+window2 = create_photo_viewer_window(flyer, title="Photo Viewer")
+bg.paste(window2, (400, 40))
+
+# 5. Optional: Add dark REPORTS data panel
 panel = Image.new('RGBA', (350, 400), (15, 15, 20, 230))
 d = ImageDraw.Draw(panel)
 d.text((20, 20), "REPORTS", fill=(255,255,255), font=get_font(24))
@@ -289,35 +307,65 @@ d.text((20, 70), "Name:", fill=(180,180,180), font=get_font(16))
 d.text((100, 70), "Craig Thetford", fill=(255,255,255), font=get_font(16))
 d.text((20, 100), "Age:", fill=(180,180,180), font=get_font(16))
 d.text((100, 100), "60 Years Old", fill=(255,255,255), font=get_font(16))
-# ... more fields
 bg.paste(panel, (30, 300), panel)
 
 bg.save("detective-screen.png")
-# Convert to video with Ken Burns zoom:
-# ffmpeg -y -loop 1 -i detective-screen.png -vf "zoompan=z='min(zoom+0.001,1.15)':d=300:s=1920x1080:fps=30" -t 10 detective-screen.mp4
 ```
 
-#### 5.2b Picture-in-Picture Photo Overlays
+#### 5.2b "File Viewer" PIP Photo Overlays (Confirmed from Frames)
 
-When a person is being discussed during phone calls or investigation narration, their photo appears as a **floating PIP overlay** on top of the current bodycam/B-roll footage:
+When a person is being discussed, their photo appears as a PIP overlay — but NOT as a bare floating photo. It's wrapped in a **"File Viewer" window chrome**, maintaining the "detective's computer" visual language:
 
-- **Photo position:** Center or center-right of frame
-- **Photo size:** ~400-500px wide
-- **Photo border:** Slight dark border/shadow
-- **Lower third under photo:** Person's name in white text (e.g., "DEANA THETFORD")
-- **Background footage continues playing** underneath (bodycam of detective at desk, B-roll, etc.)
-- **Animation:** Photo fades in, holds for 4-8 seconds during relevant narration, fades out
+- **Window frame:** Has a "File Viewer" title bar at top (matching the Photo Viewer windows from the desktop mockups)
+- **Photo inside:** Victim or suspect photo, sometimes B&W for victim (emotional), color for suspect
+- **Name label below photo:** White text on dark background (e.g., "CRAIG THETFORD") — acts as a lower third built into the PIP
+- **Photo position:** Left side of frame (leaves right side for the background footage)
+- **Photo size:** ~350-450px wide
+- **Background footage continues playing:** Bodycam, aerial, B-roll underneath
 
-**When used:**
-- Detective is on the phone discussing someone → their photo appears PIP
-- Narrator introduces a new character → bodycam continues while photo overlay provides face
-- Financial investigation section → suspect photo PIP over money/document B-roll
+**Confirmed usage from video frames:**
+- **Night bodycam (carport search):** Craig's warm puppy photo in File Viewer PIP on left, while flashlight-lit bodycam shows the tractor/equipment in the carport where his body was hidden. The emotional contrast is devastating — warm victim photo vs. dark crime scene.
+- **Aerial/satellite view:** Craig's outdoor photo in File Viewer PIP on left, while satellite imagery with red pulse shows the property location.
+- **Detective desk scene:** Dena's photo in File Viewer PIP center, while bodycam shows detective writing notes.
+
+**Multiple photos for same person:** Craig has at least two different photos used in PIP:
+1. **Warm/personal:** B&W, holding puppy, wearing cap — used for emotional moments
+2. **Outdoor/adventure:** Color, smiling with mountains behind, blue jacket — used for establishing/factual moments
 
 ```bash
-# FFmpeg: Picture-in-picture with fade-in
-ffmpeg -y -i bodycam-footage.mp4 -i suspect-photo.png \
-  -filter_complex "[1:v]scale=450:-1[pip];[pip]fade=in:st=1:d=0.5:alpha=1[pipf];[0:v][pipf]overlay=(W-w)/2:(H-h)/2-50" \
+# FFmpeg: File Viewer PIP on left side of bodycam footage
+ffmpeg -y -i bodycam-footage.mp4 -i file-viewer-pip.png \
+  -filter_complex "[1:v]fade=in:st=1:d=0.5:alpha=1[pipf];[0:v][pipf]overlay=80:120" \
   -c:v libx264 -crf 23 -c:a copy output.mp4
+```
+
+```python
+# Pillow: Generate a "File Viewer" PIP overlay
+def create_file_viewer_pip(photo_path, name, size=(400, 500)):
+    """Create a File Viewer window with photo and name label."""
+    img = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+
+    # Load and resize photo
+    photo = Image.open(photo_path).resize((size[0]-20, size[1]-80))
+
+    # Window chrome
+    d = ImageDraw.Draw(img)
+    x, y = 80, 120  # position on screen
+
+    # Title bar
+    d.rectangle([(x, y), (x+size[0], y+28)], fill=(50, 50, 55))
+    d.text((x+10, y+5), "File Viewer", fill=(200, 200, 200), font=get_font(14))
+
+    # Photo area
+    d.rectangle([(x, y+28), (x+size[0], y+size[1]-40)], fill=(30, 30, 35))
+    img.paste(photo, (x+10, y+38))
+
+    # Name label
+    d.rectangle([(x, y+size[1]-40), (x+size[0], y+size[1])], fill=(20, 20, 25))
+    d.text((x+size[0]//2, y+size[1]-25), name,
+           fill=(255, 255, 255), font=get_font(24), anchor="mt")
+
+    return img
 ```
 
 #### 5.2c Letterbox / Cinematic Bars
@@ -335,6 +383,108 @@ The video uses **black letterbox bars** (top and bottom) throughout most of the 
 ffmpeg -y -i input.mp4 \
   -vf "pad=1920:1080:0:0:black,crop=1920:900:0:90,pad=1920:1080:0:90:black" \
   -c:v libx264 -crf 23 -c:a copy output.mp4
+```
+
+#### 5.2d Charges / Sentence Card (Confirmed from Frame)
+
+The resolution section uses a **split-screen graphic** for the legal outcome:
+
+- **Layout:** Mugshot on right half, text on left half
+- **Right side:** Dena's booking photo (color, against cinderblock wall) — occupying ~40% of frame
+- **Left side:** Dark background with structured text:
+  - `Charges:` — **bold red header**
+  - `- Possible first or second degree murder charge` — white body text with dash bullet
+  - `Sentence:` — **bold red header**
+  - `- Life in prison with parole after 30 years, if convicted for first-degree murder` — white
+  - `- 18 Years in prison, if convicted for second-degree murder` — white
+- **Full-screen graphic** — no letterbox bars on this one
+- **Font:** Clean sans-serif, moderate weight. Red headers are noticeably bolder/larger than body text.
+
+```python
+# Pillow: Generate charges/sentence card
+img = Image.new('RGB', (1920, 1080), (10, 10, 15))
+d = ImageDraw.Draw(img)
+
+# Paste mugshot on right side
+mugshot = Image.open("dena-mugshot.jpg").resize((750, 1080))
+img.paste(mugshot, (1170, 0))
+
+# Charges section
+d.text((80, 200), "Charges:", fill=(220, 40, 40), font=get_font_bold(48))
+d.text((80, 270), "- Possible first or second", fill=(255,255,255), font=get_font(32))
+d.text((90, 310), "degree murder charge", fill=(255,255,255), font=get_font(32))
+
+# Sentence section
+d.text((80, 420), "Sentence:", fill=(220, 40, 40), font=get_font_bold(48))
+d.text((80, 490), "- Life in prison with parole after 30 years,", fill=(255,255,255), font=get_font(28))
+d.text((80, 530), "if convicted for first-degree murder", fill=(255,255,255), font=get_font(28))
+d.text((80, 600), "- 18 Years in prison,", fill=(255,255,255), font=get_font(28))
+d.text((80, 640), "if convicted for second-degree murder", fill=(255,255,255), font=get_font(28))
+
+img.save("charges-card.png")
+```
+
+#### 5.2e Aerial Map with Animated Red Pulse (Confirmed from Frame)
+
+Location establishing shots use **satellite imagery with an animated red pulse/radar ping**:
+
+- **Background:** Google Earth satellite view of the neighborhood, **dark-graded** (desaturated, contrast boosted, darkened — NOT natural satellite colors)
+- **Red pulse effect:** Glowing red concentric circles radiating outward from the target property, like a radar ping or heartbeat monitor. Creates an animated "this is the spot" effect.
+- **File Viewer PIP:** Victim's photo in the standard File Viewer window overlay, positioned left side
+- **Overall effect:** Cinematic surveillance feel — like tracking a target from a command center
+
+```bash
+# FFmpeg: Create animated red pulse on satellite image
+# 1. Generate pulse frames with Pillow (red circle expanding with decreasing opacity)
+# 2. Overlay pulse animation on satellite image
+# 3. Add Ken Burns slow zoom on the result
+
+# Simple version: static red glow overlay
+ffmpeg -y -loop 1 -i satellite-dark.png -i red-pulse-overlay.png \
+  -filter_complex "[0:v]zoompan=z='min(zoom+0.001,1.15)':d=300:s=1920x1080:fps=30[bg];[bg][1:v]overlay=(W-w)/2:(H-h)/2" \
+  -c:v libx264 -crf 23 -t 10 satellite-with-pulse.mp4
+```
+
+```python
+# Pillow: Generate red pulse animation frames
+import math
+
+def generate_pulse_frames(center_x, center_y, num_frames=90):
+    """Generate 90 frames (3 seconds at 30fps) of pulsing red circle."""
+    frames = []
+    for i in range(num_frames):
+        img = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # Expanding circle with decreasing opacity
+        phase = (i % 30) / 30.0  # 1-second cycle
+        radius = int(20 + phase * 80)
+        opacity = int(180 * (1 - phase))
+        # Outer glow
+        d.ellipse([(center_x-radius, center_y-radius),
+                    (center_x+radius, center_y+radius)],
+                   outline=(220, 30, 30, opacity), width=3)
+        # Inner solid dot (always visible)
+        d.ellipse([(center_x-8, center_y-8),
+                    (center_x+8, center_y+8)],
+                   fill=(220, 30, 30, 200))
+        frames.append(img)
+    return frames
+```
+
+#### 5.2f Content Censoring (Confirmed from Frame)
+
+When showing sensitive content (body discovery location, graphic evidence), a **black blur/gaussian blur** is applied to the specific area:
+
+- **Technique:** Localized gaussian blur or black oval mask over the sensitive area
+- **Confirmed usage:** The carport bodycam footage shows the tractor and surrounding area clearly, but the exact spot where Craig's body was concealed has a **black blur region** obscuring it
+- **No pixelation** — uses soft black blur, not mosaic/pixelation (which would look cheap)
+- **Applied surgically** — only the specific area is obscured, rest of frame is fully visible
+
+```bash
+# FFmpeg: Apply localized blur to a region (e.g., center-left of frame)
+ffmpeg -y -i bodycam.mp4 \
+  -vf "split[a][b];[b]boxblur=30:30[blurred];[a][blurred]overlay=0:0:shortest=1,drawbox=x=300:y=200:w=400:h=300:color=black@0.8:t=fill" \
+  -c:v libx264 -crf 23 -c:a copy censored.mp4
 ```
 
 ### 5.3 Text Overlays
