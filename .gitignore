@@ -7,3 +7,4 @@ build/
 .eggs/
 *.db
 .env
+.claude/claudeclaw/
