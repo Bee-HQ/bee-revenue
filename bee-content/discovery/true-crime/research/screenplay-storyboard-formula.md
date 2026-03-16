@@ -2,6 +2,29 @@
 
 > Complete production formula reverse-engineered from 300-frame storyboard analysis, transcript deep-dive, and visual element cataloging. Apply this to any true crime case with bodycam footage.
 
+> **This is a living document.** Every correction, idea, or observation from Madhu should be confirmed and folded back into this formula. The goal is continuous evolution — each video we analyze or produce should make this formula sharper.
+
+---
+
+## Evolution Protocol
+
+**When Madhu gives feedback, corrections, or new ideas:**
+
+1. **Confirm the change** — restate what's being updated and why
+2. **Update this formula** — edit the relevant section directly (don't just note it somewhere)
+3. **Update the storyboard bible** (`visual-storyboard-bible.md`) if it affects visual elements
+4. **Update the video analysis** (`video-analysis-s6CXNbzKlks.md`) if it corrects a prior observation
+5. **Log the change** in the changelog below so we can track how the formula evolves
+
+### Changelog
+
+| Date | Change | Source |
+|------|--------|--------|
+| 2026-03-16 | Initial formula created | 300-frame storyboard analysis of s6CXNbzKlks |
+| 2026-03-16 | Added 6 new visual elements: [EVIDENCE-DISPLAY], [BODY-DIAGRAM], [INTERROGATION], [COURTROOM], [DOCUMENT-MOCKUP], [SPLIT-INFO] | Frame-by-frame analysis |
+| 2026-03-16 | Color correction: dual accent system (red + teal/cyan) confirmed | Storyboard frame analysis |
+| 2026-03-16 | Bodycam % revised upward: 45% → 55% | 300-frame count |
+
 ---
 
 ## Phase 1: Case Selection Criteria
@@ -710,3 +733,20 @@ VISUAL: [MUGSHOT-CARD] — charges in RED
 NARRATOR: "[2-3 sentence epilogue. Case status.]"
 TRANSITION: [TR-FADE] to black
 ```
+
+---
+
+## Appendix B: Related Documents
+
+This formula doesn't live alone. These documents evolve together:
+
+| Document | What It Covers | Update When |
+|----------|---------------|-------------|
+| **This file** (`screenplay-storyboard-formula.md`) | The complete production formula | Any structural, narrative, or process insight |
+| `visual-storyboard-bible.md` | Every visual element with specs, code, and implementation | New visual elements discovered, color/style corrections |
+| `video-analysis-s6CXNbzKlks.md` | Deep analysis of the reference video | Corrections to observations, new frame analysis |
+| `screenplay-analysis-dr-insanity-s6CXNbzKlks.md` | Scene-by-scene screenplay breakdown | Scene structure corrections, visual tag updates |
+
+**When analyzing a NEW video:** Create a new `video-analysis-{id}.md`, extract any techniques that differ from the formula, and fold those differences back into this formula as either corrections or "variant" notes.
+
+**When producing OUR video:** Use the screenplay template (Appendix A above), and after production, do a post-mortem: what worked, what didn't, what should change in the formula. Log it in the changelog.
