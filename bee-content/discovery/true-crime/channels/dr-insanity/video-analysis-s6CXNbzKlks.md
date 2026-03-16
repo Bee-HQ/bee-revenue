@@ -33,14 +33,27 @@
 
 **Power words used:** "Secret", "Killer", "Murder" — 3 power words in a single title. High density.
 
-### Thumbnail (inferred from pattern)
+### Thumbnail (Actual — Confirmed from Image)
 
-Based on consistent Dr Insanity thumbnail formula:
-- Dark color grade (desaturated, blue-shifted shadows)
-- Victim or suspect photo (likely Dena's mugshot or property photo)
-- Bold white/red text overlay (likely "$3,000,000" or "MURDER MANSION")
-- Property/mansion photo as background
-- Red accent elements (border, text highlight, or emoji-sized icon)
+The thumbnail is a **bodycam frame** styled to look like live recording:
+
+- **Subject:** Dena Thetford standing in front of the property — she's smiling, wearing a striped shirt and glasses. Unaware she's the suspect. This IS the "secret killer" — viewers who watch will realize the irony.
+- **Background:** The "murder mansion" — large multi-story house with decks, stairs, surrounded by trees. Establishes the $3M property visually.
+- **Recording UI overlay:**
+  - Red "● REC" indicator (top-left) — signals this is real bodycam footage
+  - Camera icon (top-right) — reinforces "this is surveillance/recording"
+  - Recording indicator (bottom-right)
+- **Color grade:** Relatively natural/bright — NOT the dark desaturated grade used in the video itself. This is deliberate — the natural daylight brightness contrasts with the dark title to create cognitive dissonance.
+- **No text overlay** — No bold "$3,000,000" or "MURDER MANSION" text burned into the thumbnail. The title does all the textual work. The thumbnail is purely visual.
+- **No red accent elements** — Clean, documentary feel.
+
+**Thumbnail philosophy:** Show the killer looking innocent + the crime scene looking normal. The title tells you something terrible happened here. The gap between the pleasant image and the horrifying title is what generates the click.
+
+**Replication recipe:**
+1. Extract a clean bodycam frame where the suspect looks calm/normal
+2. Overlay "REC" indicator PNG and camera UI elements
+3. Keep the color grade natural — don't darken the thumbnail
+4. Let the title carry the drama, not the image
 
 ---
 
@@ -239,7 +252,92 @@ ffmpeg -y -i input.mp4 \
 # Composite over every generated PNG before overlaying
 ```
 
-### 5.2 Text Overlays
+### 5.2 Composited Scenes (Major Production Technique)
+
+This is a critical visual technique that isn't obvious from the transcript alone. Dr Insanity builds **composited screen mockups** and **picture-in-picture layouts** that make the video feel like you're watching a detective's investigation unfold on their own screen.
+
+#### 5.2a "Detective's Computer" Screen Mockups
+
+During investigation/research sections, the video shows a **fake Windows desktop** composited to look like a detective's computer screen:
+
+- **Background:** Windows desktop (visible taskbar, wallpaper)
+- **"Photo Viewer" windows:** Photos of suspects/victims displayed in Windows Photo Viewer windows, slightly overlapping, as if someone just opened them
+- **Dark data panel overlay (left side):** A custom-built "REPORTS" panel with labeled fields:
+  - `Name: Craig Thetford`
+  - `Age: 60 Years Old`
+  - `Address: 97 Heatherwood...`
+  - `Demo: [highlighted in red]`
+- **Effect:** Viewer feels like they're looking over the detective's shoulder at their workstation. Bridges the gap when no real footage exists for research/database scenes.
+
+**How to build:**
+```python
+from PIL import Image, ImageDraw, ImageFont
+
+# 1. Start with a Windows desktop screenshot (1920x1080)
+bg = Image.open("windows-desktop-bg.png")
+
+# 2. Create "Photo Viewer" mockup windows with suspect photos
+# Use a Photo Viewer window frame template, paste photo inside
+photo_window = create_photo_viewer_window("dena-photo.jpg", title="Photo Viewer")
+bg.paste(photo_window, (600, 50))  # Position on desktop
+
+# 3. Create dark "REPORTS" data panel (left side)
+panel = Image.new('RGBA', (350, 400), (15, 15, 20, 230))
+d = ImageDraw.Draw(panel)
+d.text((20, 20), "REPORTS", fill=(255,255,255), font=get_font(24))
+d.text((20, 70), "Name:", fill=(180,180,180), font=get_font(16))
+d.text((100, 70), "Craig Thetford", fill=(255,255,255), font=get_font(16))
+d.text((20, 100), "Age:", fill=(180,180,180), font=get_font(16))
+d.text((100, 100), "60 Years Old", fill=(255,255,255), font=get_font(16))
+# ... more fields
+bg.paste(panel, (30, 300), panel)
+
+bg.save("detective-screen.png")
+# Convert to video with Ken Burns zoom:
+# ffmpeg -y -loop 1 -i detective-screen.png -vf "zoompan=z='min(zoom+0.001,1.15)':d=300:s=1920x1080:fps=30" -t 10 detective-screen.mp4
+```
+
+#### 5.2b Picture-in-Picture Photo Overlays
+
+When a person is being discussed during phone calls or investigation narration, their photo appears as a **floating PIP overlay** on top of the current bodycam/B-roll footage:
+
+- **Photo position:** Center or center-right of frame
+- **Photo size:** ~400-500px wide
+- **Photo border:** Slight dark border/shadow
+- **Lower third under photo:** Person's name in white text (e.g., "DEANA THETFORD")
+- **Background footage continues playing** underneath (bodycam of detective at desk, B-roll, etc.)
+- **Animation:** Photo fades in, holds for 4-8 seconds during relevant narration, fades out
+
+**When used:**
+- Detective is on the phone discussing someone → their photo appears PIP
+- Narrator introduces a new character → bodycam continues while photo overlay provides face
+- Financial investigation section → suspect photo PIP over money/document B-roll
+
+```bash
+# FFmpeg: Picture-in-picture with fade-in
+ffmpeg -y -i bodycam-footage.mp4 -i suspect-photo.png \
+  -filter_complex "[1:v]scale=450:-1[pip];[pip]fade=in:st=1:d=0.5:alpha=1[pipf];[0:v][pipf]overlay=(W-w)/2:(H-h)/2-50" \
+  -c:v libx264 -crf 23 -c:a copy output.mp4
+```
+
+#### 5.2c Letterbox / Cinematic Bars
+
+The video uses **black letterbox bars** (top and bottom) throughout most of the footage:
+
+- **Bar height:** ~60-80px each (top and bottom)
+- **Creates a ~2.35:1 widescreen feel** from standard 16:9 footage
+- **Purpose:** Instantly signals "this is cinematic/documentary content" — not a vlog or talking head
+- **Applied to:** Bodycam footage, B-roll, composited scenes. NOT applied to full-screen graphics (quote cards, timeline markers)
+- **Sponsor segment retains letterbox** but with warmer, brighter footage inside
+
+```bash
+# FFmpeg: Add letterbox bars
+ffmpeg -y -i input.mp4 \
+  -vf "pad=1920:1080:0:0:black,crop=1920:900:0:90,pad=1920:1080:0:90:black" \
+  -c:v libx264 -crf 23 -c:a copy output.mp4
+```
+
+### 5.3 Text Overlays
 
 | Overlay Type | Appearance | Font/Style | When |
 |-------------|------------|-----------|------|
@@ -535,6 +633,19 @@ Dramatic irony is the primary retention technique. The narrator tells viewers th
 > "With that said, let's get back to Deputy Roger, who is on the verge of hearing a story that may explain why Craig truly vanished."
 
 **Technique:** Open loop re-hook — immediately reinstates the tension by promising the answer to why Craig disappeared.
+
+### Sponsor Visual Treatment (Confirmed from Frame)
+
+The sponsor segment is a **complete visual departure** from the rest of the video:
+
+- **Color grade:** Warm, bright, well-lit — the exact opposite of the dark documentary main footage
+- **Footage:** Professional commercial footage (woman in yellow sweater, cozy setting) — NOT bodycam
+- **Red horizontal accent line** across the lower portion of the frame — the only visual element connecting it to Dr Insanity's brand
+- **Letterbox bars retained** — maintains the cinematic framing
+- **Product demo:** Screen recordings of the Chime app interface
+- **CTA:** QR code overlay, URL text (chime.com/insanity)
+
+This visual contrast is deliberate — the warmth of the sponsor segment provides a "breather" from 26 minutes of dark crime footage, making the return to the investigation feel even more intense.
 
 ### Sponsor Duration
 
