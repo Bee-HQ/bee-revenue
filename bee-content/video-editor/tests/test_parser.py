@@ -183,7 +183,7 @@ class TestParseAssemblyGuide:
 class TestParseRealAssemblyGuide:
     """Test against the actual Alex Murdaugh assembly guide."""
 
-    REAL_GUIDE = Path("/home/user/bee-revenue/bee-content-discovery/true-crime/cases/alex-murdaugh/assembly-guide.md")
+    REAL_GUIDE = Path("/home/user/bee-revenue/bee-content/discovery/true-crime/cases/alex-murdaugh/assembly-guide.md")
 
     @pytest.mark.skipif(
         not REAL_GUIDE.exists(),
