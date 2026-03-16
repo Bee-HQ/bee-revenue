@@ -278,6 +278,46 @@ def status(
                 console.print(f"  {subdir}/: {len(files)} files")
 
 
+@app.command()
+def serve(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Bind host"),
+    port: int = typer.Option(8420, "--port", "-p", help="Bind port"),
+    dev: bool = typer.Option(False, "--dev", help="Dev mode (CORS open, no static)"),
+):
+    """Start the web-based video editor server."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]Missing dependency. Install with: uv pip install bee-video-editor[web][/red]")
+        raise typer.Exit(1)
+
+    from bee_video_editor.api.server import create_app
+
+    static_dir = None
+    if not dev:
+        # Look for built frontend
+        candidates = [
+            Path(__file__).parent.parent.parent.parent / "web" / "dist",
+            Path(__file__).parent.parent / "web" / "dist",
+        ]
+        for c in candidates:
+            if c.exists():
+                static_dir = c
+                break
+
+    app_instance = create_app(static_dir=static_dir)
+
+    console.print(f"[bold]Bee Video Editor[/bold] — http://{host}:{port}")
+    if dev:
+        console.print("[dim]Dev mode: run 'npm run dev' in web/ for frontend[/dim]")
+    elif static_dir:
+        console.print(f"[dim]Serving frontend from {static_dir}[/dim]")
+    else:
+        console.print("[dim]No built frontend found. Run 'npm run build' in web/[/dim]")
+
+    uvicorn.run(app_instance, host=host, port=port, log_level="info")
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)
