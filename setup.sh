@@ -83,6 +83,13 @@ check_prereqs() {
     else
         warn "ffmpeg not found (needed for bee-video). Install via: $(install_hint ffmpeg)"
     fi
+
+    # node/npm (optional, for video-editor web UI)
+    if command -v node &>/dev/null; then
+        ok "node $(node --version)"
+    else
+        warn "node not found (needed for bee-video web UI). Install via: $(install_hint nodejs)"
+    fi
 }
 
 # ── Project Installers ────────────────────────────────────────
@@ -123,8 +130,24 @@ install_video() {
     info "Installing bee-video (video production)..."
     cd "$dir"
     uv sync --all-extras 2>/dev/null
-    ok "bee-video installed"
+    ok "bee-video Python deps installed"
+
+    # Frontend (Node/npm)
+    if [ -d "$dir/web" ]; then
+        if command -v node &>/dev/null && command -v npm &>/dev/null; then
+            info "Installing bee-video web frontend..."
+            cd "$dir/web"
+            npm install --include=dev
+            npm run build
+            ok "bee-video web UI built"
+        else
+            warn "node/npm not found — skipping web UI build"
+            echo "  Install Node.js 18+ to enable the web editor"
+        fi
+    fi
+
     echo "  CLI: uv run bee-video --help"
+    echo "  Web: uv run bee-video serve"
 }
 
 # ── Environment Setup ─────────────────────────────────────────
@@ -210,6 +233,7 @@ print_summary() {
     echo "    cd bee-content/research   && uv run bee-research --help"
     echo "    cd bee-content/automation && uv run bee-auto --help"
     echo "    cd bee-content/video-editor && uv run bee-video --help"
+    echo "    cd bee-content/video-editor && uv run bee-video serve"
     echo ""
     echo "  Run tests:"
     echo "    ./setup.sh test"
