@@ -81,3 +81,20 @@ class ProductionStatusSchema(BaseModel):
 class GenerateRequest(BaseModel):
     tts_engine: str = "edge"
     tts_voice: str | None = None
+
+
+class DownloadScriptInfo(BaseModel):
+    name: str
+    path: str
+    relative_to_project: str
+
+
+class DownloadRequest(BaseModel):
+    script_path: str
+
+
+class DownloadStatusResponse(BaseModel):
+    task_id: str
+    running: bool
+    output_lines: list[str]
+    return_code: int | None = None

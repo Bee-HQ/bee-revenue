@@ -1,16 +1,27 @@
-"""Media routes — browse project media files, upload."""
+"""Media routes — browse project media files, upload, download."""
 
 from __future__ import annotations
 
+import asyncio
 import shutil
+import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from bee_video_editor.api.schemas import MediaFileSchema, MediaListResponse
+from bee_video_editor.api.schemas import (
+    DownloadRequest,
+    DownloadScriptInfo,
+    DownloadStatusResponse,
+    MediaFileSchema,
+    MediaListResponse,
+)
 
 router = APIRouter()
+
+# Track running downloads
+_download_tasks: dict[str, dict] = {}
 
 # Media categories and their expected subdirectories
 MEDIA_CATEGORIES = {
@@ -123,3 +134,184 @@ def serve_media_file(path: str):
         raise HTTPException(403, "Access denied: file outside project directory")
 
     return FileResponse(p)
+
+
+def _find_download_scripts(project_dir: Path) -> list[DownloadScriptInfo]:
+    """Find download scripts in or near the project directory."""
+    scripts = []
+    # Check project dir and parent dirs (up to 3 levels)
+    search_dirs = [project_dir]
+    p = project_dir
+    for _ in range(3):
+        p = p.parent
+        search_dirs.append(p)
+
+    seen = set()
+    for d in search_dirs:
+        for pattern in ["download*.sh", "*download*.sh", "fetch*.sh"]:
+            for script in d.glob(pattern):
+                if script.resolve() not in seen and script.is_file():
+                    seen.add(script.resolve())
+                    scripts.append(DownloadScriptInfo(
+                        name=script.name,
+                        path=str(script.resolve()),
+                        relative_to_project=str(
+                            script.resolve().relative_to(project_dir.resolve())
+                        ) if str(script.resolve()).startswith(str(project_dir.resolve())) else str(script.resolve()),
+                    ))
+    return scripts
+
+
+def _check_tool(name: str) -> bool:
+    """Check if a CLI tool is available."""
+    return shutil.which(name) is not None
+
+
+@router.get("/download/scripts", response_model=list[DownloadScriptInfo])
+def list_download_scripts():
+    """List available download scripts for this project."""
+    project_dir = _get_project_dir()
+    return _find_download_scripts(project_dir)
+
+
+@router.get("/download/tools")
+def check_download_tools():
+    """Check which download tools are available."""
+    return {
+        "yt_dlp": _check_tool("yt-dlp"),
+        "curl": _check_tool("curl"),
+        "wget": _check_tool("wget"),
+        "ffmpeg": _check_tool("ffmpeg"),
+    }
+
+
+@router.post("/download/run-script")
+async def run_download_script(req: DownloadRequest):
+    """Run a download script in the project directory."""
+    project_dir = _get_project_dir()
+
+    script_path = Path(req.script_path)
+    if not script_path.exists():
+        raise HTTPException(404, f"Script not found: {req.script_path}")
+    if not script_path.suffix == ".sh":
+        raise HTTPException(400, "Only .sh scripts are supported")
+
+    task_id = f"script-{script_path.stem}"
+    if task_id in _download_tasks and _download_tasks[task_id].get("running"):
+        raise HTTPException(409, "This script is already running")
+
+    _download_tasks[task_id] = {
+        "running": True,
+        "script": script_path.name,
+        "output_lines": [],
+        "return_code": None,
+    }
+
+    async def _run():
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(script_path),
+                cwd=str(project_dir),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                decoded = line.decode("utf-8", errors="replace").rstrip()
+                _download_tasks[task_id]["output_lines"].append(decoded)
+                # Keep last 200 lines
+                if len(_download_tasks[task_id]["output_lines"]) > 200:
+                    _download_tasks[task_id]["output_lines"] = \
+                        _download_tasks[task_id]["output_lines"][-200:]
+            await proc.wait()
+            _download_tasks[task_id]["return_code"] = proc.returncode
+        except Exception as e:
+            _download_tasks[task_id]["output_lines"].append(f"ERROR: {e}")
+            _download_tasks[task_id]["return_code"] = -1
+        finally:
+            _download_tasks[task_id]["running"] = False
+
+    asyncio.create_task(_run())
+    return {"status": "started", "task_id": task_id}
+
+
+@router.post("/download/yt-dlp")
+async def download_with_ytdlp(url: str, category: str = "footage", filename: str | None = None):
+    """Download a video using yt-dlp."""
+    if not _check_tool("yt-dlp"):
+        raise HTTPException(400, "yt-dlp is not installed. Install with: pip install yt-dlp")
+
+    project_dir = _get_project_dir()
+    target_dir = project_dir / category
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    output_template = str(target_dir / (filename or "%(title)s.%(ext)s"))
+
+    task_id = f"ytdlp-{hash(url) % 10000}"
+    _download_tasks[task_id] = {
+        "running": True,
+        "url": url,
+        "output_lines": [],
+        "return_code": None,
+    }
+
+    async def _run():
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "yt-dlp",
+                "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
+                "--no-playlist",
+                "-o", output_template,
+                url,
+                cwd=str(project_dir),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            while True:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                decoded = line.decode("utf-8", errors="replace").rstrip()
+                _download_tasks[task_id]["output_lines"].append(decoded)
+                if len(_download_tasks[task_id]["output_lines"]) > 200:
+                    _download_tasks[task_id]["output_lines"] = \
+                        _download_tasks[task_id]["output_lines"][-200:]
+            await proc.wait()
+            _download_tasks[task_id]["return_code"] = proc.returncode
+        except Exception as e:
+            _download_tasks[task_id]["output_lines"].append(f"ERROR: {e}")
+            _download_tasks[task_id]["return_code"] = -1
+        finally:
+            _download_tasks[task_id]["running"] = False
+
+    asyncio.create_task(_run())
+    return {"status": "started", "task_id": task_id}
+
+
+@router.get("/download/status", response_model=list[DownloadStatusResponse])
+def download_status():
+    """Get status of all download tasks."""
+    result = []
+    for task_id, info in _download_tasks.items():
+        result.append(DownloadStatusResponse(
+            task_id=task_id,
+            running=info["running"],
+            output_lines=info["output_lines"][-20:],
+            return_code=info.get("return_code"),
+        ))
+    return result
+
+
+@router.post("/download/create-dirs")
+def create_media_dirs():
+    """Create all standard media directories in the project."""
+    project_dir = _get_project_dir()
+    created = []
+    for category, subdirs in MEDIA_CATEGORIES.items():
+        d = project_dir / subdirs[0]
+        if not d.exists():
+            d.mkdir(parents=True, exist_ok=True)
+            created.append(str(subdirs[0]))
+    return {"status": "ok", "created": created}

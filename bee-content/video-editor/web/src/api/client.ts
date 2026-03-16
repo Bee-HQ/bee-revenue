@@ -1,4 +1,4 @@
-import type { MediaListResponse, ProductionStatus, Storyboard } from '../types';
+import type { DownloadScriptInfo, DownloadStatus, DownloadTools, MediaListResponse, ProductionStatus, Storyboard } from '../types';
 
 const BASE = '/api';
 
@@ -76,5 +76,35 @@ export const api = {
 
   assembleVideo() {
     return request('/production/assemble', { method: 'POST' });
+  },
+
+  // Download endpoints
+  listDownloadScripts(): Promise<DownloadScriptInfo[]> {
+    return request('/media/download/scripts');
+  },
+
+  checkDownloadTools(): Promise<DownloadTools> {
+    return request('/media/download/tools');
+  },
+
+  runDownloadScript(scriptPath: string) {
+    return request('/media/download/run-script', {
+      method: 'POST',
+      body: JSON.stringify({ script_path: scriptPath }),
+    });
+  },
+
+  downloadWithYtDlp(url: string, category = 'footage', filename?: string) {
+    const params = new URLSearchParams({ url, category });
+    if (filename) params.set('filename', filename);
+    return request(`/media/download/yt-dlp?${params}`, { method: 'POST' });
+  },
+
+  getDownloadStatus(): Promise<DownloadStatus[]> {
+    return request('/media/download/status');
+  },
+
+  createMediaDirs() {
+    return request('/media/download/create-dirs', { method: 'POST' });
   },
 };

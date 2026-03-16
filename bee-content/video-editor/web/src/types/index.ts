@@ -60,3 +60,23 @@ export interface ProductionStatus {
 }
 
 export type LayerName = 'visual' | 'audio' | 'overlay' | 'music' | 'source' | 'transition';
+
+export interface DownloadScriptInfo {
+  name: string;
+  path: string;
+  relative_to_project: string;
+}
+
+export interface DownloadTools {
+  yt_dlp: boolean;
+  curl: boolean;
+  wget: boolean;
+  ffmpeg: boolean;
+}
+
+export interface DownloadStatus {
+  task_id: string;
+  running: boolean;
+  output_lines: string[];
+  return_code: number | null;
+}
