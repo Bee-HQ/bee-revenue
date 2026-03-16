@@ -14,6 +14,7 @@ from bee_video_editor.processors import graphics as gfx
 from bee_video_editor.processors.ffmpeg import (
     FFmpegError,
     concat_segments,
+    concat_with_transitions,
     image_to_video,
     normalize_format,
     normalize_loudness,
@@ -250,8 +251,18 @@ def normalize_all_segments(config: ProductionConfig) -> list[Path]:
     return normalized
 
 
-def assemble_final(config: ProductionConfig) -> Path | None:
-    """Concatenate all composited/normalized segments into the final video."""
+def assemble_final(
+    config: ProductionConfig,
+    transition: str | None = None,
+    transition_duration: float = 1.0,
+) -> Path | None:
+    """Concatenate all composited/normalized segments into the final video.
+
+    Args:
+        transition: Optional xfade transition name (e.g. "fade", "dissolve").
+                    If None, uses simple concatenation.
+        transition_duration: Duration of each transition in seconds.
+    """
     composited_dir = config.output_dir / "composited"
     normalized_dir = config.output_dir / "normalized"
     final_dir = config.output_dir / "final"
@@ -265,7 +276,12 @@ def assemble_final(config: ProductionConfig) -> Path | None:
         return None
 
     output = final_dir / "final_assembled.mp4"
-    concat_segments(segments, output, reencode=True)
+
+    if transition and len(segments) >= 2:
+        concat_with_transitions(segments, output, transition=transition, transition_duration=transition_duration)
+    else:
+        concat_segments(segments, output, reencode=True)
+
     return output
 
 

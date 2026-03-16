@@ -134,13 +134,40 @@ def generate_narration(req: GenerateRequest):
     return {"status": "ok", "generated": generated, "count": len(generated)}
 
 
+@router.get("/effects")
+def list_effects():
+    """List available effects, transitions, and color presets."""
+    from bee_video_editor.processors.ffmpeg import COLOR_GRADE_PRESETS, XFADE_TRANSITIONS
+
+    return {
+        "color_presets": list(COLOR_GRADE_PRESETS.keys()),
+        "transitions": XFADE_TRANSITIONS,
+        "ken_burns": [
+            "zoom_in", "zoom_out", "pan_left", "pan_right",
+            "pan_up", "pan_down", "zoom_in_pan_right",
+        ],
+    }
+
+
 @router.post("/assemble")
-def assemble_video():
-    """Assemble all segments into final video."""
+def assemble_video(
+    transition: str | None = None,
+    transition_duration: float = 1.0,
+):
+    """Assemble all segments into final video.
+
+    Query params:
+        transition: Optional xfade transition name.
+        transition_duration: Transition duration in seconds.
+    """
     _, project_dir = _get_state()
     output_dir = project_dir / "output"
 
-    from bee_video_editor.processors.ffmpeg import FFmpegError, concat_segments
+    from bee_video_editor.processors.ffmpeg import (
+        FFmpegError,
+        concat_segments,
+        concat_with_transitions,
+    )
 
     # Collect segments in order
     composited_dir = output_dir / "composited"
@@ -156,7 +183,14 @@ def assemble_video():
                 final_dir.mkdir(parents=True, exist_ok=True)
                 output_path = final_dir / "final_assembled.mp4"
                 try:
-                    concat_segments(files, output_path, reencode=True)
+                    if transition and len(files) >= 2:
+                        concat_with_transitions(
+                            files, output_path,
+                            transition=transition,
+                            transition_duration=transition_duration,
+                        )
+                    else:
+                        concat_segments(files, output_path, reencode=True)
                     return {"status": "ok", "output": str(output_path)}
                 except FFmpegError as e:
                     raise HTTPException(500, f"Assembly failed: {e}")
