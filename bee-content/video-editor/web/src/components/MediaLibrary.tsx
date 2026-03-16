@@ -225,8 +225,38 @@ function DownloadPanel({ onDone }: { onDone: () => void }) {
   );
 }
 
+function MediaThumbnail({ file }: { file: MediaFile }) {
+  const isImage = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'].includes(file.extension);
+  const isVideo = ['.mp4', '.mkv', '.webm', '.mov', '.avi'].includes(file.extension);
+
+  if (isImage) {
+    return (
+      <img
+        src={api.mediaFileUrl(file.path)}
+        alt=""
+        className="w-8 h-8 rounded object-cover bg-editor-border shrink-0"
+        loading="lazy"
+      />
+    );
+  }
+
+  if (isVideo) {
+    return (
+      <div className="w-8 h-8 rounded bg-editor-border shrink-0 flex items-center justify-center text-[10px]">
+        ▶
+      </div>
+    );
+  }
+
+  return (
+    <span className="text-xs shrink-0 w-8 text-center">
+      {MEDIA_TYPE_ICON[file.extension] || '📄'}
+    </span>
+  );
+}
+
 export function MediaLibrary() {
-  const { mediaFiles, mediaCategories, loadMedia, setDraggedMedia } = useProjectStore();
+  const { mediaFiles, mediaCategories, loadMedia, setDraggedMedia, setPreviewMedia, previewMedia } = useProjectStore();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDownloads, setShowDownloads] = useState(false);
@@ -244,6 +274,10 @@ export function MediaLibrary() {
 
   const handleDragEnd = () => {
     setDraggedMedia(null);
+  };
+
+  const handleClick = (file: MediaFile) => {
+    setPreviewMedia(previewMedia?.path === file.path ? null : file);
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -368,28 +402,34 @@ export function MediaLibrary() {
           </div>
         )}
 
-        {filteredFiles.map(file => (
-          <div
-            key={file.path}
-            draggable
-            onDragStart={() => handleDragStart(file)}
-            onDragEnd={handleDragEnd}
-            className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-editor-hover
-                       cursor-grab active:cursor-grabbing group transition-colors"
-          >
-            <span className="text-xs shrink-0">
-              {MEDIA_TYPE_ICON[file.extension] || '📄'}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs text-gray-300 truncate group-hover:text-gray-100">
-                {file.name}
-              </div>
-              <div className="text-[10px] text-gray-600">
-                {formatSize(file.size_bytes)}
+        {filteredFiles.map(file => {
+          const isActive = previewMedia?.path === file.path;
+          return (
+            <div
+              key={file.path}
+              draggable
+              onDragStart={() => handleDragStart(file)}
+              onDragEnd={handleDragEnd}
+              onClick={() => handleClick(file)}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded
+                         cursor-grab active:cursor-grabbing group transition-colors ${
+                           isActive
+                             ? 'bg-editor-accent/15 ring-1 ring-editor-accent/30'
+                             : 'hover:bg-editor-hover'
+                         }`}
+            >
+              <MediaThumbnail file={file} />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs text-gray-300 truncate group-hover:text-gray-100">
+                  {file.name}
+                </div>
+                <div className="text-[10px] text-gray-600">
+                  {formatSize(file.size_bytes)} · {file.category}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
