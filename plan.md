@@ -1,13 +1,13 @@
-# OpenClaw Revenue
+# Bee Revenue
 
-Goal: Explore and execute ways to generate income using OpenClaw — automation, agents, services, products.
+Goal: Explore and execute ways to generate income using Bee — automation, agents, services, products.
 
 ## Ideas to Explore
 
 - [ ] Agentic services (offer agent-as-a-service to others)
 - [ ] Automation pipelines sold as products
-- [ ] OpenClaw-powered bots for communities/businesses
-- [ ] Content/tutorial creation around OpenClaw
+- [ ] Bee-powered bots for communities/businesses
+- [ ] Content/tutorial creation around Bee
 - [ ] Research what others are doing (see links below)
 
 ## Resources

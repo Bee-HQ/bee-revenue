@@ -855,5 +855,5 @@ This assumes modest growth (Year 1) and conservative view estimates for non-Engl
 - HubSpot Marketing Blog: YouTube CPM by country (Norway $43.15, Germany $38.85, South Korea $17.00)
 - Rask AI: AI dubbing platform (130+ languages, VoiceClone, YouTube integration)
 - YouTube Official Blog: Multi-language audio feature (25%+ non-primary language watch time)
-- OpenClaw internal research: True Crime Niche Competitive Analysis (16 English channels analyzed)
-- OpenClaw internal research: Faceless Video Regions & Languages (CPM and competition data)
+- Bee internal research: True Crime Niche Competitive Analysis (16 English channels analyzed)
+- Bee internal research: Faceless Video Regions & Languages (CPM and competition data)

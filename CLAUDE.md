@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-Monorepo for automated revenue streams under OpenClaw. This is a git submodule — the `.git` file points to `../../.git/modules/projects/openclaw-revenue`.
+Monorepo for automated revenue streams under Bee. This is a git submodule — the `.git` file points to `../../.git/modules/projects/openclaw-revenue`.
 
 ## Projects
 
@@ -109,7 +109,7 @@ Tests use **tempfile-based DB isolation** — each test gets a fresh SQLite in a
 - **Name:** Madhu (bamboobee)
 - **What to call them:** Madhu
 - **Timezone:** _(learning)_
-- **Notes:** Building automated revenue streams — YouTube content pipeline, trading research, AI services. Has a working content research CLI (bee-content-research) and is in research phase on content automation, discovery, and trading. Running all of this under OpenClaw.
+- **Notes:** Building automated revenue streams — YouTube content pipeline, trading research, AI services. Has a working content research CLI (bee-content-research) and is in research phase on content automation, discovery, and trading. Running all of this under Bee.
 
 ## Context
 

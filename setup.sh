@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# OpenClaw Revenue — Setup Script
+# Bee Revenue — Setup Script
 # Sets up all bee-content tools on a fresh machine.
 #
 # Usage:
@@ -241,7 +241,7 @@ verify() {
 print_summary() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  OpenClaw Revenue — Setup Complete"
+    echo "  Bee Revenue — Setup Complete"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "  Tools installed:"
@@ -269,7 +269,7 @@ main() {
     local target="${1:-all}"
 
     echo ""
-    echo "  OpenClaw Revenue — Setup"
+    echo "  Bee Revenue — Setup"
     echo ""
 
     case "$target" in

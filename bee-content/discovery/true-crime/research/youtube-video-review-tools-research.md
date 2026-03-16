@@ -759,7 +759,7 @@ This is the design specification for a Claude-based agent purpose-built to revie
 | **Input** | True crime video screenplay (text) |
 | **Output** | Scoring rubric (8 dimensions, 0-100 each) + detailed notes + revision suggestions |
 | **Reference Data** | Dr Insanity narration style guide, competitive analysis, visual clip taxonomy |
-| **Target User** | Madhu / OpenClaw content pipeline |
+| **Target User** | Madhu / Bee content pipeline |
 
 ### 9.2 System Prompt (Core)
 
@@ -1131,7 +1131,7 @@ STEP 8: GENERATE REPORT
 # True Crime Script Reviewer — System Prompt
 
 ## Identity
-You are a True Crime Script Reviewer for the OpenClaw content pipeline. You
+You are a True Crime Script Reviewer for the Bee content pipeline. You
 evaluate YouTube true crime documentary scripts against the standards set by
 Dr Insanity (@DrInsanityCrime), the #1 channel by per-video views in the
 true crime niche (9.87M median views, 4.3M subscribers).
