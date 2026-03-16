@@ -274,6 +274,130 @@ def format_full_report(result: dict) -> Panel:
     )
 
 
+def format_review_report(result: dict) -> Panel:
+    """Format a script review report as a Rich Panel."""
+    from rich.console import Group
+    from rich.text import Text
+
+    parts = []
+
+    # Header with overall score
+    overall = result.get("overall_score", 0)
+    tier = result.get("tier", "Unknown")
+    tier_colors = {
+        "Excellent": "bold green",
+        "Strong": "green",
+        "Good": "blue",
+        "Decent": "yellow",
+        "Needs Work": "red",
+        "Weak": "bold red",
+        "Poor": "bold red",
+    }
+    tier_style = tier_colors.get(tier, "white")
+
+    header = Text()
+    header.append("VIDEO REVIEW REPORT\n\n", style="bold blue")
+    header.append("OVERALL SCORE: ", style="bold")
+    header.append(f"{overall}/100", style=tier_style)
+    header.append(f" ({tier})\n", style=tier_style)
+    parts.append(Panel(header, title="Script Review"))
+
+    # Pillar scores table
+    pillar_table = Table(title="Pillar Scores")
+    pillar_table.add_column("Pillar", style="bold", min_width=25)
+    pillar_table.add_column("Score", justify="right", min_width=10)
+    pillar_table.add_column("Weight", justify="right", style="dim")
+    pillar_table.add_column("Status", min_width=15)
+
+    pillar_details = result.get("pillar_details", {})
+    attention = result.get("attention_needed", [])
+
+    # Sort by weight descending
+    sorted_pillars = sorted(
+        pillar_details.items(),
+        key=lambda x: x[1].get("weight", 0),
+        reverse=True,
+    )
+
+    for pillar, details in sorted_pillars:
+        score = details.get("score", 0)
+        weight = details.get("weight", 0)
+        name = details.get("name", pillar)
+
+        if score >= 80:
+            score_style = "green"
+            status = "Strong"
+        elif score >= 60:
+            score_style = "yellow"
+            status = "OK"
+        else:
+            score_style = "red"
+            status = "Needs attention"
+
+        flag = " <--" if pillar in attention else ""
+
+        pillar_table.add_row(
+            name,
+            f"[{score_style}]{score}/100[/{score_style}]",
+            f"{weight * 100:.0f}%",
+            f"[{score_style}]{status}{flag}[/{score_style}]",
+        )
+
+    parts.append(pillar_table)
+
+    # Top strengths
+    strengths = result.get("top_strengths", [])
+    if strengths:
+        strength_text = Text()
+        strength_text.append("TOP STRENGTHS\n\n", style="bold green")
+        for i, s in enumerate(strengths, 1):
+            pillar = s.get("pillar", "")
+            strength = s.get("strength", "")
+            strength_text.append(f"  {i}. ", style="bold")
+            strength_text.append(f"[{pillar}] ", style="dim")
+            strength_text.append(f"{strength}\n")
+        parts.append(Panel(strength_text))
+
+    # Top issues with fixes
+    issues = result.get("top_issues", [])
+    if issues:
+        issue_text = Text()
+        issue_text.append("TOP ISSUES (with fixes)\n\n", style="bold red")
+        for i, issue in enumerate(issues, 1):
+            pillar = issue.get("pillar", "")
+            desc = issue.get("description", "")
+            fix = issue.get("fix", "")
+            location = issue.get("location", "")
+
+            issue_text.append(f"  {i}. ", style="bold")
+            issue_text.append(f"[{pillar}] ", style="dim")
+            issue_text.append(f"{desc}\n")
+            if location:
+                issue_text.append(f"     Location: ", style="dim")
+                issue_text.append(f"{location[:80]}\n", style="dim italic")
+            if fix:
+                issue_text.append(f"     Fix: ", style="green")
+                issue_text.append(f"{fix}\n", style="green")
+            issue_text.append("\n")
+        parts.append(Panel(issue_text))
+
+    # Predictions
+    predictions = result.get("predictions", {})
+    if predictions:
+        pred_text = Text()
+        pred_text.append("PREDICTIONS\n\n", style="bold cyan")
+        pred_text.append(f"  Estimated CTR:         {predictions.get('estimated_ctr', 'N/A')}\n")
+        pred_text.append(f"  Avg View Duration:     {predictions.get('estimated_avg_view_duration', 'N/A')}\n")
+        pred_text.append(f"  Engagement Level:      {predictions.get('estimated_engagement', 'N/A')}\n")
+        pred_text.append(f"  Viral Potential:       {predictions.get('viral_potential', 'N/A')}\n")
+        parts.append(Panel(pred_text))
+
+    return Panel(
+        Group(*parts) if parts else Text("No data"),
+        title="Bee Content Research - Script Review",
+    )
+
+
 def to_json(data: dict | list) -> str:
     """Convert data to pretty-printed JSON string."""
     return json.dumps(data, indent=2, default=str)

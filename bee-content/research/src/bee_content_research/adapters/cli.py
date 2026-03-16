@@ -19,6 +19,7 @@ from ..formatters import (
     format_compare_table,
     format_content_gaps_table,
     format_full_report,
+    format_review_report,
     to_json,
     to_csv,
 )
@@ -445,3 +446,69 @@ def report(
             console.print(format_full_report(result))
     finally:
         db.close()
+
+
+@app.command()
+def review(
+    source: str = typer.Argument(
+        ..., help="Script file path, raw text, or YouTube URL"
+    ),
+    title: Optional[str] = typer.Option(
+        None, "--title", help="Video title for SEO analysis"
+    ),
+    description: Optional[str] = typer.Option(
+        None, "--description", help="Video description for SEO analysis"
+    ),
+    tags: Optional[str] = typer.Option(
+        None, "--tags", help="Comma-separated tags for SEO analysis"
+    ),
+    series_name: Optional[str] = typer.Option(
+        None, "--series", help="Anime/manga/manhwa series name"
+    ),
+    archetype: Optional[str] = typer.Option(
+        None, "--archetype", help="Content archetype: essay, recap, or explainer"
+    ),
+    format: str = typer.Option(
+        "table", "--format", help="Output format: table, json"
+    ),
+):
+    """Review a script for engagement, pacing, and storytelling quality.
+
+    Analyzes anime/manga/manhwa YouTube scripts across 7 pillars using AI.
+    Accepts a file path, raw text, or YouTube URL as input.
+
+    Requires ANTHROPIC_API_KEY environment variable to be set.
+    Install the review extra: uv pip install -e ".[review]"
+    """
+    from ..services.review import review_from_source
+    from ..reviewers.script_reviewer import ReviewError
+
+    # Build metadata from options
+    metadata = None
+    if any([title, description, tags, series_name, archetype]):
+        metadata = {}
+        if title:
+            metadata["title"] = title
+        if description:
+            metadata["description"] = description
+        if tags:
+            metadata["tags"] = [t.strip() for t in tags.split(",")]
+        if series_name:
+            metadata["series_name"] = series_name
+        if archetype:
+            metadata["archetype"] = archetype
+
+    try:
+        with console.status("[bold blue]Reviewing script across 7 pillars..."):
+            result = review_from_source(source, metadata)
+
+        if format == "json":
+            console.print(to_json(result))
+        else:
+            console.print(format_review_report(result))
+    except ReviewError as e:
+        console.print(f"[red]Review Error:[/red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
