@@ -79,14 +79,82 @@ The first ~80 seconds functions as a **movie trailer**, not a cold open. This is
 
 **Purpose:** Functions exactly like a movie trailer — shows the most dramatic moments without context, creates maximum open loops, and commits the viewer to watching the full 50 minutes to understand what they just saw.
 
-**Transition OUT of trailer:** After the final flash-forward clip, a fade to black or glitch transition → narrator rewinds to the beginning with "It's a late May evening in Cloudcroft, New Mexico..."
+**Transition OUT of trailer:** After the final flash-forward clip → fade to black → **brand sting** → **disclaimer card** → **establishing sequence** → narrator begins.
+
+### Opening Sequence (Post-Trailer → Act I) — Confirmed from Frames
+
+After the trailer ends, the video enters a **5-part opening sequence** before the main narrative begins:
+
+| Step | Visual | Duration (est.) | Description |
+|------|--------|-----------------|-------------|
+| **1. Brand Sting** | "DR. INSANITY" red text on black | 2-3 sec | Distressed/horror-style serif font with red neon glow/bloom effect. Floating dust particles. Pure black background. This is the channel's brand stamp. |
+| **2. Disclaimer Card** | Text over dark aerial imagery | 3-4 sec | "All footage is real" (RED) + "and obtained from U.S. law enforcement." (WHITE). Overlaid on the same dark-graded satellite imagery used throughout. Establishes credibility and legal protection. |
+| **3. Wide Aerial Establishing** | Pure satellite imagery | 3-5 sec | Google Earth view of Cloudcroft, NM with extreme vignette + desaturation. Edges nearly black. No overlays. Sets the geographic context. Slow Ken Burns zoom in. |
+| **4. Aerial + PIP + Red Pulse** | Satellite + victim photo + animated ping | 5-8 sec | Zoomed-in satellite view. Red radar pulse animates on the property. Craig's photo in File Viewer PIP on left with "CRAIG" label. Establishes: this is the victim, this is where it happened. |
+| **5. Property Aerial + 911 Waveform** | Drone/aerial of house + waveform + captions | Continues into Act I | Close-up aerial/drone shot of the actual property (dark, snow on trees). Red audio waveform overlay across top. White animated captions below ("to have a wellness check"). The 911 call begins playing. |
+
+This sequence flows: **brand → credibility → where → who + where → what happened** — a complete visual funnel from abstract to specific in ~20 seconds.
+
+#### Brand Sting Details (Confirmed from Frame)
+
+```python
+# Pillow: Generate Dr Insanity-style brand sting
+img = Image.new('RGB', (1920, 1080), (0, 0, 0))
+d = ImageDraw.Draw(img)
+
+# Use a distressed/horror font (e.g., "Bleeding Cowboys", "Creepster", "Nosifer")
+# Red text with glow: draw text multiple times at slightly offset positions
+# with decreasing opacity to create bloom effect
+text = "DR. INSANITY"
+font = ImageFont.truetype("creepster.ttf", 96)
+
+# Glow layers (drawn first, underneath)
+for offset in [8, 6, 4, 2]:
+    glow = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.text((960, 540), text, fill=(180, 20, 20, 40), font=font, anchor="mm")
+    glow = glow.filter(ImageFilter.GaussianBlur(offset * 3))
+    img = Image.alpha_composite(img.convert('RGBA'), glow).convert('RGB')
+
+# Sharp text on top
+d = ImageDraw.Draw(img)
+d.text((960, 540), text, fill=(220, 30, 30), font=font, anchor="mm")
+
+# Optional: add dust particles (small white dots at random positions)
+import random
+for _ in range(15):
+    x, y = random.randint(0, 1920), random.randint(0, 1080)
+    d.ellipse([(x-1, y-1), (x+1, y+1)], fill=(150, 150, 150, 80))
+
+img.save("brand-sting.png")
+```
+
+#### Disclaimer Card Details (Confirmed from Frame)
+
+```python
+# Background: dark-graded satellite imagery
+bg = Image.open("satellite-dark.png")  # pre-graded aerial
+
+d = ImageDraw.Draw(bg)
+# "All footage is real" in RED
+d.text((960, 530), "All footage is real", fill=(220, 30, 30),
+       font=get_font(32), anchor="mm")
+# "and obtained from U.S. law enforcement." in WHITE (same line, offset)
+d.text((960, 530), "All footage is real and obtained from U.S. law enforcement.",
+       fill=(255, 255, 255), font=get_font(32), anchor="mm")
+# Note: "All footage is real" portion is red, rest is white
+# Implementation: draw white text first, then overdraw "All footage is real" in red
+
+bg.save("disclaimer-card.png")
+```
 
 ### Act Structure & Timing
 
 | Act | Time Range | Duration | % of Video | Content |
 |-----|-----------|----------|------------|---------|
 | **Trailer** | 0:00 - 1:20 | 80 sec | 3% | Movie-trailer montage — 7 clips with glitch/flash transitions |
-| **Act I: Setup** | 1:30 - 8:00 | 6.5 min | 13% | Scene-setting, victim intro, first 911 call, first police visit |
+| **Opening Sequence** | 1:20 - 1:50 | 30 sec | 1% | Brand sting → disclaimer → aerial establishing → PIP + pulse |
+| **Act I: Setup** | 1:50 - 8:00 | 6 min | 12% | Property aerial with 911 waveform, first police visit |
 | **Act II: Investigation** | 8:00 - 26:30 | 18.5 min | 37% | Second call, neighbor canvass, Dena's call back, ex-husbands, daughter, financials |
 | **Sponsor** | 26:30 - 28:00 | 90 sec | 3% | Chime banking app |
 | **Act III: Confrontation** | 28:00 - 40:00 | 12 min | 24% | Roger face-to-face with Dena (twice), neighbor reveals |
@@ -537,7 +605,7 @@ Beyond static text overlays, the video includes animated motion graphics:
 |---------|------------|----------|
 | **Animated lower thirds** | Slide-in from left with red accent line drawing in, text fading in sequentially (name, then role) | Character introductions |
 | **Animated map pins** | Pin drop animation on location maps (drops from above, bounces) | New location establishment |
-| **Animated waveform** | Real-time audio waveform synced to 911/phone call audio | During all phone/911 audio |
+| **Red audio waveform** | Jagged red waveform with red glow, overlaid on aerial footage (NOT on black bg) | During 911/phone call audio |
 | **Animated quote reveal** | Quote text types in or fades word-by-word | Key damning statements |
 | **Transition graphics** | Glitch frames, white flashes (see Section 4) | Between dramatic clips |
 | **Progress/timeline line** | Animated line connecting events chronologically | During investigation timeline sections |
@@ -566,7 +634,47 @@ ffmpeg -y -loop 1 -i "photo.jpg" \
   output.mp4
 ```
 
-### 5.7 Color Palette
+### 5.7 911 / Phone Call Visual Treatment (Corrected — Confirmed from Frame)
+
+**Previous assumption (WRONG):** Dark/black background with green waveform animation.
+
+**Actual treatment (CONFIRMED):** Aerial/drone footage of the property as background, with red waveform and animated captions overlaid.
+
+**Layered composition (bottom to top):**
+
+1. **Background layer:** Dark aerial/drone shot of the actual property involved in the case. Night-time or heavily dark-graded. Shows the house, trees, surrounding terrain. Slow Ken Burns zoom applied. In this video: the Thetford property with snow on surrounding trees.
+
+2. **Red audio waveform layer:** Jagged red waveform line across the upper-center of the frame, synced to the 911 call audio. Has a **red glow/bloom** behind the waveform, creating a neon-in-darkness effect. The waveform animates in real-time with the audio peaks.
+
+3. **White caption layer:** Bold white text (animated subtitles) positioned center-bottom, below the waveform. Shows what's being said in the call: "to have a wellness check". Words appear phrase-by-phrase synced to audio.
+
+**Why this works better than black + waveform:**
+- The property footage keeps the viewer grounded in the location
+- The red waveform + dark footage creates an ominous "surveillance monitoring" feel
+- Animated captions ensure comprehension even with poor call audio quality
+- The composition is layered and cinematic, not flat
+
+```bash
+# FFmpeg: Create 911 call visualization with waveform over aerial footage
+# Step 1: Generate waveform from audio
+ffmpeg -y -i "911-call-audio.wav" \
+  -filter_complex "[0:a]showwaves=s=1920x200:mode=cline:rate=30:colors=0xdc3232[waves];color=black:s=1920x1080:r=30[bg];[bg][waves]overlay=0:300[out]" \
+  -map "[out]" -c:v libx264 -preset fast -crf 23 -t 60 \
+  waveform-only.mp4
+
+# Step 2: Overlay waveform (with alpha/glow) on aerial footage
+ffmpeg -y -i "aerial-property-dark.mp4" -i "waveform-only.mp4" \
+  -filter_complex "[1:v]colorkey=0x000000:0.3:0.2[wf];[0:v][wf]overlay=0:0[out]" \
+  -map "[out]" -map 1:a -c:v libx264 -crf 23 -c:a aac \
+  911-visualization.mp4
+
+# Step 3: Burn in animated captions
+ffmpeg -y -i "911-visualization.mp4" -vf "ass=911-captions.ass" \
+  -c:v libx264 -crf 23 -c:a copy \
+  911-final.mp4
+```
+
+### 5.8 Color Palette
 
 | Element | Color | Hex |
 |---------|-------|-----|
@@ -579,6 +687,10 @@ ffmpeg -y -loop 1 -i "photo.jpg" \
 | Caption text | White with dark outline | `#FFFFFF` + `#000000` stroke |
 | Red highlight circles/arrows | Bright red | `#FF3333` |
 | Vignette | Black gradient (edge → transparent) | `#000000` → transparent |
+| Waveform (911/calls) | Red with glow | `#DC3232` + bloom |
+| Brand sting text | Red with neon glow | `#DC1E1E` + bloom |
+| Disclaimer "real" text | Red | `#DC3232` |
+| Desktop mockup wallpaper | Red/warm-tinted | Windows wallpaper hue-shifted warm |
 
 ---
 
