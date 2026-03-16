@@ -1,0 +1,31 @@
+[project]
+name = "bee-video-editor"
+version = "0.1.0"
+description = "AI-assisted video production tool — assembly guide to final video"
+readme = "README.md"
+authors = [
+    { name = "Bamboo Bee", email = "bamboobee.oc@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pillow>=10.0.0",
+    "edge-tts>=6.1.0",
+]
+
+[project.scripts]
+bee-video = "bee_video_editor.adapters.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0"]
+dashboard = ["streamlit>=1.30.0"]
+tts-kokoro = ["kokoro>=0.9.4", "soundfile"]
+tts-openai = ["openai"]
