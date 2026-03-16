@@ -26,8 +26,25 @@ fail()  { echo -e "${RED}[fail]${NC} $1"; exit 1; }
 
 # ── Prerequisites ─────────────────────────────────────────────
 
+install_hint() {
+    # Returns platform-appropriate install command
+    local pkg="$1"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "brew install $pkg"
+    elif command -v apt-get &>/dev/null; then
+        echo "sudo apt-get install $pkg"
+    elif command -v dnf &>/dev/null; then
+        echo "sudo dnf install $pkg"
+    elif command -v pacman &>/dev/null; then
+        echo "sudo pacman -S $pkg"
+    else
+        echo "(install $pkg via your package manager)"
+    fi
+}
+
 check_prereqs() {
     info "Checking prerequisites..."
+    info "Platform: $(uname -s) $(uname -m)"
 
     # Python 3.11+
     if command -v python3 &>/dev/null; then
@@ -37,10 +54,10 @@ check_prereqs() {
         if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 11 ]; then
             ok "Python $PY_VER"
         else
-            fail "Python 3.11+ required (found $PY_VER). Install via: brew install python@3.13"
+            fail "Python 3.11+ required (found $PY_VER). Install via: $(install_hint python3)"
         fi
     else
-        fail "Python not found. Install via: brew install python@3.13"
+        fail "Python not found. Install via: $(install_hint python3)"
     fi
 
     # uv
@@ -57,14 +74,14 @@ check_prereqs() {
     if command -v git &>/dev/null; then
         ok "git $(git --version | awk '{print $3}')"
     else
-        fail "git not found. Install via: brew install git"
+        fail "git not found. Install via: $(install_hint git)"
     fi
 
     # ffmpeg (optional, for video-editor)
     if command -v ffmpeg &>/dev/null; then
         ok "ffmpeg $(ffmpeg -version 2>&1 | head -1 | awk '{print $3}')"
     else
-        warn "ffmpeg not found (needed for bee-video). Install via: brew install ffmpeg"
+        warn "ffmpeg not found (needed for bee-video). Install via: $(install_hint ffmpeg)"
     fi
 }
 
