@@ -79,7 +79,9 @@ Similar concept but for couples suspecting cheating:
 ### Current State
 
 - **Brooke & Jeffrey** continues on 50+ stations via Premiere Networks
-- **The Jubal Show** — Jubal's separate show with Nina, Brad, Victoria, Gabby, & Sharkey
+- **The Jubal Show** — Jubal's separate show on iHeartMedia's Hits 106.1 Seattle, syndicated on 25+ stations
+- TikTok: **~4M followers** (show account), **1.1M** (personal). Instagram: 265K. Facebook: 642K
+- Key segments: "First Date Follow Up" (rebranded Second Date Update), War of the Roses / To Catch a Cheater, Phone Pranks
 - Podcast: 2,071 episodes, 4.7/5 rating, 8,355 reviews, daily uploads
 - Charts: #46 Comedy in US, #49 Canada, #31 Italy on Apple Podcasts
 - Facebook: ~24K likes
@@ -141,9 +143,12 @@ Fans discover through TikTok → migrate to YouTube → become podcast listeners
 | Creator | Subs | Notes |
 |---------|------|-------|
 | **OwnagePranks** | 5.3M | Animated prank calls, character voices, started 2004 |
+| **To Catch a Cheater** | 3.1M | Staged/semi-staged loyalty tests (War of the Roses as original video). ~$300K/yr revenue. ~100K daily views. Declining (-30K subs mid-2023) |
 | **Phone Losers of America** | — | Long-running prank call community/podcast |
 | **Friday Night Cranks** | — | Prank call YouTube channel |
 | **The Snow Plow Show** | — | Prank call podcast, 2x/week |
+
+**To Catch a Cheater** is the most relevant comp — it's the only major channel that **creates original War of the Roses-style content** (not radio reuploads). 3.1M subs proves the format works as original YouTube content, though it's been declining.
 
 ### Notable: War of the Roses Animated Series (2025)
 
@@ -166,6 +171,19 @@ This signals the format is evolving beyond audio — animation is a viable produ
 | Coach Corey Wayne | Large | Life/performance coach |
 
 These are NOT call-in shows but compete for the same audience. Key insight: none of them do the dramatic call-in format on YouTube natively.
+
+### Format Distribution Summary
+
+| Format | Example | Subs | Takeaway |
+|--------|---------|------|----------|
+| **Animated prank calls** | OwnagePranks | 5.3M | Animation + voice acting = massive scale |
+| **Staged loyalty tests (video)** | To Catch a Cheater | 3.1M | Original War of the Roses works as YouTube content |
+| **Studio video (radio show)** | Breakfast Club | 6M | Video > audio, but Netflix deal gutted growth |
+| **Audio + static image** | Most radio shows | <50K | Low ceiling, demonetization risk |
+| **Faceless gameplay overlay** | TikTok fan accounts | N/A | Viral discovery but not sustainable on YouTube |
+| **Animated radio adaptation** | War of the Roses (iHeart) | New | Industry moving toward animation |
+
+The gap: **nobody is doing animated/dramatized Second Date Update-style content as a standalone YouTube channel.** OwnagePranks proved animated calls work at 5.3M subs. Applying that to relationship drama is untapped.
 
 ---
 
