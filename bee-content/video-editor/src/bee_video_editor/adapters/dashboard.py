@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import streamlit as st
+
+
+def _cli_defaults() -> tuple[str, str]:
+    """Parse --assembly-guide and --project-dir from CLI args passed after '--'."""
+    guide = ""
+    proj = "."
+    args = sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg == "--assembly-guide" and i + 1 < len(args):
+            guide = args[i + 1]
+        elif arg == "--project-dir" and i + 1 < len(args):
+            proj = args[i + 1]
+    return guide, proj
 
 
 def main():
@@ -17,20 +31,22 @@ def main():
     st.title("Bee Video Editor")
     st.caption("AI-assisted video production from assembly guides")
 
+    default_guide, default_proj = _cli_defaults()
+
     # Sidebar — project selection
     with st.sidebar:
         st.header("Project")
         assembly_guide_path = st.text_input(
             "Assembly Guide Path",
-            value="",
+            value=default_guide,
             placeholder="/path/to/assembly-guide.md",
         )
         project_dir = st.text_input(
             "Project Directory",
-            value=".",
+            value=default_proj,
         )
 
-        if st.button("Load Project"):
+        if st.button("Load Project") or (default_guide and "assembly_guide_path" not in st.session_state):
             st.session_state["assembly_guide_path"] = assembly_guide_path
             st.session_state["project_dir"] = project_dir
 
