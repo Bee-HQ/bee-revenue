@@ -46,11 +46,33 @@ Based on consistent Dr Insanity thumbnail formula:
 
 ## 2. Narrative Structure Breakdown
 
+### The Trailer (0:00 - 1:20)
+
+The first ~80 seconds functions as a **movie trailer**, not a cold open. This is a distinct production element:
+
+**Visual treatment:**
+- **Rapid-fire quick cuts** (3-8 seconds each) pulling the most dramatic moments from later in the video
+- **Glitch/distortion effects** between clips — brief digital artifacts (RGB shift, scan lines, frame displacement) create a jarring, unsettling feel
+- **White flash frames** (1-3 frames of pure white) used as impact cuts between the most dramatic audio clips
+- **Vignette darkening** throughout — edges of every frame are darkened, focusing the eye on center action
+- **Ken Burns panning/zooming** on location shots and property footage woven between bodycam clips
+- **Animated text overlays** — key phrases from the narrator appear on screen as motion graphics, reinforcing the hook
+- **Dark, desaturated color grade** — all trailer footage is graded darker than it appears later in the video for dramatic effect
+
+**Audio in the trailer:**
+- 7 audio clips stitched rapid-fire: bodycam discovery → "What's that smell?" → narrator dramatic irony → phone calls → neighbor interviews → "You might start looking in the Caribbean"
+- Background music hits harder here than anywhere else in the video — more cinematic, percussion-driven
+- Each audio clip is 3-8 seconds, creating a montage rhythm
+
+**Purpose:** Functions exactly like a movie trailer — shows the most dramatic moments without context, creates maximum open loops, and commits the viewer to watching the full 50 minutes to understand what they just saw.
+
+**Transition OUT of trailer:** After the final flash-forward clip, a fade to black or glitch transition → narrator rewinds to the beginning with "It's a late May evening in Cloudcroft, New Mexico..."
+
 ### Act Structure & Timing
 
 | Act | Time Range | Duration | % of Video | Content |
 |-----|-----------|----------|------------|---------|
-| **Cold Open** | 0:00 - 1:30 | 90 sec | 3% | Flash-forward montage — 7 audio clips |
+| **Trailer** | 0:00 - 1:20 | 80 sec | 3% | Movie-trailer montage — 7 clips with glitch/flash transitions |
 | **Act I: Setup** | 1:30 - 8:00 | 6.5 min | 13% | Scene-setting, victim intro, first 911 call, first police visit |
 | **Act II: Investigation** | 8:00 - 26:30 | 18.5 min | 37% | Second call, neighbor canvass, Dena's call back, ex-husbands, daughter, financials |
 | **Sponsor** | 26:30 - 28:00 | 90 sec | 3% | Chime banking app |
@@ -127,36 +149,97 @@ Based on consistent Dr Insanity thumbnail formula:
 
 ### 4.1 Transition Types Used
 
-| Transition | Frequency | When Used |
-|-----------|-----------|----------|
-| **Hard cut** | ~80% | Between bodycam clips, between narrator and real audio |
-| **Fade to black / fade from black** | ~10% | Act transitions, time jumps ("5 days later") |
-| **Cross-dissolve** | ~5% | Photo introductions, location establishing shots |
-| **Audio crossfade** | ~5% | Background music level changes during scene shifts |
+| Transition | Frequency | When Used | FFmpeg/Tool |
+|-----------|-----------|----------|-------------|
+| **Hard cut** | ~50% | Default between clips in the main narrative | Simple concat |
+| **Glitch / distortion** | ~15% | Trailer, dramatic moments, tension peaks | RGB shift + scan line overlay + brief frame displacement |
+| **White flash frame** | ~10% | Impact cuts — right before or after shocking audio/reveals | 1-3 frames of white (`color=white:d=0.1`) between clips |
+| **Fade to/from black** | ~10% | Act transitions, time jumps ("5 days later") | `fade=in/out` filter |
+| **Cross-dissolve** | ~5% | Photo introductions, location establishing shots | `xfade=transition=fade` |
+| **Ken Burns zoom/pan** | ~5% | Location shots, property footage, photos | `zoompan` filter |
+| **Audio crossfade** | ~5% | Background music level shifts at scene changes | `afade` filter |
 
 ### 4.2 Transition Patterns by Context
 
-**Scene-to-scene (same timeline):** Hard cut. No transition effect. The narration bridges the gap.
+**Trailer / cold open (0:00-1:20):** Heavy use of glitch effects and white flash frames. This is where the editing is most aggressive — rapid cuts every 3-8 seconds with digital artifacts between them. The trailer has a completely different editing language than the rest of the video.
+
+**Scene-to-scene (same timeline):** Hard cut. The narration bridges the gap verbally.
+
+**Dramatic reveals / tension spikes:** Glitch transition or white flash frame. Used when the narrator drops dramatic irony ("What they don't realize is...") or when switching to a shocking audio clip. The glitch signals "something just shifted."
 
 **Time jump:** Fade to black (0.5-1 sec) → narrator delivers time anchor ("5 days later", "In the following weeks") → fade from black into next scene.
 
 **Character introduction:** Cross-dissolve from B-roll/bodycam into character photo with Ken Burns zoom. Lower third fades in after 1-2 seconds.
 
-**Location change:** Cut to aerial/map establishing shot → slow zoom or pan → cut to bodycam at new location.
+**Location change:** Cut to aerial/map shot with Ken Burns pan/zoom → cut to bodycam at new location.
 
-**Into sponsor:** Hard cut from peak tension moment → sponsor visual. No fade. Abrupt = cliffhanger effect.
+**Into sponsor:** Hard cut or brief glitch from peak tension moment → sponsor visual. Abrupt = cliffhanger effect.
 
 **Out of sponsor:** "With that said, let's get back to..." → hard cut back to bodycam.
 
-### 4.3 Key Insight
+### 4.3 Glitch Transition Details
 
-Dr Insanity uses **almost no flashy transitions**. No wipes, no slides, no zooms, no push transitions. The editing philosophy is **invisible editing** — transitions should feel like natural cuts in a documentary, not a YouTube video. The narration does the transitioning, not the visuals.
+The glitch effect between clips appears to be a combination of:
+- **RGB channel shift** — red/green/blue channels offset horizontally for 2-4 frames
+- **Scan lines** — horizontal line artifacts overlaid briefly
+- **Frame displacement** — the outgoing frame distorts/tears as it transitions to the incoming frame
+- **Brief audio distortion** — slight audio crackle or bass hit accompanying the visual glitch
+
+**When it's used vs. not:** Glitch transitions appear primarily in the trailer and at high-tension narrative moments (reveals, accusations, evidence discoveries). They are NOT used during calm bodycam conversations or investigative narration — those use hard cuts. The glitch is a punctuation mark, not a connector.
+
+### 4.4 White Flash Frame Details
+
+A white flash is 1-3 frames (0.03-0.1 seconds) of pure white or near-white inserted between two clips. Effect:
+- Creates a subliminal "camera flash" or "explosion" feel
+- Signals importance — the next clip matters
+- Often paired with a bass drop or percussion hit in the background music
+- Used most heavily in the trailer (3-5 times in 80 seconds)
+- Used sparingly in the main video (maybe 3-4 times total) for maximum impact
+
+```bash
+# FFmpeg: Insert white flash frame between two clips
+ffmpeg -y \
+  -i clip1.mp4 \
+  -f lavfi -i "color=white:s=1920x1080:r=30:d=0.1" \
+  -i clip2.mp4 \
+  -filter_complex "[0:v][1:v][2:v]concat=n=3:v=1[v]" \
+  -map "[v]" output.mp4
+```
+
+### 4.5 Key Insight
+
+Dr Insanity uses a **two-tier editing system**:
+1. **Trailer (first 80 sec):** Aggressive, flashy — glitch effects, white flashes, rapid cuts. YouTube-native editing that hooks viewers.
+2. **Main narrative (1:20 onward):** Restrained, documentary-style — hard cuts dominate, with glitch/flash reserved for 3-4 peak tension moments. The narration does the transitioning, not the visuals.
+
+This dual approach hooks viewers with high-energy editing (critical for YouTube's first-30-seconds retention metric) and then settles into a slower, more immersive documentary pace that keeps them for 50 minutes.
 
 ---
 
 ## 5. Visual Overlay System
 
-### 5.1 Text Overlays
+### 5.1 Persistent Overlays (Always On)
+
+These overlays are present throughout the entire video:
+
+| Overlay | Description | Purpose |
+|---------|------------|---------|
+| **Vignette** | Dark edge darkening around all four edges of the frame | Focuses viewer's eye on center content, adds cinematic weight, hides rough edges of footage |
+| **Subtle film grain / noise** | Very light grain texture over all footage | Adds texture, makes stock footage and bodycam feel cohesive |
+| **Color grade** | Desaturated, slightly blue-shifted shadows, contrast boost | Unifies all footage under a consistent "crime documentary" look |
+
+```bash
+# FFmpeg: Apply vignette to footage
+ffmpeg -y -i input.mp4 \
+  -vf "vignette=PI/4" \
+  -c:v libx264 -crf 23 -c:a copy output.mp4
+
+# Pillow: Apply vignette to generated graphics
+# Create radial gradient mask (dark edges, transparent center)
+# Composite over every generated PNG before overlaying
+```
+
+### 5.2 Text Overlays
 
 | Overlay Type | Appearance | Font/Style | When |
 |-------------|------------|-----------|------|
@@ -168,23 +251,86 @@ Dr Insanity uses **almost no flashy transitions**. No wipes, no slides, no zooms
 | **Case status** | White text on dark background | ~42pt | Final resolution |
 | **Speaker labels** | ">>" prefix in transcript indicates speaker switch | Subtle lower-third or none (audio is self-evident) | During call recordings |
 
-### 5.2 Overlay Animation
+### 5.3 Animated Subtitles / Captions
 
-- **Lower thirds:** Fade in (0.5 sec) after 1-2 seconds of the clip. Stay for 4-6 seconds. Fade out.
-- **Key quotes:** Appear with fade-in, hold for 3-5 seconds during the audio that contains the quote.
-- **Timeline markers:** Cut in as standalone full-screen graphic for 2-3 seconds, then cut to next scene.
-- **Financial amounts:** Dramatic reveal — fade in with slight scale-up effect.
+The video uses **animated captions** throughout — not standard YouTube auto-captions, but burned-in styled captions:
 
-### 5.3 Color Palette (Confirmed From This Video)
+- **Style:** Bold white text with dark outline/shadow, positioned bottom-center
+- **Animation:** Words appear in sync with audio — likely word-by-word or phrase-by-phrase highlighting (similar to Hormozi/MrBeast caption style)
+- **During narrator sections:** Captions reinforce key phrases, making the video watchable on mute
+- **During real audio (bodycam/calls):** Captions are essential since real audio quality varies — ensures comprehension
+- **Font:** Bold sans-serif (likely custom or Montserrat/Inter bold)
+
+**Tools to replicate:**
+- **stable-ts** or **whisper** for auto-transcription → ASS/SRT subtitle file
+- **Remotion** or **auto-editor** for word-by-word animated captions
+- **CapCut** for quick manual caption styling
+- **FFmpeg** for burning in ASS subtitles: `ffmpeg -i input.mp4 -vf "ass=subtitles.ass" output.mp4`
+
+### 5.4 Red Accent Highlights
+
+Red visual accents are used as **attention directors** throughout the video:
+
+| Red Element | When Used | Purpose |
+|-------------|----------|---------|
+| **Red circle / oval** | On bodycam footage — highlighting a specific person, object, or area | "Look here" — directs eye to evidence |
+| **Red arrow** | Pointing at key evidence in close-up shots | Draws attention to detail viewer might miss |
+| **Red underline / box** | Under key text in documents, financial records | Highlights the important number/phrase |
+| **Red accent lines** | On lower thirds, quote cards, timeline markers | Brand consistency — the "Dr Insanity red" |
+| **Red text** | Dollar amounts, charges, dramatic phrases | Signals danger/importance |
+
+**When NOT used:** Red highlights are NOT used during calm bodycam conversations or emotional moments. They're editorial tools for evidence and data.
+
+### 5.5 Motion Graphics / Animated Elements
+
+Beyond static text overlays, the video includes animated motion graphics:
+
+| Element | Description | When Used |
+|---------|------------|----------|
+| **Animated lower thirds** | Slide-in from left with red accent line drawing in, text fading in sequentially (name, then role) | Character introductions |
+| **Animated map pins** | Pin drop animation on location maps (drops from above, bounces) | New location establishment |
+| **Animated waveform** | Real-time audio waveform synced to 911/phone call audio | During all phone/911 audio |
+| **Animated quote reveal** | Quote text types in or fades word-by-word | Key damning statements |
+| **Transition graphics** | Glitch frames, white flashes (see Section 4) | Between dramatic clips |
+| **Progress/timeline line** | Animated line connecting events chronologically | During investigation timeline sections |
+| **Dollar amount counter** | Number counting up or appearing with scale effect | Financial reveals |
+
+### 5.6 Ken Burns Panning & Zooming (Locations/Photos)
+
+Continuous motion is applied to all static images and location shots:
+
+| Content | Motion Type | Speed | Duration |
+|---------|------------|-------|----------|
+| **Property aerial (Google Earth)** | Slow zoom in | 0.001-0.002/frame | 5-10 sec |
+| **Victim photo** | Gentle zoom in (warm, intimate) | 0.001/frame | 4-6 sec |
+| **Mugshot** | Slow zoom in (cold, clinical) | 0.001/frame | 3-5 sec |
+| **Map/region shot** | Slow pan left-to-right or zoom to pin | 0.002/frame | 4-8 sec |
+| **Evidence close-up** | Slow zoom into detail | 0.002/frame | 3-5 sec |
+| **Couple/family photo** | Slow zoom out (pulls back to reveal) | 0.001/frame | 4-6 sec |
+
+**Key rule:** Nothing on screen is ever static. Every photo, map, and graphic has subtle motion. Static frames feel dead — motion keeps the eye engaged even during narrator-heavy sections.
+
+```bash
+# FFmpeg: Ken Burns slow zoom on any static image
+ffmpeg -y -loop 1 -i "photo.jpg" \
+  -vf "zoompan=z='min(zoom+0.0015,1.3)':d=240:s=1920x1080:fps=30" \
+  -c:v libx264 -preset fast -crf 23 -t 8 \
+  output.mp4
+```
+
+### 5.7 Color Palette
 
 | Element | Color | Hex |
 |---------|-------|-----|
 | Background (graphics) | Near black | `#0A0A0F` |
 | Primary text | White | `#FFFFFF` |
 | Secondary text | Light gray | `#B4B4B4` |
-| Accent (quotes, amounts) | Dark red | `#DC3232` |
+| Accent (quotes, amounts, highlights) | Dark red | `#DC3232` |
 | Lower third bar | Black 70% opacity | `rgba(0,0,0,180)` |
 | Lower third accent line | Red | `#C81E1E` |
+| Caption text | White with dark outline | `#FFFFFF` + `#000000` stroke |
+| Red highlight circles/arrows | Bright red | `#FF3333` |
+| Vignette | Black gradient (edge → transparent) | `#000000` → transparent |
 
 ---
 
