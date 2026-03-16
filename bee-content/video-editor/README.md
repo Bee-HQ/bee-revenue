@@ -115,6 +115,31 @@ The full pipeline for producing a video from an assembly guide:
 
 ## Web Editor
 
+### Helper Scripts
+
+The easiest way to run the editor:
+
+```bash
+# Development mode — starts backend + Vite frontend with hot reload
+./dev.sh
+
+# Production mode — builds frontend (if needed) and serves everything
+./start.sh
+
+# Force rebuild frontend before starting
+BUILD=1 ./start.sh
+```
+
+Both scripts auto-detect open ports and kill previous instances. Default ports: backend `:8420`, frontend `:5173` (dev mode).
+
+Environment variables:
+- `BACKEND_PORT` — override backend port (dev mode, default `8420`)
+- `FRONTEND_PORT` — override frontend port (dev mode, default `5173`)
+- `PORT` — override server port (production mode, default `8420`)
+- `BUILD` — set to `1` to force frontend rebuild (production mode)
+
+### Manual startup
+
 ```bash
 # Development mode (frontend hot reload via Vite)
 uv run bee-video serve --dev
@@ -203,3 +228,7 @@ uv run --extra dev pytest tests/ -v
 # Run a specific test file
 uv run --extra dev pytest tests/test_ffmpeg_effects.py -v
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
