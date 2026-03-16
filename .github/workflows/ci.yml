@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "bee-content/research/**/*.py"
+      - "bee-content/research/pyproject.toml"
+      - "bee-content/video-editor/**/*.py"
+      - "bee-content/video-editor/pyproject.toml"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "bee-content/research/**/*.py"
+      - "bee-content/research/pyproject.toml"
+      - "bee-content/video-editor/**/*.py"
+      - "bee-content/video-editor/pyproject.toml"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  test-research:
+    name: bee-content/research
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bee-content/research
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/ -v
+
+  test-video-editor:
+    name: bee-content/video-editor
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bee-content/video-editor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/ -v

@@ -4,38 +4,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-Monorepo for automated revenue streams under OpenClaw. One working tool (bee-content-research), three research-phase projects. This is a git submodule — the `.git` file points to `../../.git/modules/projects/openclaw-revenue`.
+Monorepo for automated revenue streams under OpenClaw. This is a git submodule — the `.git` file points to `../../.git/modules/projects/openclaw-revenue`.
 
 ## Projects
 
 | Project | Status | Type |
 |---------|--------|------|
-| `bee-content-research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
-| `bee-content-discovery/` | Research | Markdown — niche analysis, competitor deep dives |
-| `bee-content-automation/` | Research | Markdown — AI video production pipeline research |
+| `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
+| `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
+| `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
+| `bee-content/video-editor/` | Built (v0.1.0) | Python CLI + dashboard — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
-## bee-content-research (the only code project)
+## bee-content/research (YouTube competitor analysis)
 
 ### Commands
 
 ```bash
-cd bee-content-research
+cd bee-content/research
 
-# Run CLI (full command reference in bee-content-research/CLAUDE.md)
+# Run CLI (full command reference in bee-content/research/CLAUDE.md)
 uv run bee-research <command>
 
 # Run MCP server
 uv run bee-research-mcp
 
 # Run tests
-uv run pytest tests/ -v
+uv run --extra dev pytest tests/ -v
 
 # Run a single test file
-uv run pytest tests/test_analyzers.py -v
+uv run --extra dev pytest tests/test_analyzers.py -v
 
 # Run a single test
-uv run pytest tests/test_analyzers.py::test_name -v
+uv run --extra dev pytest tests/test_analyzers.py::test_name -v
+```
+
+## bee-content/video-editor (AI video production)
+
+### Commands
+
+```bash
+cd bee-content/video-editor
+
+# Parse assembly guide
+uv run bee-video parse <assembly-guide>
+
+# List segments
+uv run bee-video segments <assembly-guide> [--section] [--type]
+
+# Initialize project
+uv run bee-video init <assembly-guide> [--project-dir] [--tts]
+
+# Run tests
+uv run --extra dev pytest tests/ -v
 ```
 
 ### Architecture

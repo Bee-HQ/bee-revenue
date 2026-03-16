@@ -1,11 +1,11 @@
-# bee-content-research
+# bee-content/research
 
 YouTube competitor analysis CLI + MCP server. Zero API keys required.
 
 ## Quick Start
 
 ```bash
-cd /Users/bamboobee/.openclaw/workspace/projects/openclaw-revenue/bee-content-research
+cd bee-content/research
 export PATH="$HOME/.local/bin:$PATH"
 
 # All commands use: uv run bee-research <command>
