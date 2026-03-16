@@ -1,6 +1,6 @@
 [project]
 name = "bee-video-editor"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI-assisted video production tool — assembly guide to final video"
 readme = "README.md"
 authors = [
@@ -26,6 +26,7 @@ testpaths = ["tests"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0"]
+web = ["fastapi>=0.115.0", "uvicorn[standard]>=0.34.0", "python-multipart>=0.0.9"]
 dashboard = ["streamlit>=1.30.0"]
 tts-kokoro = ["kokoro>=0.9.4", "soundfile"]
 tts-openai = ["openai"]
