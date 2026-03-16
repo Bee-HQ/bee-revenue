@@ -245,6 +245,37 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 ---
 
+### [INTERROGATION] Interrogation Room Footage
+
+**What:** Real police interrogation room footage — suspect seated at table, grey walls, overhead camera angle.
+
+| Property | Value |
+|----------|-------|
+| Source | FOIA / court records |
+| Overlay | [LOWER-THIRD] with suspect name + context |
+| Color grade | Slightly desaturated, blue/grey tint |
+| Caption | [CAPTION-ANIMATED] for any audible dialogue |
+| Purpose | Shows suspect's demeanor under questioning |
+
+**When to use:** Resolution section — after arrest. Usually brief (suspect lawyers up).
+
+---
+
+### [COURTROOM] Courtroom Footage
+
+**What:** Real courtroom footage from legal proceedings — judge at bench, flags, formal setting.
+
+| Property | Value |
+|----------|-------|
+| Source | Court TV / public court recordings |
+| Duration | 3-5 seconds |
+| Color grade | Natural, slightly desaturated |
+| Purpose | Establishes legal proceedings, conviction, sentencing |
+
+**When to use:** Resolution/epilogue — showing trial proceedings, arraignment, sentencing.
+
+---
+
 ## 4. Investigation & Evidence Elements
 
 ### [POLICE-DB] Fake Police Database Application
@@ -304,6 +335,72 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 | Animation | Circle/arrow fades in 0.5s after clip starts |
 
 **When to use:** When evidence needs viewer attention directed to a specific detail.
+
+---
+
+### [EVIDENCE-DISPLAY] Composed Evidence Presentation
+
+**What:** Physical evidence items arranged and photographed/rendered against a blurred bokeh background. NOT from bodycam — this is a staged/composed shot for dramatic impact.
+
+| Property | Value |
+|----------|-------|
+| Duration | 3-5 seconds per item |
+| Background | Blurred/bokeh — soft, out-of-focus. Warm or neutral tones |
+| Items | Evidence items arranged prominently (bleach bottles, tools, weapons) |
+| Lighting | Soft, even lighting — product photography style |
+| Caption | Animated caption at bottom describing the item |
+| Purpose | Makes physical evidence look cinematic and significant |
+
+**When to use:** During the search/climax when key evidence is found. Elevates mundane items (bleach, tools) into dramatic reveals.
+
+**Example items seen:** Bleach jug, pink spray bottle, power drill — arranged together on the same blurred background in a single composed frame.
+
+---
+
+### [BODY-DIAGRAM] Forensic Illustration
+
+**What:** Hand-drawn line illustration of human body showing injuries, bullet wounds, or cause of death.
+
+| Property | Value |
+|----------|-------|
+| Duration | 4-6 seconds |
+| Style | Clean line drawing / medical sketch — NOT photographic |
+| Background | White or light neutral |
+| Annotations | Labels pointing to injury locations |
+| Purpose | Shows cause of death without graphic imagery |
+
+**When to use:** When describing cause of death or injuries. Avoids graphic content while communicating medical/forensic details clearly.
+
+---
+
+### [DOCUMENT-MOCKUP] Phone/Document Display
+
+**What:** Mobile phone screen or legal document displayed on a dark background with key text highlighted in red.
+
+| Property | Value |
+|----------|-------|
+| Duration | 3-5 seconds |
+| Background | Dark green or dark neutral |
+| Content | Text list, legal document, or phone screen |
+| Highlights | Key items highlighted in RED |
+| Purpose | Shows documentary evidence (text messages, legal filings, lists) |
+
+**When to use:** When referencing specific documents, text messages, court filings, or lists of evidence/charges.
+
+---
+
+### [SPLIT-INFO] Split-Screen Information Panel
+
+**What:** Screen divided: text/data card on one side, footage on the other. Used for key information reveals alongside visual context.
+
+| Property | Value |
+|----------|-------|
+| Layout | Left: text/info card on dark bg. Right: bodycam/exterior footage |
+| Duration | 4-8 seconds |
+| Text styling | White text on dark background with teal accent headers |
+| Purpose | Presents key facts alongside visual context without interrupting footage flow |
+
+**When to use:** When introducing a new character with extensive background info, or when presenting timeline/facts that need context from the footage.
 
 ---
 
@@ -512,13 +609,18 @@ DURATION: 8 seconds
 | Background | `#0A0A0F` | Graphics, cards |
 | Primary text | `#FFFFFF` | All body text |
 | Secondary text | `#B4B4B4` | Roles, descriptions, labels |
-| Brand red | `#DC3232` | Quotes, amounts, highlights, waveforms, road outlines, headers |
+| **Brand red** | `#DC3232` | Danger alerts, charges, disclaimers, map pulses, road outlines, mugshot card |
+| **Accent teal/cyan** | `#00D4AA` / `#2DE2C0` | Quote cards, map labels, info text, brand sting glow, location pins |
 | Lower third bar | `rgba(0,0,0,180)` | Character introductions |
 | Lower third accent | `#C81E1E` | Red line on lower thirds |
 | Caption text | `#FFFFFF` + `#000000` stroke | Animated subtitles |
 | Highlight red | `#FF3333` | Circles, arrows on evidence |
-| Brand sting | `#DC1E1E` + bloom | Channel name |
+| Brand sting | `#DC1E1E` or `#00D4AA` + bloom | Channel name — **may alternate per video** |
 | "Missing/danger" text | `#DC3232` | Key details in Police Database, charges |
+
+> **Dual accent system confirmed from 300-frame storyboard analysis:**
+> - **Red** = danger, alerts, charges, disclaimers, pulse markers, evidence highlights
+> - **Teal/cyan** = information, labels, quote cards, map text, location pins, brand sting
 
 ---
 
@@ -530,10 +632,12 @@ Before production, gather or generate these assets:
 - [ ] Bodycam footage (multiple visits/scenes — need 20+ min)
 - [ ] 911 call recording(s) (2-3 calls)
 - [ ] Detective phone call recordings
-- [ ] Interrogation footage (if available)
+- [ ] Interrogation footage (if available) → [INTERROGATION]
+- [ ] Courtroom footage (if available) → [COURTROOM]
 - [ ] Victim photo(s) — at least 2 (warm + neutral)
 - [ ] Suspect mugshot
 - [ ] Evidence photos/documents (if available from court filings)
+- [ ] Forensic/autopsy report (for body diagram reference) → [BODY-DIAGRAM]
 
 ### Must Generate (Pillow / FFmpeg / Google Earth)
 - [ ] Brand sting frame → [BRAND-STING]
@@ -545,11 +649,15 @@ Before production, gather or generate these assets:
 - [ ] Police Database mockup(s) → [POLICE-DB]
 - [ ] Desktop Photo Viewer mockup(s) → [DESKTOP-PHOTOS]
 - [ ] Lower thirds (per character) → [LOWER-THIRD]
-- [ ] Quote cards → [QUOTE-CARD]
+- [ ] Quote cards (teal accent) → [QUOTE-CARD]
 - [ ] Timeline markers → [TIMELINE-MARKER]
 - [ ] Financial cards → [FINANCIAL-CARD]
 - [ ] Charges/sentence card → [MUGSHOT-CARD]
 - [ ] 911 waveform visualizations → [WAVEFORM-AERIAL]
+- [ ] Evidence display shots (bokeh bg) → [EVIDENCE-DISPLAY]
+- [ ] Body diagram illustration → [BODY-DIAGRAM]
+- [ ] Document/phone mockups → [DOCUMENT-MOCKUP]
+- [ ] Split info panels → [SPLIT-INFO]
 - [ ] Animated captions (ASS/SRT file) → [CAPTION-ANIMATED]
 - [ ] Background music selection
 - [ ] TTS narration audio (ElevenLabs or equivalent)

@@ -181,7 +181,9 @@ First time hearing from the suspected killer directly:
 **The Ex-Husbands — History of Violence (18:00-24:00)**
 
 ```
-VISUAL: [PIP-DUAL] Detective Curtis + Ex-husband over [MAP-3D]
+VISUAL: [DOCUMENT-MOCKUP] — phone/document on dark bg, red highlights on key items
+        → [PIP-SINGLE] over property exterior (composited on real house footage)
+        → [PIP-DUAL] Detective Curtis + Ex-husband over [MAP-3D]
         → [LOWER-THIRD] "Scott — Dena's Ex-Husband"
         → [QUOTE-CARD] "If I could kill Craig and get away with it, I'd do it."
         → [PIP-DUAL] Detective + Daughter Leslie
@@ -268,6 +270,7 @@ Placed at the peak tension moment — right after the confrontation. Viewer is t
 
 ```
 VISUAL: Bodycam — Roger returns, driving up to property
+        → [SPLIT-INFO] left: case summary text, right: bodycam approach
         → Bodycam — spots Dena outside near a hole in the ground
         → [EVIDENCE-CLOSEUP] the hole with red highlight
         → Bodycam — Dena explaining the hole
@@ -316,13 +319,14 @@ TRANSITION: [TR-GLITCH] before "she said she shot him" (the bombshell)
 
 ```
 VISUAL: Bodycam — officers executing search warrant at property
-        → [EVIDENCE-CLOSEUP] bleach bottles with red highlight
+        → [EVIDENCE-DISPLAY] bleach jug + spray bottle + drill on bokeh bg
         → [EVIDENCE-CLOSEUP] disabled surveillance cameras
         → [EVIDENCE-CLOSEUP] signs of cleanup
         → [FINANCIAL-CARD] "$84,200 of $1,500,000" — safe contents
         → Bodycam — carport area, cardboard and plastic
         → [CENSOR-BLUR] body discovery (soft black blur)
         → [MAP-PULSE] red ping on carport location
+        → [BODY-DIAGRAM] forensic sketch — cause of death injuries
 AUDIO:  Bodycam audio + narrator bridges
 OVERLAY: [CAPTION-ANIMATED], [VIGNETTE], [LETTERBOX]
 TRANSITION: [TR-FADE] between evidence discoveries
@@ -353,9 +357,10 @@ Then the daughter Leslie's call — she reveals her siblings knew and her mother
 ```
 VISUAL: [MAP-TACTICAL] Texas hospital location in red
         → [PIP-SINGLE] Dena mugshot
-        → Interrogation room footage — Dena with detective
+        → [INTERROGATION] — Dena in grey room, seated at table, [LOWER-THIRD]
         → [QUOTE-CARD] "I want a lawyer" (brief)
-        → [MUGSHOT-CARD] charges: "1st Degree Murder + Tampering with Evidence"
+        → [COURTROOM] — judge at bench, American flag, arraignment
+        → [MUGSHOT-CARD] mugshot left, charges right in RED: "1st Degree Murder + Tampering"
         → [TIMELINE-MARKER] "Pre-Trial — March 2026"
 AUDIO:  Brief interrogation audio → narrator wrap-up
 OVERLAY: [CAPTION-ANIMATED]

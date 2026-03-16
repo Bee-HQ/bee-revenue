@@ -1195,3 +1195,160 @@ To make a video that matches this production quality:
 - [ ] No tags (zero — consistent with channel)
 - [ ] Category: News & Politics
 - [ ] Upload on Thursday (best performing day)
+
+---
+
+## 14. Frame-by-Frame Visual Timeline (Storyboard Analysis)
+
+> 300 frames extracted at 10-second intervals from YouTube storyboard sprites. Frames are 320x180 (upscaled 4x from 80x45 originals). This timeline documents every visual technique observed across the full 50-minute video.
+
+### Methodology
+
+Frames were extracted from YouTube's auto-generated storyboard sprite sheets (Level 1: 80x45px, 10×10 grid, 10-second intervals). These are the same frames used for the seek-bar preview on YouTube. While low resolution, they are sufficient to identify visual composition, overlay types, color grades, and scene transitions.
+
+### ACT 1: THE HOOK (0:00 - 4:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 0:00 | Bodycam — nighttime exterior | [TRAILER] begins | Property visible, dark, officer approaching. Night-vision color grade |
+| 0:10 | Bodycam — interior, yellow tones | [TRAILER] clip 2 | Vertical framing — cluttered interior, items stacked |
+| 0:20 | Bodycam — night exterior, trees | [TRAILER] clip 3 | Dark blue grade, figure barely visible through trees |
+| 0:30 | Bodycam — interior, bright spot | [TRAILER] clip 4 | White flash transition between this and previous — confirmed [TR-FLASH] |
+| 0:40 | Bodycam — daytime exterior | [TRAILER] clip 5 | Dena outside, bright daylight, green foliage. Sharp contrast from dark clips |
+| 0:50 | Bodycam — daytime, Dena | [TRAILER] clip 6 | Close-up, Dena standing outside house, unaware |
+| 1:00 | House exterior — porch/columns | [TRAILER] clip 7 | Large property, green-graded, vignette heavy. Ken Burns zoom |
+| 1:10 | Dark interior — crime tape? | [TRAILER] final | Dark bodycam interior, possible crime scene tape yellow strip visible |
+| 1:20 | Bodycam close-up + text | [BRAND-STING] transition | Text overlay visible at bottom — trailer ending, lower third fades |
+| 1:30 | Dark aerial/satellite | [BRAND-STING] or [DISCLAIMER] | Very dark, satellite/aerial texture. **NOTE: glow appears teal/cyan, not red** — needs verification |
+| 1:40 | PIP over aerial | [PIP-SINGLE] + [MAP-FLAT] | Person photo in File Viewer window floating over property aerial view |
+| 1:50 | Dark blue dramatic shot | B-roll / stock footage | Heavily color-graded blue, atmospheric. Possibly underwater/dramatic stock |
+| 2:00 | Body outline on floor | Crime scene photo / reconstruction | **KEY FRAME** — body silhouette on hard floor. Dark, dramatic. This appears early in the setup |
+| 2:10 | Glowing text on dark bg | [BRAND-STING] confirmed | Text with **teal/cyan glow** on dark background — **CORRECTION: brand sting may use teal, not red** |
+| 2:20 | Red text on dark aerial | [DISCLAIMER] line 1 | "All footage is real" in RED confirmed. Dark satellite bg |
+| 2:30 | Red text continued | [DISCLAIMER] line 2 | Continued red + white text on dark aerial |
+| 2:40 | Two photos on dark bg | [PIP-DUAL] | Two File Viewer windows over dark satellite — Craig + Larry/Dena |
+| 2:50 | PIP-DUAL + caption | [PIP-DUAL] + [CAPTION-ANIMATED] | Same dual photos, animated caption text visible at bottom |
+| 3:00 | Night bodycam — driving | Bodycam — officer in vehicle | Headlights visible, approaching property at night. 911 call audio playing |
+| 3:10 | Night bodycam — arriving | Bodycam — trees, building | Officer arriving at property exterior, nighttime |
+| 3:20 | Night bodycam — property | Bodycam — walking grounds | Trees, structures visible, flashlight/headlamp illumination |
+| 3:30 | Night bodycam — door area | Bodycam — at entrance | Officer at property entrance/doorway |
+| 3:40 | Dark text screen | [POLICE-DB] or text card | Dark background with text — possibly timestamp or location card |
+| 3:50 | Bodycam + caption | Bodycam — exterior walk | Animated caption visible at bottom, daytime exterior now |
+
+### ACT 2: THE INVESTIGATION (4:00 - 26:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 4:00 | Stairs exterior | Bodycam — property stairs | Nighttime, blue color grade. Officer walking up to elevated property |
+| 4:20 | Road at night | Bodycam — driving/road | Night driving shot, animated caption visible |
+| 4:40 | Dark interior, warm light | Bodycam — inside property | Warm light source in background. First interior exploration |
+| 5:00 | Officer walking exterior | Bodycam — night, figure | Officer walking around property at night. The "smell" moment is near here |
+| 5:30 | Satellite + red markers | **[MAP-TACTICAL]** confirmed | Dark satellite imagery with RED road/property highlights. Location markers visible |
+| 6:00 | Satellite + PIP overlay | [MAP-TACTICAL] + [PIP-SINGLE] | Red tactical overlays on satellite, person photo visible. Combining map + character intro |
+| 6:30 | Dark info screen + photo | **[POLICE-DB]** confirmed | Dark interface: person photo (left), text fields (right): name, age, address. Blue/dark theme |
+| 7:00 | Satellite + teal markers | [MAP-FLAT] with **teal/cyan pins** | Satellite view showing road network. Pin/marker in teal/cyan — **CORRECTION: maps use both red AND teal markers** |
+| 7:30 | Daytime bodycam, red truck | Bodycam — rural property | Red pickup truck, trees, rural setting. Animated caption visible. Second visit begins |
+| 8:00 | Exterior + text | Bodycam + [CAPTION-ANIMATED] | Officer at property, text overlay at bottom of frame |
+| 8:30 | Interior porch, person sitting | Bodycam — neighbor interview | Person sitting on porch/deck. Blue color grade. [LOWER-THIRD] visible |
+| 9:00 | Porch conversation continued | Bodycam — neighbor | Same location, continued conversation |
+| 9:30 | Close-up of person | Bodycam — face close-up | Neighbor interview close-up, animated caption |
+| 10:00 | Person next to SUV | Bodycam + [PIP-SINGLE] | Person standing by vehicle. PIP photo overlay — **PIP composited over bodycam footage** (not just aerials) |
+| 10:30 | Detective at desk + monitors | Bodycam — office interior | Multiple monitors visible, detective working. Animated caption. This is the detective's office |
+| 11:00 | Windows desktop + 2 photos | **[DESKTOP-PHOTOS]** confirmed | Windows desktop with TWO Photo Viewer windows open. Craig (left, blurred) + Dena (right, hat). Windows logo backdrop visible |
+| 11:30 | Large single photo, dark bg | [PIP-SINGLE] — large format | Photo dominates center of frame. Blue/dark background. Name label below |
+| 12:00 | Photo Viewer on desktop | [DESKTOP-PHOTOS] variant | Single Photo Viewer window, positioned left, with text panel alongside. Windows desktop background |
+| 13:00 | Photo over bodycam bg | [PIP-SINGLE] over bodycam | Person photo floating over real interior bodycam footage — **PIP used on bodycam, not just maps** |
+| 14:00 | Photo + waveform | [WAVEFORM-AERIAL] — **GREEN waveform?** | Person photo with audio waveform visualization below. The waveform color appears GREEN here, not red. **Needs verification — may vary by call type** |
+| 15:00 | Photo on blue desktop | [PIP-SINGLE] on Windows bg | Person photo on Windows-style blue background |
+| 16:00 | Detective writing close-up | Bodycam — hands + pen | Close-up of detective's hands writing on paper at desk. Caption visible |
+| 17:00 | Detective at computer | Bodycam — office | Detective at workstation, interior office |
+| 18:00 | Phone/document on dark bg | **[DOCUMENT-MOCKUP]** — NEW | Mobile phone screen or document displayed on dark green background. Text list visible with red highlighted items. **New visual element** |
+| 18:20 | PIP over house exterior | [PIP-SINGLE] + property bg | Person photo overlay (left side) over actual house exterior footage. Compositing bodycam + PIP |
+| 19:00 | Satellite + teal pin | [MAP-FLAT] + teal marker | Satellite view, property pin in teal/cyan on road network. Zoom into location |
+| 20:00 | Interior search | Bodycam — cluttered room | Officer/detective searching through items in cluttered interior room |
+| 21:00 | Dena on couch | Bodycam — Dena interview | Dena in striped shirt sitting on couch. Interior of house. Roger's visit |
+| 22:00 | Dena + lower third | Bodycam + [LOWER-THIRD] | Same scene, white text overlay visible — name/title identification |
+| 23:00 | Hands + cash/documents | Bodycam — evidence | Close-up of hands holding cash or documents. [LOWER-THIRD] text visible. Financial evidence shown directly |
+| 24:00 | Dena on couch, different angle | Bodycam — continued | Roger's visit continues, different bodycam angle |
+| 25:00 | Dena standing, close-up | Bodycam — Dena | Dena standing, striped shirt, close-up. Confrontation escalating |
+| 26:00 | Dena sitting + PIP | Bodycam + [PIP-SINGLE] | Dena sitting, PIP photo overlay floating on right side over bodycam footage |
+
+### ACT 3: THE CONFRONTATION (26:00 - 40:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 27:00 | Quote card + bodycam bg | **[QUOTE-CARD]** confirmed | Text quote displayed prominently over bodycam background. **Teal/blue styling** — text with glow effect. This is the homicide detective reveal |
+| 28:00 | Cabin exterior, truck | Bodycam — arrival | Daytime, cabin-style house, vehicle parked outside. Roger arriving for second visit |
+| 29:00 | Exterior, trees, caption | Bodycam — walking property | Trees, rural property. Animated caption visible. Walking the grounds |
+| 30:00 | Interior, Dena sitting | Bodycam — dark interior | Dena visible, text overlay in RED — possible quote or key statement highlighted |
+| 31:00 | Dark interior close-up | Bodycam — inside | Close-up, dark/moody, tense conversation |
+| 32:00 | Bleach bottle prominent | Bodycam — **evidence in situ** | Large white jug (bleach) clearly visible in frame. **Evidence shown through bodycam naturally** — no overlay needed |
+| 33:00 | Dark silhouettes | Bodycam — interior | Silhouettes against window light. Moody, cinematic framing |
+| 34:00 | Map + teal text | [MAP-TACTICAL] + **teal label** | Satellite imagery with location/address text in **teal/green glow**. Property label card on map |
+| 35:00 | Satellite + RED marker | [MAP-PULSE] confirmed | Satellite view with **RED highlight/marker** on property. Red for the alert/danger ping |
+| 35:30 | Satellite, neighborhood | [MAP-TACTICAL] — zoomed out | Wider satellite view showing neighborhood grid layout. Multiple colored markers |
+| 36:00 | Interior, ceiling | Bodycam — inside room | Looking up at ceiling, dimly lit. Searching the property |
+| 37:00 | Split: info + footage | **[SPLIT-INFO]** — NEW | Left: text card with data on dark bg. Right: bodycam/exterior footage. **Split-screen info panel** |
+| 38:00 | Exterior + PIP left | Bodycam + [PIP-SINGLE] | Person (Dena?) walking exterior. Small PIP photo overlay on left with lower third text |
+| 39:00 | Interior hallway | Bodycam — hallway/door | Dim interior, door/hallway area |
+| 40:00 | Interior, person on bed | Bodycam — bedroom | Person lying/sitting in bedroom area. Searching continues |
+
+### ACT 4: THE CLIMAX (40:00 - 50:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 40:30 | Evidence items on bokeh bg | **[EVIDENCE-DISPLAY]** — NEW | Bleach jug, pink spray bottle, power drill arranged on **blurred/bokeh background**. NOT bodycam — this is a **composed evidence presentation shot** with soft lighting. Animated caption at bottom |
+| 41:00 | Dark interior + teal text | Bodycam — search continues | Interior property search. Teal text overlay visible — location or evidence label |
+| 42:00 | Interior, red elements | Bodycam — evidence markers | Red items visible in frame (evidence markers? highlighted items). Storage/containers visible |
+| 43:00 | Dark interior, officer | Bodycam — searching | Officer in dark interior, blue/green color grade. Active search |
+| 44:00 | Dark screen + person photo | [POLICE-DB] confirmed | Dark interface: text fields (left), person photo (right). Suspect information display. White text on dark blue/black |
+| 45:00 | Hands holding phone | Bodycam — phone evidence | Close-up of hands holding a phone showing blue screen. Evidence being examined. Caption at bottom |
+| 46:00 | Detective at workspace | Bodycam — detective | Interior office/workspace, detective reviewing information. Caption visible |
+| 47:00 | Anatomical line drawing | **[BODY-DIAGRAM]** — NEW | Hand-drawn/sketch style diagram of human body. Line drawing with annotations. **Forensic/medical diagram** showing cause of death or injuries. Light/white background |
+| 48:00 | Person's face close-up | Photo — Craig | Close-up of person's face, textured/grainy. Personal photo of victim |
+| 48:30 | Interrogation room | **[INTERROGATION]** — NEW | Dena seated in grey interrogation room at table. [LOWER-THIRD] text overlay with name and context. Classic police interrogation footage |
+| 49:00 | Overhead custody shot | Surveillance/bodycam | Overhead angle, person in custody. Different camera perspective from main bodycam |
+| 49:30 | Judge at bench | **[COURTROOM]** — NEW | Courtroom with judge at bench, American flag visible. Real courtroom footage from proceedings |
+| 49:50 | Mugshot + charges | **[MUGSHOT-CARD]** confirmed | Split layout: Dena's mugshot (left), charges in **RED text** (right), case details in white. Dark background. Final resolution card |
+
+### New Visual Elements Discovered (Not in Original Analysis)
+
+| Code | Element | Description | First Seen |
+|------|---------|------------|------------|
+| **[EVIDENCE-DISPLAY]** | Composed evidence shot | Physical evidence items arranged on blurred/bokeh background with soft lighting. NOT bodycam — this is staged/composed. Used for impactful evidence reveals | 40:30 |
+| **[BODY-DIAGRAM]** | Forensic diagram | Hand-drawn line illustration of human body showing injuries/cause of death. Clean white background, sketch style | 47:00 |
+| **[INTERROGATION]** | Interrogation footage | Real police interrogation room footage — grey walls, table, suspect seated. With lower third | 48:30 |
+| **[COURTROOM]** | Courtroom footage | Real courtroom footage from legal proceedings — judge, flag, bench | 49:30 |
+| **[DOCUMENT-MOCKUP]** | Phone/document display | Mobile phone screen or legal document displayed on dark background. Text with red highlights | 18:00 |
+| **[SPLIT-INFO]** | Split-screen info panel | Screen split: text/data card on one side, footage on the other. Used for key reveals | 37:00 |
+
+### Color Palette Corrections (from Frame Analysis)
+
+| Element | Previously Assumed | Actually Observed | Notes |
+|---------|-------------------|-------------------|-------|
+| Brand sting glow | Red (#DC1E1E) | **Teal/cyan** at 2:10 | May alternate between red and teal across videos, or this video uses teal |
+| Map markers | Red only | **Red AND teal/cyan** | Red for danger/alert pins, teal for informational/location pins |
+| Quote cards | Red text assumed | **Teal/blue glow** at 27:00 | Quote text uses teal glow effect, not red |
+| Map labels | Red text | **Teal/green glow** at 34:00 | Location labels on maps use teal, not red |
+| Waveform (calls) | Red only | **May include green** at 14:00 | Low resolution makes this uncertain — could be compression artifact |
+| Overall accent palette | Red-dominant | **Red + teal dual accent** | Red = danger/alert/charges. Teal = information/labels/quotes |
+
+### Visual Composition Patterns (from 300 Frames)
+
+**1. Bodycam dominance:** ~55% of frames are direct bodycam footage. This is higher than the 45% estimated earlier. Bodycam IS the video.
+
+**2. PIP compositing on bodycam:** Person photos (File Viewer style) are overlaid directly on bodycam footage, not just on aerials/maps. This creates a layered look where information overlays enhance real footage.
+
+**3. Dual accent colors:** The video uses BOTH red and teal/cyan as accent colors:
+- **Red** → danger, charges, alerts, disclaimers, map pulses, mugshot card charges
+- **Teal/cyan** → information, names, labels, quote cards, map text, brand sting(?)
+
+**4. Evidence display technique:** At 40:30, evidence items are shown in a composed/staged shot against a blurred background — NOT in situ on bodycam. This is a cinematic technique borrowed from product photography, making evidence items look dramatic and significant.
+
+**5. Progressive visual escalation:** The video starts with bodycam + simple overlays, and introduces increasingly complex visual elements as tension builds:
+- Early (0-10min): Bodycam + basic PIP + maps
+- Middle (10-26min): Desktop mockups + Police DB + dual PIP
+- Confrontation (26-40min): Quote cards + split info + tactical maps
+- Climax (40-50min): Evidence display + body diagram + interrogation + courtroom + mugshot card
+
+**6. Night-to-day progression:** The bodycam footage shifts from nighttime (dark, blue-graded, flashlight-lit) in the early investigation to daytime (bright, natural) during the confrontation. This mirrors the narrative progression from mystery → clarity.
