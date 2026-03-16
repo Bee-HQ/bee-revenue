@@ -10,11 +10,13 @@ interface ProjectState {
   mediaFiles: MediaFile[];
   mediaCategories: Record<string, number>;
   draggedMedia: MediaFile | null;
+  previewMedia: MediaFile | null;
 
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
   loadMedia: () => Promise<void>;
   setDraggedMedia: (file: MediaFile | null) => void;
+  setPreviewMedia: (file: MediaFile | null) => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
 
   selectedSegment: () => Segment | null;
@@ -28,6 +30,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   mediaFiles: [],
   mediaCategories: {},
   draggedMedia: null,
+  previewMedia: null,
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });
@@ -41,7 +44,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   },
 
-  selectSegment: (id) => set({ selectedSegmentId: id }),
+  selectSegment: (id) => set({ selectedSegmentId: id, previewMedia: null }),
 
   loadMedia: async () => {
     try {
@@ -53,6 +56,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   setDraggedMedia: (file) => set({ draggedMedia: file }),
+
+  setPreviewMedia: (file) => set({ previewMedia: file, selectedSegmentId: null }),
 
   assignMedia: async (segmentId, layer, mediaPath, layerIndex = 0) => {
     await api.assignMedia(segmentId, layer, mediaPath, layerIndex);
