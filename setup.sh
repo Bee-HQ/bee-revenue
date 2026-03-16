@@ -137,8 +137,8 @@ install_video() {
         if command -v node &>/dev/null && command -v npm &>/dev/null; then
             info "Installing bee-video web frontend..."
             cd "$dir/web"
-            npm install 2>/dev/null
-            npm run build 2>/dev/null
+            npm install --include=dev
+            npm run build
             ok "bee-video web UI built"
         else
             warn "node/npm not found — skipping web UI build"
