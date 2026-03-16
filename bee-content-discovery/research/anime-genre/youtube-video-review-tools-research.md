@@ -1,7 +1,10 @@
-# YouTube Video Review & Optimization Tools: Comprehensive Research
+# YouTube Video Review & Optimization Tools for Anime/Manga/Manhwa Content
 
 > Research date: March 2026
-> Scope: AI-powered video analysis, script review, thumbnail optimization, retention analysis, open-source tools, paid SaaS, YouTube API capabilities, LLM-based approaches, storytelling frameworks, and anime/manga-specific tooling.
+> **Scope: Anime, manga, and manhwa YouTube content ONLY.**
+> This research was conducted specifically for the anime-genre content pipeline. While many tools listed are general-purpose YouTube tools, the evaluation criteria, agent spec, and recommendations are tailored to anime/manga/manhwa recap, review, and essay content. **Do not use this document as a reference for other genres** (true crime, finance, etc.) — the scoring rubrics, benchmarks, and recommended workflows are calibrated against our anime/manga/manhwa dataset (509 channels, 4,882 videos).
+>
+> For genre-agnostic YouTube tool research, conduct a separate analysis.
 
 ---
 
@@ -523,12 +526,13 @@ Based on everything researched above, here's the spec for our video review agent
 - Title-thumbnail packaging synergy (Thumblytics concept)
 - Search intent alignment
 
-**Pillar 7: Niche-Specific Scoring (0-100)**
-- For manhwa/anime: source material accuracy
-- Genre convention adherence (true crime, horror, action, romance -- each has different rules)
-- Competitive positioning (how does this compare to top performers in the niche?)
-- Trend alignment (is the topic/approach trending up or down?)
-- Benchmarked against our 4,882 video dataset
+**Pillar 7: Anime/Manga/Manhwa Niche Scoring (0-100)**
+- Source material accuracy (plot points, character names, power systems)
+- Archetype alignment (editorial essay vs power fantasy recap vs explainer — see screenplay-patterns-analysis.md)
+- Sub-genre convention adherence (isekai, romance, action, BL — each has different audience expectations)
+- Competitive positioning vs top performers in our dataset (Tobs Manhwa, Living Deadman, OniMaru, etc.)
+- Trend alignment (is the series/topic trending on AniList, MangaUpdates, r/manga?)
+- Benchmarked against our 4,882 video dataset (509 channels, 6 niche groups)
 
 #### Scoring System
 
