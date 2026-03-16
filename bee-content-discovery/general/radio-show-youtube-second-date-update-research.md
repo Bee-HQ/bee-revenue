@@ -436,9 +436,9 @@ If you're creating radio-show-style content on YouTube:
 **Mirchi Murga (Radio Mirchi 98.3 FM)**
 - Biggest radio prank call format in India
 - Hosted by RJ Naved and other RJs across cities
-- Huge YouTube/TikTok presence (exact subs need direct lookup)
+- **~2.62M YouTube subscribers**. Top video: "India VS USA | Pankit" with 28.5M views
 - Mirchi Gujarati alone: **617K subs**, 289.8M views
-- Related: Mirchi Sunnewaale ("Mirchi Listeners are Always Happy!")
+- Radio Mirchi broadcasts in 63 cities across India
 
 **Red FM (93.5)**
 - RJ Sunil (Karnataka) — one of the best-known prank callers
@@ -450,6 +450,15 @@ If you're creating radio-show-style content on YouTube:
 
 ### Brazil — Huge Radio Prank Culture
 
+**Pânico (Jovem Pan FM)**
+- Running since **1993**, inspired by Howard Stern
+- **3.3-4.1M YouTube subscribers**, 18,469 videos uploaded
+- Estimated **17-20 million radio listeners** at peak
+- Instagram: 7M followers, Facebook: 12.9M likes
+- Also aired on TV (RedeTV! 2003-2011, Band 2012-2017)
+- Known for caller participation and pranks — listeners would call and be mocked/pranked
+- Makes ~$1.21 per 1,000 views
+
 **Mução (A Hora do Mução)**
 - Brazil's king of radio pranks ("pegadinhas")
 - Mix FM São Paulo, Mon-Fri 8-9am
@@ -457,23 +466,21 @@ If you're creating radio-show-style content on YouTube:
 - Performs as a "matuto nordestino" character
 - Huge social media following
 
-**Pânico (Jovem Pan FM)**
-- Running since **1993**, inspired by Howard Stern
-- Estimated **17-20 million listeners**
-- Instagram: 7M followers, Facebook: 12.9M likes
-- Also aired on TV (RedeTV! 2003-2011, Band 2012-2017)
-- Known for caller participation and pranks
-- YouTube channel: "Pânico Jovem Pan"
-
 **CPM**: Brazil is Tier 3 ($1-$4 CPM). Massive audience but low monetization.
 
-### France — Radio Pranks (Canulars Téléphoniques)
+### France — The Proven Market
+
+**Cauet (C'Cauet sur NRJ)**
+- **3.15M+ YouTube subscribers**. Evening show 5-8pm on NRJ
+- **"Marion teste ton mec"** — tests if your boyfriend will cheat. **This is the closest international equivalent to Second Date Update**
+- Also: "Cauet teste ta meuf" (reverse), "Le Rateau Time" (rejection calls)
+- Was fired from NRJ and **fined 1M euros** for degrading content
+- Investigation revealed many pranks were **staged with actors**
 
 **Guillaume Pley**
-- French radio host, NRJ/Fun Radio
-- Known for "canulars téléphoniques" (prank calls)
-- Shows: Radio Libre, Guillaume Radio 2.0
-- Content widely shared on YouTube
+- **3.35M YouTube subscribers**, 490M total views, 1,771 videos
+- Former NRJ/Fun Radio host, now runs "Le QG" talk show on YouTube (2-3M views/episode)
+- Transitioned from radio pranks → YouTube talk show (relevant evolution model)
 
 **Sébastien Trudel** (Quebec)
 - Radio NRJ/Énergie in Montreal
@@ -481,27 +488,34 @@ If you're creating radio-show-style content on YouTube:
 - Top video: 78.8K likes
 - Content primarily in Québécois French
 
-**CPM**: France/Canada (French) = Tier 2 ($4-$12 CPM). Better than LatAm/India but below English.
+**CPM**: France/Canada (French) = Tier 1-2 ($4-$15 CPM). France proves the format works massively — but the regulatory risk is real (1M euro fine).
 
-### Arabic — Hidden Giant
+### Arabic — Hidden Giant (Guinness World Record!)
 
-- **Egyptian YouTube**: أحمد كريم (12.1M subs, ~8B views) does comedy/prank content
+**Thmanyah (ثمانية) Podcast — Saudi Arabia**
+- Saudi Arabia's biggest podcast network
+- Their episode **"Secrets to Thriving Relationships"** with Yasser Al-Hazimi holds the **GUINNESS WORLD RECORD for most-viewed podcast episode on YouTube: 113M+ views**
+- For context: this beat Joe Rogan's Elon Musk interview (68M views over 5 years)
+- 74% of viewers came from outside Saudi Arabia; 21% watched with English subtitles
+- **This is the single strongest signal that Arabic audiences are starving for relationship content**
+
+**Egyptian YouTube (prank/comedy)**
+- أحمد كريم (12.1M subs, ~8B views) — comedy/prank content
 - عبدالله ناصر (8.9M subs, 10B+ views) — family content including pranks
-- **Crazy Taxi** — Arabic prank show where hidden cameras film passengers with crazy drivers
-- Prank calls popular on TikTok (Lebanese dad pranks, Arabic girl voice pranks)
-- Less organized around "radio show" format than US/India/Brazil
+- **Crazy Taxi (كريزي تاكسي)** — hidden camera prank show in Cairo taxis
 
-**CPM**: Middle East varies. UAE/Saudi can be surprisingly high ($5-$15) due to oil wealth demographics.
+**CPM**: UAE/Saudi $8-$14 for premium content, ~$2.60 median. Egypt/Algeria under $0.60. Arabic audiences described as "retention monsters" — low CPM but extremely high watch time.
 
-### Spanish — Gap in the Market
+### Spanish — Biggest Untapped Opportunity
 
-- **No direct equivalent** of Second Date Update found in Spanish
-- Fan translations of Brooke & Jubal clips exist on TikTok ("Segundo Encuentro")
+- **No direct equivalent** of Second Date Update found in Spanish. 600M+ speakers globally, zero native supply
+- Fan translations of Brooke & Jubal clips exist on TikTok ("Segundo Encuentro") — proves demand
 - First Dates España (TV show) is the closest dating format
+- **La Cotorrisa** (Mexico) — one of LatAm's biggest podcasts (host has ~2.7M YouTube subs), comedy/chat but NOT call-in relationship format
 - Spanish relationship advice content exists but not in call-in radio format
-- Univision and other outlets have dating advice articles, not shows
+- Los 40 / Cadena SER (Spain) — major radio networks but music-focused, not relationship call-in
 
-**CPM**: Spain ~$5-8, Latin America $1-4. **This is a gap worth exploring** — the format doesn't exist natively in Spanish but the audience demand likely does.
+**CPM**: Spain ~$5-8, US Hispanic market higher, Latin America $1-4. **This is arguably the single biggest opportunity** — massive audience, proven demand (fan translations), zero competition.
 
 ### German — Underserved
 
@@ -511,15 +525,15 @@ If you're creating radio-show-style content on YouTube:
 
 ### Summary by Market
 
-| Market | Format Exists? | CPM | Opportunity |
-|--------|---------------|-----|-------------|
-| US English | Saturated | $10-$36 | Create original, not reupload |
-| India | Yes (huge) | $0.77 | Volume play only |
-| Brazil | Yes (massive) | $1-$4 | Large but low CPM |
-| French | Some | $4-$12 | Moderate |
-| Arabic | Emerging | $5-$15 (Gulf) | Interesting for Gulf targeting |
-| **Spanish** | **Gap** | $1-$8 | **Best unexploited opportunity** |
-| **German** | **Gap** | $5-$8 | **High CPM, underserved** |
+| Market | Format Exists? | CPM | Key Channel | Opportunity |
+|--------|---------------|-----|-------------|-------------|
+| US English | Saturated | $10-$36 | OwnagePranks (5.3M) | Create original, not reupload |
+| French | Proven (3M+ subs) | $4-$15 | Cauet (3.15M), Pley (3.35M) | Works but regulatory risk |
+| India | Yes (huge) | $0.50-$1.50 | Mirchi Murga (2.62M) | Volume play only |
+| Brazil | Yes (massive) | $1-$4 | Pânico (3.3-4.1M) | Large but low CPM |
+| **Arabic** | **Relationship content proven** | $2.60-$14 (Gulf) | **Thmanyah (113M view record!)** | **Explosive potential** |
+| **Spanish** | **Gap** | $1-$8 | None | **Biggest untapped opportunity** |
+| **German** | **Gap** | $5-$8 | None | **High CPM, zero competition** |
 
 ---
 
