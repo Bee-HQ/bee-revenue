@@ -79,11 +79,36 @@ check_prereqs() {
         warn "ffmpeg not found (needed for bee-video). Install via: $(install_hint ffmpeg)"
     fi
 
-    # node/npm (optional, for video-editor web UI)
+    # node 20.19+ or 22+ (optional, for video-editor web UI)
+    local need_node=false
     if command -v node &>/dev/null; then
-        ok "node $(node --version)"
+        NODE_VER=$(node --version | sed 's/^v//')
+        NODE_MAJOR=$(echo "$NODE_VER" | cut -d. -f1)
+        NODE_MINOR=$(echo "$NODE_VER" | cut -d. -f2)
+        if { [ "$NODE_MAJOR" -eq 20 ] && [ "$NODE_MINOR" -ge 19 ]; } || [ "$NODE_MAJOR" -ge 22 ]; then
+            ok "node v$NODE_VER"
+        else
+            warn "node v$NODE_VER is too old — Vite requires 20.19+ or 22+"
+            need_node=true
+        fi
     else
-        warn "node not found (needed for bee-video web UI). Install via: $(install_hint nodejs)"
+        warn "node not found (needed for bee-video web UI)"
+        need_node=true
+    fi
+
+    if [ "$need_node" = true ]; then
+        if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+            info "Installing Node 22 via nvm..."
+            . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+            nvm install 22
+            ok "node $(node --version) installed via nvm"
+        elif command -v fnm &>/dev/null; then
+            info "Installing Node 22 via fnm..."
+            fnm install 22 && fnm use 22
+            ok "node $(node --version) installed via fnm"
+        else
+            warn "Install Node 22 manually: $(install_hint nodejs) or install nvm"
+        fi
     fi
 }
 
