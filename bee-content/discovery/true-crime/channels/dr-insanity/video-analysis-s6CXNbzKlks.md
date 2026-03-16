@@ -324,60 +324,109 @@ ffmpeg -y -i input.mp4 \
 
 This is a critical visual technique that isn't obvious from the transcript alone. Dr Insanity builds **composited screen mockups** and **picture-in-picture layouts** that make the video feel like you're watching a detective's investigation unfold on their own screen.
 
-#### 5.2a "Detective's Computer" Screen Mockups (Confirmed from Frames)
+#### 5.2a "Detective's Computer" Screen Mockups (Confirmed from Multiple Frames)
 
-During investigation/research sections, the video shows a **fake Windows desktop** composited to look like a detective's computer screen. Key details confirmed from actual video frames:
+During investigation/research sections, the video shows **fake computer applications** composited on a Windows desktop. There are at least two distinct types:
 
-- **Background:** Windows desktop with a **red/warm-tinted wallpaper** — NOT the default blue Windows wallpaper. The warm red tint matches the crime/danger theme. Has **lens flare / light streak effects** on the right side adding depth and cinematic polish.
-- **"Photo Viewer" windows:** Multiple Photo Viewer windows with standard Windows chrome (File, Edit, Image, View, Help menu bar), slightly overlapping, containing:
-  - **B&W victim photo** (Craig holding a puppy — warm, humanizing)
-  - **"MISSING PERSON ALERT" flyer** — a full mock-up or sourced flyer with Craig's photo, physical description, last known location details, and a red "PLEASE HELP US FIND CRAIG!" banner
-- **Dark "REPORTS" data panel (left side):** Custom overlay with labeled fields:
-  - `Name: Craig Thetford`
-  - `Age: 60 Years Old`
-  - `Address: 97 Heatherwood...`
-  - `Demo: [highlighted in red]`
-- **Effect:** Viewer feels like they're looking over the detective's shoulder. Bridges the gap when no real footage exists for database/research scenes.
-- **Multiple variants:** Different desktop mockups are used at different investigation stages — sometimes with just photos, sometimes with the missing person flyer, sometimes with data panels.
+**Type 1: Photo Viewer Desktop (Research Phase)**
 
-**How to build:**
+- **Background:** Windows desktop with a **red/warm-tinted wallpaper** (or standard blue — both variants used). Has **lens flare / light streak effects** adding depth.
+- **"Photo Viewer" windows:** Multiple Photo Viewer windows with standard Windows chrome (File, Edit, Image, View, Help), slightly overlapping, containing:
+  - B&W victim photo (Craig holding puppy — warm, humanizing)
+  - "MISSING PERSON ALERT" flyer with Craig's photo, details, and red "PLEASE HELP US FIND CRAIG!" banner
+- **Used when:** Showing what detectives are looking at during research, or when introducing missing person context
+
+**Type 2: "Police Database" Application (Investigation Phase) — KEY VISUAL**
+
+A **full custom-built fake application** that looks like a real law enforcement database. This is the most sophisticated visual mockup in the video:
+
+- **Window title:** "Police Database" (with person icon in title bar)
+- **Standard window chrome:** File, Edit, Search, View, Help menus + minimize/maximize/close buttons
+- **Navigation tabs:** `DASHBOARD` | `RECORDS` | `CASES` | `REPORTS` — styled as clickable tab buttons
+- **Search bar:** "Search This Database" — top-right corner
+- **Content area (dark background):** "SEARCH RESULTS:" header, then:
+  - **Photo (left):** Craig's color photo (~300px wide)
+  - **Fields (right):** Structured data with italic gray labels + white values:
+    - *Name:* Craig Thetford
+    - *Age:* 60 Years Old
+    - *Address:* 97 Heatherway, Cloudcroft NM
+    - *Details:* **"Missing for"** (RED) **"2 months"**
+- **Background:** Blue Windows desktop visible behind the app window
+- **Key detail:** The "Missing for" text is in RED — drawing the eye to the critical fact
+
+**Effect:** Viewer feels like they're watching the detective run a database search. Legitimizes the investigation and makes abstract "looking into background" narration visually concrete.
+
+**How to build the Police Database mockup:**
 ```python
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
-# 1. Start with a RED-TINTED Windows desktop (1920x1080)
-# Use a Windows 10/11 wallpaper, shift hue to warm red
-bg = Image.open("windows-desktop-bg.png")
-# Apply red tint: reduce blue/green channels, boost red
-r, g, b = bg.split()
-bg = Image.merge('RGB', (r, g.point(lambda x: int(x * 0.6)), b.point(lambda x: int(x * 0.5))))
+def create_police_database_screen(photo_path, name, age, address, detail_key, detail_val):
+    """Generate a fake Police Database application window."""
+    # Blue Windows desktop background
+    bg = Image.open("windows-desktop-blue.png").resize((1920, 1080))
 
-# 2. Add lens flare / light streak on right side
-# Overlay a pre-made lens flare PNG with alpha blending
-flare = Image.open("lens-flare.png").resize((600, 800))
-bg.paste(flare, (1400, 100), flare)
+    # Application window (centered, ~900x500)
+    app_w, app_h = 900, 500
+    app_x, app_y = (1920-app_w)//2, (1080-app_h)//2
+    app = Image.new('RGBA', (app_w, app_h), (40, 40, 45, 255))
+    d = ImageDraw.Draw(app)
 
-# 3. Create "Photo Viewer" window with victim B&W photo
-# Build window chrome (title bar, menu bar, close/min/max buttons)
-photo = Image.open("craig-puppy.jpg").convert('L')  # Convert to B&W
-window = create_photo_viewer_window(photo, title="Photo Viewer")
-bg.paste(window, (50, 80))
+    # Title bar
+    d.rectangle([(0, 0), (app_w, 50)], fill=(55, 55, 60))
+    d.text((40, 12), "Police Database", fill=(255,255,255), font=get_font(18))
+    # Window controls (min, max, close)
+    d.text((app_w-80, 12), "— □ ×", fill=(180,180,180), font=get_font(18))
+    # Menu bar
+    d.text((20, 55), "File  Edit  Search  View  Help", fill=(180,180,180), font=get_font(14))
 
-# 4. Create "Photo Viewer" window with Missing Person flyer
-flyer = Image.open("missing-person-flyer.png")
-window2 = create_photo_viewer_window(flyer, title="Photo Viewer")
-bg.paste(window2, (400, 40))
+    # Navigation tabs
+    tabs = ["DASHBOARD", "RECORDS", "CASES", "REPORTS"]
+    tx = 30
+    for tab in tabs:
+        tw = len(tab) * 12 + 30
+        d.rounded_rectangle([(tx, 90), (tx+tw, 118)], radius=3, outline=(100,100,105))
+        d.text((tx+15, 95), tab, fill=(200,200,200), font=get_font(14))
+        tx += tw + 10
 
-# 5. Optional: Add dark REPORTS data panel
-panel = Image.new('RGBA', (350, 400), (15, 15, 20, 230))
-d = ImageDraw.Draw(panel)
-d.text((20, 20), "REPORTS", fill=(255,255,255), font=get_font(24))
-d.text((20, 70), "Name:", fill=(180,180,180), font=get_font(16))
-d.text((100, 70), "Craig Thetford", fill=(255,255,255), font=get_font(16))
-d.text((20, 100), "Age:", fill=(180,180,180), font=get_font(16))
-d.text((100, 100), "60 Years Old", fill=(255,255,255), font=get_font(16))
-bg.paste(panel, (30, 300), panel)
+    # Search bar (right side)
+    d.rounded_rectangle([(app_w-250, 90), (app_w-30, 118)], radius=3, outline=(80,80,85))
+    d.text((app_w-240, 95), "Search This Database", fill=(120,120,125), font=get_font(13))
 
-bg.save("detective-screen.png")
+    # Search results header
+    d.text((30, 145), "SEARCH RESULTS:", fill=(255,255,255), font=get_font_bold(22))
+
+    # Photo area
+    photo = Image.open(photo_path).resize((220, 260))
+    app.paste(photo, (30, 185))
+
+    # Data fields (right of photo)
+    fields_x = 280
+    field_font = get_font_italic(18)
+    value_font = get_font(18)
+
+    d.text((fields_x, 195), "Name:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+70, 195), name, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 230), "Age:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+70, 230), age, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 265), "Address:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+95, 265), address, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 300), "Details:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+85, 300), detail_key, fill=(220, 40, 40), font=value_font)  # RED
+    d.text((fields_x+85+len(detail_key)*10, 300), detail_val, fill=(255,255,255), font=value_font)
+
+    bg.paste(app, (app_x, app_y))
+    bg.save("police-database.png")
+
+# Usage:
+create_police_database_screen(
+    "craig-photo.jpg",
+    "Craig Thetford", "60 Years Old",
+    "97 Heatherway, Cloudcroft NM",
+    "Missing for ", "2 months"
+)
 ```
 
 #### 5.2b "File Viewer" PIP Photo Overlays (Confirmed from Frames)
@@ -395,6 +444,9 @@ When a person is being discussed, their photo appears as a PIP overlay — but N
 - **Night bodycam (carport search):** Craig's warm puppy photo in File Viewer PIP on left, while flashlight-lit bodycam shows the tractor/equipment in the carport where his body was hidden. The emotional contrast is devastating — warm victim photo vs. dark crime scene.
 - **Aerial/satellite view:** Craig's outdoor photo in File Viewer PIP on left, while satellite imagery with red pulse shows the property location.
 - **Detective desk scene:** Dena's photo in File Viewer PIP center, while bodycam shows detective writing notes.
+- **Dual PIP on 3D Google Earth (911 call):** TWO File Viewer photos side by side — "LARRY SCOTT" (the caller) on the left, "CRAIG THETFORD" (the victim) on the right — over a **3D Google Earth Studio oblique view** of the town. This establishes the relationship between caller and subject during the welfare check call.
+
+**Dual PIP pattern:** When a phone call involves two identified parties (caller + subject), both photos appear simultaneously side by side. Single PIP is used when only one person is being discussed.
 
 **Multiple photos for same person:** Craig has at least two different photos used in PIP:
 1. **Warm/personal:** B&W, holding puppy, wearing cap — used for emotional moments
@@ -492,14 +544,93 @@ d.text((80, 640), "if convicted for second-degree murder", fill=(255,255,255), f
 img.save("charges-card.png")
 ```
 
-#### 5.2e Aerial Map with Animated Red Pulse (Confirmed from Frame)
+#### 5.2e Aerial Maps & Location Shots (Confirmed from Multiple Frames)
 
-Location establishing shots use **satellite imagery with an animated red pulse/radar ping**:
+Location shots use **three distinct visual styles**, all confirmed from frames:
 
-- **Background:** Google Earth satellite view of the neighborhood, **dark-graded** (desaturated, contrast boosted, darkened — NOT natural satellite colors)
-- **Red pulse effect:** Glowing red concentric circles radiating outward from the target property, like a radar ping or heartbeat monitor. Creates an animated "this is the spot" effect.
-- **File Viewer PIP:** Victim's photo in the standard File Viewer window overlay, positioned left side
-- **Overall effect:** Cinematic surveillance feel — like tracking a target from a command center
+**Style 1: Flat Satellite + Red Pulse**
+- Dark-graded Google Earth top-down view with extreme vignette
+- Red radar pulse (concentric glowing circles) on the target property
+- File Viewer PIP of victim on left side
+- Used for: pinpointing the exact property
+
+**Style 2: 3D Google Earth Studio Oblique View**
+- **NOT flat satellite** — this is a 3D rendered oblique/angled view from Google Earth Studio showing buildings in 3D perspective
+- Dark/desaturated color grade (almost black and white)
+- Used as background for dual PIP phone call scenes (e.g., Larry Scott + Craig Thetford side by side)
+- Camera slowly pans/orbits during the shot (Google Earth Studio camera animation)
+- Used for: establishing city/town context during phone calls
+
+**Style 3: Dark Map with Red Glowing Road Outlines**
+- Extremely dark satellite imagery — nearly all black
+- **Roads traced with red glowing lines** — neon-red outlines following the road network, with glow/bloom effect
+- White text labels ("WILDERNESS AREA") for geographic context
+- Very heavy vignette
+- Used for: showing the remote, isolated context of the location
+
+**The red road outlines are a standout technique.** They make the map look like a tactical/surveillance display — like something from a command center or a crime thriller movie. The roads glow like circuits on a dark grid.
+
+```python
+# Approach: Use MapLibre/Mapbox with custom dark style + red road layers
+# OR: Download OSM road data and trace with Pillow
+
+# Pillow approach (manual but precise):
+from PIL import Image, ImageDraw, ImageFilter
+
+# 1. Start with dark satellite image
+bg = Image.open("satellite.png")
+# Darken heavily
+bg = bg.point(lambda x: int(x * 0.2))  # 20% brightness
+
+# 2. Load road overlay (white roads on transparent bg from OSM/MapLibre export)
+roads = Image.open("roads-white-on-transparent.png")
+
+# 3. Tint roads red
+r, g, b, a = roads.split()
+red_roads = Image.merge('RGBA', (r, Image.new('L', r.size, 0), Image.new('L', r.size, 0), a))
+
+# 4. Create glow: blur the red roads and composite underneath
+glow = red_roads.filter(ImageFilter.GaussianBlur(8))
+bg.paste(glow, (0, 0), glow)  # Glow layer
+bg.paste(red_roads, (0, 0), red_roads)  # Sharp roads on top
+
+# 5. Add vignette
+# ... (see vignette code above)
+
+# 6. Add text label
+d = ImageDraw.Draw(bg)
+d.text((960, 540), "WILDERNESS AREA", fill=(255,255,255), font=get_font(36), anchor="mm")
+
+bg.save("tactical-map.png")
+```
+
+```javascript
+// MapLibre GL JS approach (web-based, higher quality):
+// Use a dark basemap style with custom road layer coloring
+map.addLayer({
+  'id': 'roads-glow',
+  'type': 'line',
+  'source': 'openmaptiles',
+  'source-layer': 'transportation',
+  'paint': {
+    'line-color': '#dc3232',
+    'line-width': 3,
+    'line-blur': 8,
+    'line-opacity': 0.6
+  }
+});
+map.addLayer({
+  'id': 'roads-sharp',
+  'type': 'line',
+  'source': 'openmaptiles',
+  'source-layer': 'transportation',
+  'paint': {
+    'line-color': '#dc3232',
+    'line-width': 1.5,
+    'line-opacity': 0.9
+  }
+});
+```
 
 ```bash
 # FFmpeg: Create animated red pulse on satellite image
