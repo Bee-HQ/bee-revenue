@@ -80,7 +80,7 @@ Architectural work that unlocks new capabilities.
 - [x] **Map generation** — `bee-video map` generates `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from lat/lng via py-staticmaps + dark grade + vignette post-processing
 
 ### Security
-- [ ] **Auth option** — optional `--auth` flag with token-based auth for non-local deployments
+- [ ] **Auth option** — optional `--auth` flag with token-based auth for non-local deployments (deferred — low priority, tool is designed for local use)
 
 ---
 

@@ -7,6 +7,44 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-17
+
+### Added
+
+- **`bee-video produce`** — one-command full pipeline (init → graphics → captions → narration → trim → assemble) with auto-skip and step progress
+- **Preview generation** — 360p thumbnails per segment from assigned media, per-segment + batch, cached in `output/previews/`
+- **Parallel narration** — `--workers N` flag for concurrent TTS via ThreadPoolExecutor
+- **WebSocket progress** — real-time progress for narration and produce pipeline via `/ws/progress`
+- **Flow diagram** — `flow_diagram()` with directional arrows, red/teal colors, arrowheads, auto-layout
+- **Timeline sequence** — `timeline_sequence()` horizontal timeline with active/current/future nodes
+- **OTIO timeline export** — `bee-video export` compiles storyboard to OpenTimelineIO with visual code metadata, section markers, media references
+- **Map generation** — `bee-video map` generates `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from lat/lng via py-staticmaps + dark grade + vignette
+
+## [0.4.0] - 2026-03-17
+
+### Added
+
+- **ASS caption generation** — `bee-video captions` with karaoke (word-by-word `\kf`) and phrase modes via pysubs2, burns into final video via FFmpeg `ass` filter
+- **Asset preflight** — `bee-video preflight` scans storyboard against project files, reports found/missing/needs-check with JSON manifest
+- **Model unification** — `assembly_guide_to_storyboard()` converter, `_ensure_storyboard()` in production service, both input formats work transparently
+- **Parser resilience** — whitespace normalization, missing section handling, malformed row skipping in both parsers
+- **Text chat recreation** — `text_chat()` with iMessage/SMS/generic platforms
+- **Social media post** — `social_post()` for Facebook/Instagram/Twitter/Snapchat
+- **News headline montage** — `news_montage()` stacked rotated headline cards
+- **Evidence board** — `evidence_board()` red-string corkboard with circle/grid layout
+- **Lottie animated overlays** — `--animated` CLI flag for animated lower-thirds via Lottie + Cairo + FFmpeg VP9
+- **Persistent session** — auto-reload last project on restart via `~/.bee-video/last-session.json`
+- **Undo/redo** — Zustand history stack for media assignments, Ctrl+Z / Ctrl+Shift+Z
+- **Segment reordering** — HTML5 drag-drop, persisted to `.bee-video/segment-order.json`
+- **Batch media assignment** — shift-click multi-select, drop assigns to all selected
+- **ElevenLabs TTS** — 4th TTS engine with `ELEVENLABS_API_KEY` env var, default voice: Daniel
+- 100+ new tests (113 → 269)
+
+### Changed
+
+- Production functions use Storyboard internally via `_ensure_storyboard()` converter
+- Storyboard parser recognizes `[CODE: qualifier]` bible visual codes
+
 ## [0.3.1] - 2026-03-17
 
 ### Added

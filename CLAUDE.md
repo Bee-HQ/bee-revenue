@@ -13,7 +13,7 @@ Monorepo for automated revenue streams under Bee. This is a git submodule — th
 | `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
 | `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
 | `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
-| `bee-content/video-editor/` | Built (v0.3.1) | Python CLI + web editor — AI-assisted video production |
+| `bee-content/video-editor/` | Built (v0.5.0) | Python CLI + web editor — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
 ## bee-content/research (YouTube competitor analysis)

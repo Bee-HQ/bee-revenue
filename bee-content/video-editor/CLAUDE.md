@@ -4,7 +4,7 @@
 
 AI-assisted video production tool. Takes storyboard/assembly guide markdown → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.3.1
+**Version:** 0.5.0
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 

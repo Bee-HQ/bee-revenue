@@ -17,7 +17,7 @@ def create_app(static_dir: Path | None = None) -> FastAPI:
     app = FastAPI(
         title="Bee Video Editor",
         description="Storyboard-first AI video production",
-        version="0.3.1",
+        version="0.5.0",
     )
 
     cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
