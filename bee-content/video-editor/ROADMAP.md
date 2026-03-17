@@ -63,7 +63,7 @@ Architectural work that unlocks new capabilities.
 
 ### Production
 - [x] **One-command production** — `bee-video produce` runs init → graphics → captions → narration → trim → assemble with auto-skip and progress
-- [ ] **Preview generation** — low-res FFmpeg composite per segment, cached in `output/previews/`, "Generate Preview" button per segment card
+- [x] **Preview generation** — 360p thumbnails per segment from assigned media, per-segment + batch, cached in `output/previews/`
 - [ ] **Parallel segment processing** — process independent segments concurrently (currently sequential)
 
 ### Real-time
