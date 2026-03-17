@@ -18,13 +18,13 @@ Small, targeted fixes that improve daily usage.
 
 ### Web UI
 - [x] **Configurable API base URL** — `import.meta.env.VITE_API_BASE || '/api'`
-- [ ] **Media library search** — text filter by filename in `MediaLibrary.tsx` (pure frontend)
+- [x] **Media library search** — text filter by filename in MediaLibrary.tsx
 - [x] **CORS env var** — `CORS_ORIGINS` env var, comma-separated, default `*`
-- [ ] **TTS progress** — poll `/api/production/status` during narration, show count in button ("Narration 3/12")
+- [x] **TTS progress** — async narration with background thread, frontend polls showing "Narration 3/12"
 
 ### Graphics (formula alignment)
-- [ ] **Mugshot card** — add `mugshot_card(photo_path, charges_list, output)` to `graphics.py`. Split layout: photo right, red charges left. Spec: visual-storyboard-bible.md `[MUGSHOT-CARD]`
-- [ ] **Quote card completion** — verify `quote_card()` in `graphics.py` is fully implemented (may be stubbed). Should support teal accent for info quotes, red for threats, warm gold for victim quotes per the 4-color system
+- [x] **Mugshot card** — `mugshot_card(photo_path, charges, sentence, output)` in graphics.py with photo right, charges left
+- [x] **Quote card completion** — `quote_card()` supports `accent` param: red (threats), teal (info), gold (victim)
 
 ---
 

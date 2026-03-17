@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,9 @@ from bee_video_editor.api.schemas import GenerateRequest, ProductionStatusSchema
 from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
+
+# Background narration task state
+_narration_task: dict | None = None
 
 
 def _count_files(directory: Path, pattern: str = "*") -> int:
@@ -105,21 +109,32 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
 VALID_TTS_ENGINES = {"edge", "kokoro", "openai"}
 
 
-@router.post("/narration")
-def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get_session)):
-    """Generate TTS narration for narrator segments."""
-    if req.tts_engine not in VALID_TTS_ENGINES:
-        raise HTTPException(400, f"Invalid TTS engine '{req.tts_engine}'. Must be one of: {', '.join(sorted(VALID_TTS_ENGINES))}")
-    storyboard, project_dir = session.require_project()
-    output_dir = project_dir / "output"
-    narration_dir = output_dir / "narration"
-    narration_dir.mkdir(parents=True, exist_ok=True)
+def _count_narration_segments(storyboard) -> int:
+    """Count how many NAR audio entries exist in the storyboard."""
+    import re
+    count = 0
+    for seg in storyboard.segments:
+        for audio_entry in seg.audio:
+            if audio_entry.content_type != "NAR":
+                continue
+            text = audio_entry.content.strip()
+            if not text:
+                continue
+            text = re.sub(r'\s*\+\s*.*$', '', text)
+            text = text.strip('"').strip('\u201c').strip('\u201d')
+            if text:
+                count += 1
+    return count
 
+
+def _run_narration_background(storyboard, narration_dir: Path, engine: str, voice: str | None):
+    """Generate narration in a background thread. Updates _narration_task state."""
+    global _narration_task
+    import re
     from bee_video_editor.processors.tts import generate_narration as tts_generate
 
     succeeded = []
     failed = []
-    import re
 
     for i, seg in enumerate(storyboard.segments):
         for audio_entry in seg.audio:
@@ -130,7 +145,6 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
             if not text:
                 continue
 
-            # Strip trailing notes like "+ dark ambient..."
             text = re.sub(r'\s*\+\s*.*$', '', text)
             text = text.strip('"').strip('\u201c').strip('\u201d')
 
@@ -146,8 +160,8 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
                     tts_generate(
                         text=text,
                         output_path=out,
-                        engine=req.tts_engine,
-                        voice=req.tts_voice,
+                        engine=engine,
+                        voice=voice,
                     )
                 succeeded.append(str(out))
             except Exception as exc:
@@ -160,13 +174,76 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
     else:
         status = "ok"
 
-    return {
-        "status": status,
-        "succeeded": succeeded,
-        "failed": failed,
-        "skipped": [],
-        "count": len(succeeded),
+    _narration_task["running"] = False
+    _narration_task["status"] = status
+    _narration_task["succeeded"] = succeeded
+    _narration_task["failed"] = failed
+
+
+@router.post("/narration")
+def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get_session)):
+    """Start TTS narration generation in the background.
+
+    Returns immediately with total count. Poll GET /status for progress.
+    """
+    global _narration_task
+
+    if req.tts_engine not in VALID_TTS_ENGINES:
+        raise HTTPException(400, f"Invalid TTS engine '{req.tts_engine}'. Must be one of: {', '.join(sorted(VALID_TTS_ENGINES))}")
+
+    if _narration_task and _narration_task.get("running"):
+        raise HTTPException(409, "Narration is already running")
+
+    storyboard, project_dir = session.require_project()
+    output_dir = project_dir / "output"
+    narration_dir = output_dir / "narration"
+    narration_dir.mkdir(parents=True, exist_ok=True)
+
+    total = _count_narration_segments(storyboard)
+
+    _narration_task = {
+        "running": True,
+        "total": total,
+        "status": "running",
+        "succeeded": [],
+        "failed": [],
     }
+
+    thread = threading.Thread(
+        target=_run_narration_background,
+        args=(storyboard, narration_dir, req.tts_engine, req.tts_voice),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"status": "started", "total": total}
+
+
+@router.get("/narration/status")
+def get_narration_status(session: SessionStore = Depends(get_session)):
+    """Get narration generation progress."""
+    _, project_dir = session.require_project()
+    output_dir = project_dir / "output"
+    narration_dir = output_dir / "narration"
+
+    done = _count_files(narration_dir, "*.mp3") if narration_dir.exists() else 0
+    total = _narration_task["total"] if _narration_task else 0
+    running = _narration_task["running"] if _narration_task else False
+
+    result = {
+        "running": running,
+        "done": done,
+        "total": total,
+    }
+
+    # Include final results when done
+    if _narration_task and not _narration_task["running"]:
+        result["status"] = _narration_task["status"]
+        result["succeeded"] = _narration_task["succeeded"]
+        result["failed"] = _narration_task["failed"]
+        result["count"] = len(_narration_task["succeeded"])
+
+    return result
 
 
 @router.get("/effects")

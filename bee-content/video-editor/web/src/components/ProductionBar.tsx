@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { api } from '../api/client';
 
 type Status = 'idle' | 'running' | 'done' | 'error';
@@ -6,6 +6,7 @@ type Status = 'idle' | 'running' | 'done' | 'error';
 export function ProductionBar() {
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [message, setMessage] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const runAction = async (key: string, action: () => Promise<any>) => {
     setStatus(s => ({ ...s, [key]: 'running' }));
@@ -25,6 +26,37 @@ export function ProductionBar() {
       setMessage(`${key} failed: ${e.message}`);
     }
   };
+
+  const runNarration = useCallback(async () => {
+    setStatus(s => ({ ...s, narration: 'running' }));
+    setMessage('Narration: starting...');
+    try {
+      const startResult = await api.generateNarration();
+      const total = startResult.total || 0;
+      setMessage(`Narration: 0/${total}`);
+
+      // Poll for progress every 2 seconds
+      pollRef.current = setInterval(async () => {
+        try {
+          const progress = await api.getNarrationStatus();
+          setMessage(`Narration: ${progress.done}/${progress.total}`);
+          if (!progress.running) {
+            if (pollRef.current) clearInterval(pollRef.current);
+            pollRef.current = null;
+            const finalStatus = progress.status === 'ok' ? 'done' : progress.status === 'partial' ? 'done' : 'error';
+            setStatus(s => ({ ...s, narration: finalStatus as Status }));
+            const count = progress.count ?? progress.done;
+            setMessage(`Narration: generated ${count} files${progress.failed?.length ? ` (${progress.failed.length} failed)` : ''}`);
+          }
+        } catch {
+          // Polling error — keep trying
+        }
+      }, 2000);
+    } catch (e: any) {
+      setStatus(s => ({ ...s, narration: 'error' }));
+      setMessage(`Narration failed: ${e.message}`);
+    }
+  }, []);
 
   const buttonClass = (key: string) => {
     const s = status[key] || 'idle';
@@ -62,7 +94,7 @@ export function ProductionBar() {
       <button
         className={buttonClass('narration')}
         disabled={isRunning}
-        onClick={() => runAction('narration', () => api.generateNarration())}
+        onClick={runNarration}
       >
         Narration
       </button>

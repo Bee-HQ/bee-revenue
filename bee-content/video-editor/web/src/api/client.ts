@@ -74,6 +74,10 @@ export const api = {
     });
   },
 
+  getNarrationStatus(): Promise<any> {
+    return request('/production/narration/status');
+  },
+
   assembleVideo() {
     return request('/production/assemble', { method: 'POST' });
   },
