@@ -417,6 +417,74 @@ def list_effects():
 
 
 @app.command()
+def preflight(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Check which assets are ready and which are missing."""
+    from rich.table import Table
+
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.services.preflight import run_preflight
+
+    sb = parse_storyboard(storyboard_path)
+    proj = Path(project_dir)
+    report = run_preflight(sb, proj)
+
+    table = Table(title="Asset Preflight Report")
+    table.add_column("Segment", style="dim")
+    table.add_column("Layer")
+    table.add_column("Code")
+    table.add_column("Qualifier", max_width=40)
+    table.add_column("Status")
+    table.add_column("File", max_width=50)
+
+    status_colors = {
+        "found": "green",
+        "missing": "red",
+        "needs-check": "yellow",
+        "not-supported": "dim",
+        "unknown": "magenta",
+    }
+
+    for entry in report.entries:
+        color = status_colors.get(entry.status, "white")
+        table.add_row(
+            entry.segment_id,
+            entry.layer,
+            entry.visual_code,
+            entry.qualifier[:40],
+            f"[{color}]{entry.status}[/{color}]",
+            entry.file_path or "",
+        )
+
+    console.print(table)
+    console.print(
+        f"\n[bold]{report.total} assets:[/bold] "
+        f"[green]{report.found} found[/green], "
+        f"[red]{report.missing} missing[/red], "
+        f"[yellow]{report.needs_check} need check[/yellow]"
+    )
+
+    # Write JSON manifest
+    import json
+    from dataclasses import asdict
+    manifest_dir = proj / "output"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = manifest_dir / "asset-manifest.json"
+    manifest = {
+        "total": report.total,
+        "found": report.found,
+        "missing": report.missing,
+        "generated": report.generated,
+        "needs_check": report.needs_check,
+        "entries": [asdict(e) for e in report.entries],
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    console.print(f"\n[dim]Manifest written to {manifest_path}[/dim]")
+
+
+@app.command()
 def serve(
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Bind host"),
     port: int = typer.Option(8420, "--port", "-p", help="Bind port"),

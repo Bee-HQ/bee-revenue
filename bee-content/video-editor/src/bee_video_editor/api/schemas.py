@@ -98,3 +98,21 @@ class DownloadStatusResponse(BaseModel):
     running: bool
     output_lines: list[str]
     return_code: int | None = None
+
+
+class AssetEntrySchema(BaseModel):
+    segment_id: str
+    layer: str
+    visual_code: str
+    qualifier: str
+    status: str
+    file_path: str | None = None
+
+
+class PreflightReportSchema(BaseModel):
+    total: int
+    found: int
+    missing: int
+    generated: int
+    needs_check: int
+    entries: list[AssetEntrySchema]

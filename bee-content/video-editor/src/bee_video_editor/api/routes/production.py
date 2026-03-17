@@ -261,6 +261,34 @@ def list_effects():
     }
 
 
+@router.get("/preflight")
+def get_preflight(session: SessionStore = Depends(get_session)):
+    """Run asset preflight check against loaded project."""
+    from bee_video_editor.services.preflight import run_preflight
+
+    storyboard, project_dir = session.require_project()
+    report = run_preflight(storyboard, project_dir)
+
+    return {
+        "total": report.total,
+        "found": report.found,
+        "missing": report.missing,
+        "generated": report.generated,
+        "needs_check": report.needs_check,
+        "entries": [
+            {
+                "segment_id": e.segment_id,
+                "layer": e.layer,
+                "visual_code": e.visual_code,
+                "qualifier": e.qualifier,
+                "status": e.status,
+                "file_path": e.file_path,
+            }
+            for e in report.entries
+        ],
+    }
+
+
 @router.post("/assemble")
 def assemble_video(
     transition: str | None = None,
