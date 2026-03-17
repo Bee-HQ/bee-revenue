@@ -675,6 +675,183 @@ def evidence_board(
     return output_path
 
 
+@dataclass
+class FlowNode:
+    name: str
+    node_type: str = "box"  # "box" or "circle"
+
+
+@dataclass
+class FlowArrow:
+    from_name: str
+    to_name: str
+    label: str          # e.g. "$4.3M", "settlement funds"
+    color: str = "red"  # "red" for money/danger, "teal" for info
+
+
+def _draw_arrowhead(
+    d: ImageDraw.ImageDraw,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    color: tuple,
+    size: int = 15,
+) -> None:
+    """Draw a filled triangle arrowhead at (x2, y2) pointing from (x1, y1)."""
+    angle = math.atan2(y2 - y1, x2 - x1)
+    left_x = x2 - size * math.cos(angle - math.pi / 6)
+    left_y = y2 - size * math.sin(angle - math.pi / 6)
+    right_x = x2 - size * math.cos(angle + math.pi / 6)
+    right_y = y2 - size * math.sin(angle + math.pi / 6)
+    d.polygon([(x2, y2), (left_x, left_y), (right_x, right_y)], fill=color)
+
+
+def flow_diagram(
+    nodes: list[FlowNode],
+    arrows: list[FlowArrow],
+    output_path: str | Path,
+) -> Path:
+    """Generate a flow diagram showing connections between entities.
+
+    Nodes arranged left-to-right, connected by directional arrows.
+    Spec: visual-storyboard-bible.md [FLOW-DIAGRAM]
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+    d = ImageDraw.Draw(img)
+
+    if not nodes:
+        img.save(str(output_path))
+        return output_path
+
+    node_w = 200
+    node_h = 80
+    circle_r = 50  # radius for circle nodes
+
+    # Layout: single row for ≤4 nodes, two rows for 5+
+    n = len(nodes)
+    if n <= 4:
+        rows = 1
+        cols = n
+    else:
+        rows = 2
+        cols = math.ceil(n / 2)
+
+    # Compute center positions for each node
+    positions: dict[str, tuple[int, int]] = {}
+
+    if rows == 1:
+        # Single row, vertically centered
+        x_spacing = WIDTH // (cols + 1)
+        cy = HEIGHT // 2
+        for i, node in enumerate(nodes):
+            cx = (i + 1) * x_spacing
+            positions[node.name] = (cx, cy)
+    else:
+        # Two rows
+        x_spacing = WIDTH // (cols + 1)
+        row_y = [HEIGHT // 3, 2 * HEIGHT // 3]
+        for i, node in enumerate(nodes):
+            col = i % cols
+            row = i // cols
+            cx = (col + 1) * x_spacing
+            cy = row_y[row]
+            positions[node.name] = (cx, cy)
+
+    name_font = _get_font(28, bold=True)
+    label_font = _get_font(24)
+
+    # Draw arrows first (behind nodes)
+    for arrow in arrows:
+        if arrow.from_name not in positions or arrow.to_name not in positions:
+            continue
+        x0, y0 = positions[arrow.from_name]
+        x1, y1 = positions[arrow.to_name]
+        arrow_color = COLORS.get(arrow.color, COLORS["red"])
+
+        # Shorten line so it doesn't overlap node boundaries
+        dx = x1 - x0
+        dy = y1 - y0
+        dist = math.hypot(dx, dy)
+        if dist == 0:
+            continue
+
+        # Offset start and end by node half-size
+        src_node = next((node for node in nodes if node.name == arrow.from_name), None)
+        dst_node = next((node for node in nodes if node.name == arrow.to_name), None)
+        src_offset = circle_r if (src_node and src_node.node_type == "circle") else max(node_w, node_h) // 2
+        dst_offset = circle_r if (dst_node and dst_node.node_type == "circle") else max(node_w, node_h) // 2
+
+        # Add a little padding
+        src_offset += 5
+        dst_offset += 20  # leave room for arrowhead
+
+        sx = int(x0 + dx / dist * src_offset)
+        sy = int(y0 + dy / dist * src_offset)
+        ex = int(x1 - dx / dist * dst_offset)
+        ey = int(y1 - dy / dist * dst_offset)
+
+        d.line([(sx, sy), (ex, ey)], fill=arrow_color, width=3)
+
+        # Arrowhead at destination end
+        _draw_arrowhead(d, sx, sy, int(x1 - dx / dist * (dst_offset - 15)), int(y1 - dy / dist * (dst_offset - 15)), arrow_color)
+
+        # Label at midpoint
+        mx = (sx + ex) // 2
+        my = (sy + ey) // 2
+        lbbox = d.textbbox((0, 0), arrow.label, font=label_font)
+        lw = lbbox[2] - lbbox[0]
+        lh = lbbox[3] - lbbox[1]
+        # Small dark background behind label for readability
+        pad = 4
+        d.rectangle(
+            [(mx - lw // 2 - pad, my - lh // 2 - pad), (mx + lw // 2 + pad, my + lh // 2 + pad)],
+            fill=COLORS["bg_dark"],
+        )
+        d.text((mx - lw // 2, my - lh // 2), arrow.label, fill=COLORS["white"], font=label_font)
+
+    # Draw nodes on top
+    for node in nodes:
+        cx, cy = positions[node.name]
+
+        if node.node_type == "circle":
+            # Dark circle with subtle border
+            d.ellipse(
+                [(cx - circle_r, cy - circle_r), (cx + circle_r, cy + circle_r)],
+                fill=COLORS["bg_darker"],
+                outline=(60, 60, 70),
+                width=2,
+            )
+            # Center text
+            nbbox = d.textbbox((0, 0), node.name, font=name_font)
+            nw = nbbox[2] - nbbox[0]
+            nh = nbbox[3] - nbbox[1]
+            d.text((cx - nw // 2, cy - nh // 2), node.name, fill=COLORS["white"], font=name_font)
+        else:
+            # Dark rectangle with subtle border (~200x80)
+            rx0 = cx - node_w // 2
+            ry0 = cy - node_h // 2
+            rx1 = cx + node_w // 2
+            ry1 = cy + node_h // 2
+            d.rectangle([(rx0, ry0), (rx1, ry1)], fill=COLORS["bg_darker"], outline=(60, 60, 70), width=2)
+            # Center text (wrap if needed)
+            lines = _word_wrap(d, node.name, name_font, node_w - 16)
+            line_h = 34
+            total_text_h = len(lines) * line_h
+            ty = cy - total_text_h // 2
+            for line in lines:
+                lbbox = d.textbbox((0, 0), line, font=name_font)
+                lw = lbbox[2] - lbbox[0]
+                d.text((cx - lw // 2, ty), line, fill=COLORS["white"], font=name_font)
+                ty += line_h
+
+    img.save(str(output_path))
+    return output_path
+
+
 def _word_wrap(
     draw: ImageDraw.ImageDraw,
     text: str,

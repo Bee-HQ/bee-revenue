@@ -283,3 +283,43 @@ class TestEvidenceBoard:
         out = tmp_path / "board.png"
         result = evidence_board(people, [], out)
         assert result.exists()
+
+
+class TestFlowDiagram:
+    def test_basic_flow(self, tmp_path):
+        from bee_video_editor.processors.graphics import flow_diagram, FlowNode, FlowArrow
+        nodes = [
+            FlowNode("Alex Murdaugh"),
+            FlowNode("Forge Account"),
+            FlowNode("Satterfield Family"),
+        ]
+        arrows = [
+            FlowArrow("Alex Murdaugh", "Forge Account", "$4.3M", color="red"),
+            FlowArrow("Forge Account", "Satterfield Family", "$0", color="red"),
+        ]
+        out = tmp_path / "flow.png"
+        result = flow_diagram(nodes, arrows, out)
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_circle_nodes(self, tmp_path):
+        from bee_video_editor.processors.graphics import flow_diagram, FlowNode, FlowArrow
+        nodes = [FlowNode("A", "circle"), FlowNode("B", "circle")]
+        arrows = [FlowArrow("A", "B", "connection", color="teal")]
+        out = tmp_path / "circles.png"
+        result = flow_diagram(nodes, arrows, out)
+        assert result.exists()
+
+    def test_empty_diagram(self, tmp_path):
+        from bee_video_editor.processors.graphics import flow_diagram
+        out = tmp_path / "empty.png"
+        result = flow_diagram([], [], out)
+        assert result.exists()
+
+    def test_no_arrows(self, tmp_path):
+        from bee_video_editor.processors.graphics import flow_diagram, FlowNode
+        nodes = [FlowNode("Standalone")]
+        out = tmp_path / "no_arrows.png"
+        result = flow_diagram(nodes, [], out)
+        assert result.exists()
