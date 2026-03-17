@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from bee_video_editor.api.schemas import (
@@ -17,6 +17,7 @@ from bee_video_editor.api.schemas import (
     MediaFileSchema,
     MediaListResponse,
 )
+from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
 
@@ -44,13 +45,6 @@ MEDIA_EXTENSIONS = {
 ALL_MEDIA_EXTENSIONS = set()
 for exts in MEDIA_EXTENSIONS.values():
     ALL_MEDIA_EXTENSIONS.update(exts)
-
-
-def _get_project_dir() -> Path:
-    from bee_video_editor.api.routes.projects import _current_project_dir
-    if _current_project_dir is None:
-        raise HTTPException(404, "No project loaded")
-    return _current_project_dir
 
 
 def _scan_media_dir(base_dir: Path, category: str, subdirs: list[str]) -> list[MediaFileSchema]:
@@ -81,9 +75,9 @@ def _scan_media_dir(base_dir: Path, category: str, subdirs: list[str]) -> list[M
 
 
 @router.get("", response_model=MediaListResponse)
-def list_media():
+def list_media(session: SessionStore = Depends(get_session)):
     """List all media files in the project directory."""
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
 
     all_files: list[MediaFileSchema] = []
     categories: dict[str, int] = {}
@@ -98,9 +92,9 @@ def list_media():
 
 
 @router.post("/upload")
-async def upload_media(file: UploadFile, category: str = "footage"):
+async def upload_media(file: UploadFile, category: str = "footage", session: SessionStore = Depends(get_session)):
     """Upload a media file to the project."""
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
 
     # Determine target directory
     target_dirs = MEDIA_CATEGORIES.get(category, [category])
@@ -120,14 +114,14 @@ async def upload_media(file: UploadFile, category: str = "footage"):
 
 
 @router.get("/file")
-def serve_media_file(path: str):
+def serve_media_file(path: str, session: SessionStore = Depends(get_session)):
     """Serve a media file for preview."""
     p = Path(path)
     if not p.exists():
         raise HTTPException(404, f"File not found: {path}")
 
     # Basic security: ensure the file is within the project dir
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
     try:
         p.resolve().relative_to(project_dir.resolve())
     except ValueError:
@@ -168,9 +162,9 @@ def _check_tool(name: str) -> bool:
 
 
 @router.get("/download/scripts", response_model=list[DownloadScriptInfo])
-def list_download_scripts():
+def list_download_scripts(session: SessionStore = Depends(get_session)):
     """List available download scripts for this project."""
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
     return _find_download_scripts(project_dir)
 
 
@@ -186,9 +180,9 @@ def check_download_tools():
 
 
 @router.post("/download/run-script")
-async def run_download_script(req: DownloadRequest):
+async def run_download_script(req: DownloadRequest, session: SessionStore = Depends(get_session)):
     """Run a download script in the project directory."""
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
 
     script_path = Path(req.script_path)
     if not script_path.exists():
@@ -238,12 +232,12 @@ async def run_download_script(req: DownloadRequest):
 
 
 @router.post("/download/yt-dlp")
-async def download_with_ytdlp(url: str, category: str = "footage", filename: str | None = None):
+async def download_with_ytdlp(url: str, category: str = "footage", filename: str | None = None, session: SessionStore = Depends(get_session)):
     """Download a video using yt-dlp."""
     if not _check_tool("yt-dlp"):
         raise HTTPException(400, "yt-dlp is not installed. Install with: pip install yt-dlp")
 
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
     target_dir = project_dir / category
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -305,9 +299,9 @@ def download_status():
 
 
 @router.post("/download/create-dirs")
-def create_media_dirs():
+def create_media_dirs(session: SessionStore = Depends(get_session)):
     """Create all standard media directories in the project."""
-    project_dir = _get_project_dir()
+    _, project_dir = session.require_project()
     created = []
     for category, subdirs in MEDIA_CATEGORIES.items():
         d = project_dir / subdirs[0]

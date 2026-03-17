@@ -4,18 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from bee_video_editor.api.schemas import GenerateRequest, ProductionStatusSchema
+from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
-
-
-def _get_state():
-    from bee_video_editor.api.routes.projects import _current_project_dir, _current_storyboard
-    if _current_storyboard is None or _current_project_dir is None:
-        raise HTTPException(404, "No project loaded")
-    return _current_storyboard, _current_project_dir
 
 
 def _count_files(directory: Path, pattern: str = "*") -> int:
@@ -25,9 +19,9 @@ def _count_files(directory: Path, pattern: str = "*") -> int:
 
 
 @router.get("/status", response_model=ProductionStatusSchema)
-def get_production_status():
+def get_production_status(session: SessionStore = Depends(get_session)):
     """Get current production status."""
-    storyboard, project_dir = _get_state()
+    storyboard, project_dir = session.require_project()
     output_dir = project_dir / "output"
 
     return ProductionStatusSchema(
@@ -41,9 +35,9 @@ def get_production_status():
 
 
 @router.post("/init")
-def init_project():
+def init_project(session: SessionStore = Depends(get_session)):
     """Initialize output directories for the project."""
-    _, project_dir = _get_state()
+    _, project_dir = session.require_project()
     output_dir = project_dir / "output"
 
     for subdir in ["segments", "normalized", "composited", "graphics", "narration", "final"]:
@@ -53,9 +47,9 @@ def init_project():
 
 
 @router.post("/graphics")
-def generate_graphics():
+def generate_graphics(session: SessionStore = Depends(get_session)):
     """Generate graphics assets from storyboard."""
-    storyboard, project_dir = _get_state()
+    storyboard, project_dir = session.require_project()
     output_dir = project_dir / "output"
     graphics_dir = output_dir / "graphics"
     graphics_dir.mkdir(parents=True, exist_ok=True)
@@ -90,9 +84,9 @@ def generate_graphics():
 
 
 @router.post("/narration")
-def generate_narration(req: GenerateRequest):
+def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get_session)):
     """Generate TTS narration for narrator segments."""
-    storyboard, project_dir = _get_state()
+    storyboard, project_dir = session.require_project()
     output_dir = project_dir / "output"
     narration_dir = output_dir / "narration"
     narration_dir.mkdir(parents=True, exist_ok=True)
@@ -153,6 +147,7 @@ def list_effects():
 def assemble_video(
     transition: str | None = None,
     transition_duration: float = 1.0,
+    session: SessionStore = Depends(get_session),
 ):
     """Assemble all segments into final video.
 
@@ -160,7 +155,7 @@ def assemble_video(
         transition: Optional xfade transition name.
         transition_duration: Transition duration in seconds.
     """
-    _, project_dir = _get_state()
+    _, project_dir = session.require_project()
     output_dir = project_dir / "output"
 
     from bee_video_editor.processors.ffmpeg import (
