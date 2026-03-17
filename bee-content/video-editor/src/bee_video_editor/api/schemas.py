@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 
 class LoadProjectRequest(BaseModel):
-    storyboard_path: str
-    project_dir: str = "."
+    storyboard_path: str = "../discovery/true-crime/cases/alex-murdaugh/storyboard.md"
+    project_dir: str = "../discovery/true-crime/cases/alex-murdaugh"
 
 
 class LayerEntrySchema(BaseModel):
