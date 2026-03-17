@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from bee_video_editor.api.schemas import CaptionRequest, GenerateRequest, ProductionStatusSchema
 from bee_video_editor.api.session import SessionStore, get_session
@@ -310,6 +311,158 @@ def generate_captions(req: CaptionRequest, session: SessionStore = Depends(get_s
     generate_captions_estimated(segments, out, style=req.style)
 
     return {"status": "ok", "count": len(segments), "output": str(out)}
+
+
+@router.websocket("/ws/progress")
+async def ws_progress(websocket: WebSocket):
+    """WebSocket for real-time production progress.
+
+    Client sends: {"action": "produce"|"narration", "params": {...}}
+    Server pushes: {"step": "...", "status": "...", "done": N, "total": N, "message": "..."}
+    Final message: {"step": "complete", "status": "ok"|"failed", "output": "..."}
+    """
+    await websocket.accept()
+
+    try:
+        data = await websocket.receive_json()
+        action = data.get("action")
+        params = data.get("params", {})
+
+        from bee_video_editor.api.session import get_session
+        session = get_session()
+
+        if action == "narration":
+            await _ws_narration(websocket, session, params)
+        elif action == "produce":
+            await _ws_produce(websocket, session, params)
+        else:
+            await websocket.send_json({"error": f"Unknown action: {action}"})
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.send_json({"step": "error", "status": "failed", "message": str(e)[:200]})
+        except Exception:
+            pass
+
+
+async def _ws_narration(websocket: WebSocket, session, params: dict):
+    """Run narration with WebSocket progress updates."""
+    from bee_video_editor.processors.captions import _clean_text
+    from bee_video_editor.services.production import ProductionConfig, generate_narration_for_project
+
+    storyboard, project_dir = session.require_project()
+    config = ProductionConfig(
+        project_dir=project_dir,
+        tts_engine=params.get("tts_engine", "edge"),
+        tts_voice=params.get("tts_voice"),
+    )
+    workers = params.get("workers", 1)
+
+    narration_dir = config.output_dir / "narration"
+    narration_dir.mkdir(parents=True, exist_ok=True)
+
+    total = 0
+    for seg in storyboard.segments:
+        for entry in seg.audio:
+            if entry.content_type == "NAR" and _clean_text(entry.content):
+                total += 1
+
+    await websocket.send_json({"step": "narration", "status": "started", "done": 0, "total": total})
+
+    result_holder: dict = {}
+    done_count = [0]
+
+    def run():
+        result_holder["result"] = generate_narration_for_project(storyboard, config, workers=workers)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+    while thread.is_alive():
+        current = len(list(narration_dir.glob("*.mp3")))
+        if current != done_count[0]:
+            done_count[0] = current
+            await websocket.send_json({"step": "narration", "status": "running", "done": current, "total": total})
+        await asyncio.sleep(1)
+
+    thread.join()
+    result = result_holder.get("result")
+
+    final_count = len(list(narration_dir.glob("*.mp3")))
+    status = "ok" if result and result.ok else "partial"
+    await websocket.send_json({
+        "step": "complete",
+        "status": status,
+        "done": final_count,
+        "total": total,
+        "succeeded": len(result.succeeded) if result else 0,
+        "failed": len(result.failed) if result else 0,
+    })
+
+
+async def _ws_produce(websocket: WebSocket, session, params: dict):
+    """Run full pipeline with WebSocket progress updates."""
+    import queue
+
+    from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
+
+    storyboard, project_dir = session.require_project()
+
+    if not session.storyboard_path:
+        await websocket.send_json({"error": "No storyboard path available"})
+        return
+
+    config = ProductionConfig(
+        project_dir=project_dir,
+        tts_engine=params.get("tts_engine", "edge"),
+        tts_voice=params.get("tts_voice"),
+    )
+
+    msg_queue: queue.Queue = queue.Queue()
+    result_holder: dict = {}
+
+    def on_step(name, status, message):
+        msg_queue.put({"step": name, "status": status, "message": message})
+
+    def run():
+        result_holder["result"] = run_full_pipeline(
+            storyboard_path=session.storyboard_path,
+            config=config,
+            skip_graphics=params.get("skip_graphics", False),
+            skip_captions=params.get("skip_captions", False),
+            skip_narration=params.get("skip_narration", False),
+            skip_trim=params.get("skip_trim", False),
+            caption_style=params.get("caption_style", "karaoke"),
+            transition=params.get("transition"),
+            transition_duration=params.get("transition_duration", 1.0),
+            animated=params.get("animated", False),
+            workers=params.get("workers", 1),
+            on_step=on_step,
+        )
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+    while thread.is_alive():
+        while not msg_queue.empty():
+            msg = msg_queue.get_nowait()
+            await websocket.send_json(msg)
+        await asyncio.sleep(0.5)
+
+    # Drain remaining messages
+    while not msg_queue.empty():
+        msg = msg_queue.get_nowait()
+        await websocket.send_json(msg)
+
+    thread.join()
+    result = result_holder.get("result")
+
+    await websocket.send_json({
+        "step": "complete",
+        "status": "ok" if result and result.ok else "failed",
+        "output": str(result.output_path) if result and result.output_path else None,
+    })
 
 
 @router.post("/produce")

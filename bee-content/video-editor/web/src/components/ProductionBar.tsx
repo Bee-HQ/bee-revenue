@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { api } from '../api/client';
 import { useProjectStore } from '../stores/project';
 
@@ -7,7 +7,6 @@ type Status = 'idle' | 'running' | 'done' | 'error';
 export function ProductionBar() {
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [message, setMessage] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const undoStack = useProjectStore(s => s.undoStack);
   const redoStack = useProjectStore(s => s.redoStack);
 
@@ -30,35 +29,44 @@ export function ProductionBar() {
     }
   };
 
-  const runNarration = useCallback(async () => {
+  const runNarrationWs = useCallback(() => {
     setStatus(s => ({ ...s, narration: 'running' }));
-    setMessage('Narration: starting...');
-    try {
-      const startResult = await api.generateNarration();
-      const total = startResult.total || 0;
-      setMessage(`Narration: 0/${total}`);
+    setMessage('Narration: connecting...');
 
-      // Poll for progress every 2 seconds
-      pollRef.current = setInterval(async () => {
-        try {
-          const progress = await api.getNarrationStatus();
-          setMessage(`Narration: ${progress.done}/${progress.total}`);
-          if (!progress.running) {
-            if (pollRef.current) clearInterval(pollRef.current);
-            pollRef.current = null;
-            const finalStatus = progress.status === 'ok' ? 'done' : progress.status === 'partial' ? 'done' : 'error';
-            setStatus(s => ({ ...s, narration: finalStatus as Status }));
-            const count = progress.count ?? progress.done;
-            setMessage(`Narration: generated ${count} files${progress.failed?.length ? ` (${progress.failed.length} failed)` : ''}`);
-          }
-        } catch {
-          // Polling error — keep trying
-        }
-      }, 2000);
-    } catch (e: any) {
-      setStatus(s => ({ ...s, narration: 'error' }));
-      setMessage(`Narration failed: ${e.message}`);
-    }
+    api.connectProgress('narration', { tts_engine: 'edge' }, (data) => {
+      if (data.step === 'narration') {
+        setMessage(`Narration: ${data.done}/${data.total}`);
+      } else if (data.step === 'complete') {
+        const finalStatus = data.status === 'ok' ? 'done' : 'error';
+        setStatus(s => ({ ...s, narration: finalStatus as Status }));
+        setMessage(`Narration: ${data.succeeded} generated${data.failed ? ` (${data.failed} failed)` : ''}`);
+      } else if (data.error) {
+        setStatus(s => ({ ...s, narration: 'error' }));
+        setMessage(`Narration failed: ${data.error}`);
+      }
+    }, () => {
+      setStatus(s => {
+        if (s.narration === 'running') return { ...s, narration: 'done' };
+        return s;
+      });
+    });
+  }, []);
+
+  const runProduceWs = useCallback(() => {
+    setStatus(s => ({ ...s, produce: 'running' }));
+    setMessage('Produce: starting...');
+
+    api.connectProgress('produce', {}, (data) => {
+      if (data.step === 'complete') {
+        setStatus(s => ({ ...s, produce: data.status === 'ok' ? 'done' : 'error' }));
+        setMessage(data.output ? `Done: ${data.output}` : 'Produce complete');
+      } else if (data.error) {
+        setStatus(s => ({ ...s, produce: 'error' }));
+        setMessage(`Produce failed: ${data.error}`);
+      } else {
+        setMessage(`${data.step}: ${data.status}${data.message ? ' — ' + data.message : ''}`);
+      }
+    });
   }, []);
 
   const buttonClass = (key: string) => {
@@ -115,9 +123,17 @@ export function ProductionBar() {
       <button
         className={buttonClass('narration')}
         disabled={isRunning}
-        onClick={runNarration}
+        onClick={runNarrationWs}
       >
         Narration
+      </button>
+
+      <button
+        className={buttonClass('produce')}
+        disabled={isRunning}
+        onClick={runProduceWs}
+      >
+        Produce
       </button>
 
       <button
