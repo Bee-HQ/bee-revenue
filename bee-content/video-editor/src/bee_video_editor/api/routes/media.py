@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -21,8 +22,22 @@ from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
 
-# Track running downloads
+# Track running downloads (pruned to last 20 completed entries)
 _download_tasks: dict[str, dict] = {}
+_MAX_COMPLETED_TASKS = 20
+
+
+def _prune_download_tasks() -> None:
+    """Remove oldest completed tasks when exceeding the limit."""
+    completed = [
+        (tid, t) for tid, t in _download_tasks.items()
+        if not t.get("running")
+    ]
+    if len(completed) > _MAX_COMPLETED_TASKS:
+        # Sort by finished_at, remove oldest
+        completed.sort(key=lambda x: x[1].get("finished_at", 0))
+        for tid, _ in completed[: len(completed) - _MAX_COMPLETED_TASKS]:
+            del _download_tasks[tid]
 
 # Media categories and their expected subdirectories
 MEDIA_CATEGORIES = {
@@ -101,14 +116,17 @@ async def upload_media(file: UploadFile, category: str = "footage", session: Ses
     target_dir = project_dir / target_dirs[0]
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    target_path = target_dir / file.filename
+    safe_name = Path(file.filename).name if file.filename else "upload"
+    if not safe_name or safe_name.startswith("."):
+        raise HTTPException(400, "Invalid filename")
+    target_path = target_dir / safe_name
     with open(target_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
     return {
         "status": "ok",
         "path": str(target_path),
-        "name": file.filename,
+        "name": safe_name,
         "category": category,
     }
 
@@ -184,16 +202,26 @@ async def run_download_script(req: DownloadRequest, session: SessionStore = Depe
     """Run a download script in the project directory."""
     _, project_dir = session.require_project()
 
-    script_path = Path(req.script_path)
+    script_path = Path(req.script_path).resolve()
     if not script_path.exists():
         raise HTTPException(404, f"Script not found: {req.script_path}")
     if not script_path.suffix == ".sh":
         raise HTTPException(400, "Only .sh scripts are supported")
 
+    # Ensure script is within or near the project directory (same check as _find_download_scripts)
+    allowed_roots = [project_dir.resolve()]
+    p = project_dir.resolve()
+    for _ in range(3):
+        p = p.parent
+        allowed_roots.append(p)
+    if not any(str(script_path).startswith(str(root)) for root in allowed_roots):
+        raise HTTPException(403, "Script must be within the project directory tree")
+
     task_id = f"script-{script_path.stem}"
     if task_id in _download_tasks and _download_tasks[task_id].get("running"):
         raise HTTPException(409, "This script is already running")
 
+    _prune_download_tasks()
     _download_tasks[task_id] = {
         "running": True,
         "script": script_path.name,
@@ -226,6 +254,7 @@ async def run_download_script(req: DownloadRequest, session: SessionStore = Depe
             _download_tasks[task_id]["return_code"] = -1
         finally:
             _download_tasks[task_id]["running"] = False
+            _download_tasks[task_id]["finished_at"] = time.monotonic()
 
     asyncio.create_task(_run())
     return {"status": "started", "task_id": task_id}
@@ -244,6 +273,7 @@ async def download_with_ytdlp(url: str, category: str = "footage", filename: str
     output_template = str(target_dir / (filename or "%(title)s.%(ext)s"))
 
     task_id = f"ytdlp-{hash(url) % 10000}"
+    _prune_download_tasks()
     _download_tasks[task_id] = {
         "running": True,
         "url": url,
@@ -279,6 +309,7 @@ async def download_with_ytdlp(url: str, category: str = "footage", filename: str
             _download_tasks[task_id]["return_code"] = -1
         finally:
             _download_tasks[task_id]["running"] = False
+            _download_tasks[task_id]["finished_at"] = time.monotonic()
 
     asyncio.create_task(_run())
     return {"status": "started", "task_id": task_id}

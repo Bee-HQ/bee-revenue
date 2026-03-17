@@ -115,3 +115,15 @@ UX refinements to add when touching nearby code.
 - [ ] Dark/light theme toggle
 - [ ] Retry logic in production.py for transient FFmpeg failures
 - [ ] Configurable codec/CRF in FFmpeg processor (currently hardcoded libx264 CRF 23)
+
+### Code cleanup (from v0.5.0 review)
+
+- [x] **Unbounded `_download_tasks` dict** — prune completed tasks to last 20 on new task creation, tracked via `finished_at` timestamp
+- [x] **`_narration_task` global state** — scoped to project_dir so stale state from a different project is ignored; REST path now delegates to service layer (same as WS)
+- [x] **Remove dead `PreviewPanel` component** — deleted `PreviewPanel.tsx`
+- [x] **Deduplicate narration codepaths** — REST `POST /narration` now uses `generate_narration_for_project` from the service layer, same as the WebSocket handler
+- [x] **Remove `selectedSegmentId` shim** — migrated `VideoPlayer` and `StoryboardTimeline` to `selectedSegmentIds[0]`, removed shim from store
+- [x] **`POST /produce` ignores TTS engine** — added `tts_engine` and `tts_voice` params, forwarded to `ProductionConfig`
+- [x] **`duration_seconds` precision loss** — changed `SegmentSchema.duration_seconds` from `int` to `float`
+- [x] **Undo/redo silently swallows API errors** — API call now happens before stack mutation; on failure, stacks stay untouched and error is logged
+- [x] **API smoke tests** — `test_api.py` with FastAPI TestClient covering project load, assign/unassign, reorder, media list, upload path traversal rejection, script execution path validation, production status

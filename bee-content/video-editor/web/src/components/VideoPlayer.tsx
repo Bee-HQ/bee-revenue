@@ -9,10 +9,10 @@ function formatTime(seconds: number): string {
 }
 
 export function VideoPlayer() {
-  const selectedSegmentId = useProjectStore(s => s.selectedSegmentId);
+  const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
   const storyboard = useProjectStore(s => s.storyboard);
 
-  const segment = storyboard?.segments.find(s => s.id === selectedSegmentId);
+  const segment = storyboard?.segments.find(s => s.id === selectedSegmentIds[0]);
 
   // Find media assigned to this segment
   const assignedEntries = segment ? Object.entries(segment.assigned_media) : [];

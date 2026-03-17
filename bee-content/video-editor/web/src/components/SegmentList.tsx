@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
 

@@ -67,11 +67,21 @@ class SessionStore:
             raise HTTPException(404, f"Segment not found: {segment_id}")
 
         key = f"{layer}:{index}"
-        seg.assigned_media[key] = media_path
 
-        assignments = self._load_assignments()
-        assignments.setdefault(segment_id, {})[key] = media_path
-        self._save_assignments(assignments)
+        # Empty media_path means unassign
+        if not media_path:
+            seg.assigned_media.pop(key, None)
+            assignments = self._load_assignments()
+            if segment_id in assignments:
+                assignments[segment_id].pop(key, None)
+                if not assignments[segment_id]:
+                    del assignments[segment_id]
+            self._save_assignments(assignments)
+        else:
+            seg.assigned_media[key] = media_path
+            assignments = self._load_assignments()
+            assignments.setdefault(segment_id, {})[key] = media_path
+            self._save_assignments(assignments)
 
         return {
             "status": "ok",

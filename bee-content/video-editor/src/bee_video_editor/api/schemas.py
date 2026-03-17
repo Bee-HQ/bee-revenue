@@ -26,7 +26,7 @@ class SegmentSchema(BaseModel):
     section: str
     section_time: str
     subsection: str
-    duration_seconds: int
+    duration_seconds: float
     visual: list[LayerEntrySchema]
     audio: list[LayerEntrySchema]
     overlay: list[LayerEntrySchema]

@@ -38,8 +38,6 @@ interface ProjectState {
   redo: () => Promise<void>;
 
   selectedSegment: () => Segment | null;
-  /** @deprecated use selectedSegmentIds[0] */
-  selectedSegmentId: string | null;
 }
 
 function applyAssignment(
@@ -66,7 +64,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loading: false,
   error: null,
   selectedSegmentIds: [],
-  selectedSegmentId: null,  // kept in sync for backwards compat
   mediaFiles: [],
   mediaCategories: {},
   draggedMedia: null,
@@ -85,7 +82,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         storyboard,
         loading: false,
         selectedSegmentIds: [],
-        selectedSegmentId: null,
         undoStack: [],
         redoStack: [],
         segmentOrder: null,
@@ -98,7 +94,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   selectSegment: (id) => {
     const ids = id ? [id] : [];
-    set({ selectedSegmentIds: ids, selectedSegmentId: id, previewMedia: null });
+    set({ selectedSegmentIds: ids, previewMedia: null });
   },
 
   toggleSegmentSelection: (id, shiftKey) => {
@@ -115,7 +111,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Single-select: replace selection (deselect if already sole selection)
       next = selectedSegmentIds.length === 1 && selectedSegmentIds[0] === id ? [] : [id];
     }
-    set({ selectedSegmentIds: next, selectedSegmentId: next[0] ?? null, previewMedia: null });
+    set({ selectedSegmentIds: next, previewMedia: null });
   },
 
   reorderSegments: (fromIndex, toIndex) => {
@@ -154,7 +150,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setDraggedMedia: (file) => set({ draggedMedia: file }),
 
-  setPreviewMedia: (file) => set({ previewMedia: file, selectedSegmentId: null }),
+  setPreviewMedia: (file) => set({ previewMedia: file, selectedSegmentIds: [] }),
 
   assignMedia: async (segmentId, layer, mediaPath, layerIndex = 0) => {
     const { storyboard, undoStack } = get();
@@ -185,13 +181,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (undoStack.length === 0 || !storyboard) return;
 
     const entry = undoStack[undoStack.length - 1];
-    const newUndoStack = undoStack.slice(0, -1);
 
-    // If oldValue is null, this was a fresh assignment — just remove from local state
-    // (no API call since the backend has no delete endpoint)
-    if (entry.oldValue !== null) {
-      const [layer, layerIndexStr] = entry.key.split(':');
-      await api.assignMedia(entry.segmentId, layer, entry.oldValue, parseInt(layerIndexStr ?? '0', 10));
+    // Sync with backend first — only modify stacks on success
+    const [layer, layerIndexStr] = entry.key.split(':');
+    try {
+      await api.assignMedia(entry.segmentId, layer, entry.oldValue ?? '', parseInt(layerIndexStr ?? '0', 10));
+    } catch (e) {
+      console.error('Undo failed:', e);
+      return;
     }
 
     const inverseEntry: HistoryEntry = {
@@ -203,7 +200,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({
       storyboard: applyAssignment(storyboard, entry.segmentId, entry.key, entry.oldValue),
-      undoStack: newUndoStack,
+      undoStack: undoStack.slice(0, -1),
       redoStack: [...redoStack, inverseEntry],
     });
   },
@@ -213,10 +210,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (redoStack.length === 0 || !storyboard) return;
 
     const entry = redoStack[redoStack.length - 1];
-    const newRedoStack = redoStack.slice(0, -1);
 
     const [layer, layerIndexStr] = entry.key.split(':');
-    await api.assignMedia(entry.segmentId, layer, entry.newValue, parseInt(layerIndexStr ?? '0', 10));
+    try {
+      await api.assignMedia(entry.segmentId, layer, entry.newValue, parseInt(layerIndexStr ?? '0', 10));
+    } catch (e) {
+      console.error('Redo failed:', e);
+      return;
+    }
 
     const inverseEntry: HistoryEntry = {
       segmentId: entry.segmentId,
@@ -228,7 +229,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       storyboard: applyAssignment(storyboard, entry.segmentId, entry.key, entry.newValue),
       undoStack: [...undoStack, inverseEntry],
-      redoStack: newRedoStack,
+      redoStack: redoStack.slice(0, -1),
     });
   },
 

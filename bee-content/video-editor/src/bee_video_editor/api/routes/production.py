@@ -112,80 +112,37 @@ VALID_TTS_ENGINES = {"edge", "kokoro", "openai", "elevenlabs"}
 
 def _count_narration_segments(storyboard) -> int:
     """Count how many NAR audio entries exist in the storyboard."""
-    import re
+    from bee_video_editor.processors.captions import _clean_text
     count = 0
     for seg in storyboard.segments:
         for audio_entry in seg.audio:
-            if audio_entry.content_type != "NAR":
-                continue
-            text = audio_entry.content.strip()
-            if not text:
-                continue
-            text = re.sub(r'\s*\+\s*.*$', '', text)
-            text = text.strip('"').strip('\u201c').strip('\u201d')
-            if text:
+            if audio_entry.content_type == "NAR" and _clean_text(audio_entry.content):
                 count += 1
     return count
 
 
-def _run_narration_background(storyboard, narration_dir: Path, engine: str, voice: str | None):
-    """Generate narration in a background thread. Updates _narration_task state."""
+def _run_narration_background(storyboard, config, workers: int = 1):
+    """Generate narration in a background thread using the service layer."""
     global _narration_task
-    import re
-    from bee_video_editor.processors.tts import generate_narration as tts_generate
+    from bee_video_editor.services.production import generate_narration_for_project
 
-    succeeded = []
-    failed = []
-
-    for i, seg in enumerate(storyboard.segments):
-        for audio_entry in seg.audio:
-            if audio_entry.content_type != "NAR":
-                continue
-
-            text = audio_entry.content.strip()
-            if not text:
-                continue
-
-            text = re.sub(r'\s*\+\s*.*$', '', text)
-            text = text.strip('"').strip('\u201c').strip('\u201d')
-
-            if not text:
-                continue
-
-            slug = re.sub(r'[^\w\s-]', '', seg.title.lower())
-            slug = re.sub(r'[\s_]+', '-', slug).strip('-')[:30]
-            out = narration_dir / f"nar-{i:03d}-{slug}.mp3"
-
-            try:
-                if not out.exists():
-                    tts_generate(
-                        text=text,
-                        output_path=out,
-                        engine=engine,
-                        voice=voice,
-                    )
-                succeeded.append(str(out))
-            except Exception as exc:
-                failed.append({"file": str(out), "error": str(exc)})
-
-    if failed and not succeeded:
-        status = "error"
-    elif failed:
-        status = "partial"
-    else:
-        status = "ok"
-
-    _narration_task["running"] = False
-    _narration_task["status"] = status
-    _narration_task["succeeded"] = succeeded
-    _narration_task["failed"] = failed
+    try:
+        result = generate_narration_for_project(storyboard, config, workers=workers)
+        _narration_task["running"] = False
+        _narration_task["status"] = "ok" if result.ok else ("partial" if result.succeeded else "error")
+        _narration_task["succeeded"] = [str(p) for p in result.succeeded]
+        _narration_task["failed"] = [{"file": f.path, "error": f.error} for f in result.failed]
+    except Exception as exc:
+        _narration_task["running"] = False
+        _narration_task["status"] = "error"
+        _narration_task["failed"] = [{"file": "", "error": str(exc)}]
 
 
 @router.post("/narration")
 def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get_session)):
     """Start TTS narration generation in the background.
 
-    Returns immediately with total count. Poll GET /status for progress.
+    Returns immediately with total count. Poll GET /narration/status for progress.
     """
     global _narration_task
 
@@ -196,15 +153,21 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
         raise HTTPException(409, "Narration is already running")
 
     storyboard, project_dir = session.require_project()
-    output_dir = project_dir / "output"
-    narration_dir = output_dir / "narration"
-    narration_dir.mkdir(parents=True, exist_ok=True)
+
+    from bee_video_editor.services.production import ProductionConfig
+    config = ProductionConfig(
+        project_dir=project_dir,
+        tts_engine=req.tts_engine,
+        tts_voice=req.tts_voice,
+    )
+    config.output_dir.joinpath("narration").mkdir(parents=True, exist_ok=True)
 
     total = _count_narration_segments(storyboard)
 
     _narration_task = {
         "running": True,
         "total": total,
+        "project_dir": str(project_dir),
         "status": "running",
         "succeeded": [],
         "failed": [],
@@ -212,7 +175,8 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
 
     thread = threading.Thread(
         target=_run_narration_background,
-        args=(storyboard, narration_dir, req.tts_engine, req.tts_voice),
+        args=(storyboard, config),
+        kwargs={"workers": 1},
         daemon=True,
     )
     thread.start()
@@ -227,9 +191,14 @@ def get_narration_status(session: SessionStore = Depends(get_session)):
     output_dir = project_dir / "output"
     narration_dir = output_dir / "narration"
 
+    # Ignore stale task state from a different project
+    task = _narration_task
+    if task and task.get("project_dir") != str(project_dir):
+        task = None
+
     done = _count_files(narration_dir, "*.mp3") if narration_dir.exists() else 0
-    total = _narration_task["total"] if _narration_task else 0
-    running = _narration_task["running"] if _narration_task else False
+    total = task["total"] if task else 0
+    running = task["running"] if task else False
 
     result = {
         "running": running,
@@ -238,11 +207,11 @@ def get_narration_status(session: SessionStore = Depends(get_session)):
     }
 
     # Include final results when done
-    if _narration_task and not _narration_task["running"]:
-        result["status"] = _narration_task["status"]
-        result["succeeded"] = _narration_task["succeeded"]
-        result["failed"] = _narration_task["failed"]
-        result["count"] = len(_narration_task["succeeded"])
+    if task and not task["running"]:
+        result["status"] = task["status"]
+        result["succeeded"] = task["succeeded"]
+        result["failed"] = task["failed"]
+        result["count"] = len(task["succeeded"])
 
     return result
 
@@ -470,6 +439,8 @@ def produce_video(
     transition: str | None = None,
     transition_duration: float = 1.0,
     caption_style: str = "karaoke",
+    tts_engine: str = "edge",
+    tts_voice: str | None = None,
     skip_graphics: bool = False,
     skip_narration: bool = False,
     skip_captions: bool = False,
@@ -479,12 +450,19 @@ def produce_video(
     """Run the full production pipeline."""
     from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
 
+    if tts_engine not in VALID_TTS_ENGINES:
+        raise HTTPException(400, f"Invalid TTS engine '{tts_engine}'. Must be one of: {', '.join(sorted(VALID_TTS_ENGINES))}")
+
     storyboard, project_dir = session.require_project()
 
     if not session.storyboard_path:
         raise HTTPException(400, "No storyboard path available — load project first")
 
-    config = ProductionConfig(project_dir=project_dir)
+    config = ProductionConfig(
+        project_dir=project_dir,
+        tts_engine=tts_engine,
+        tts_voice=tts_voice,
+    )
 
     result = run_full_pipeline(
         storyboard_path=session.storyboard_path,

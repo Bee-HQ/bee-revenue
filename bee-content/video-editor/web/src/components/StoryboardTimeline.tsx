@@ -112,11 +112,11 @@ function LayerTrack({
 
 export function StoryboardTimeline() {
   const storyboard = useProjectStore(s => s.storyboard);
-  const selectedSegmentId = useProjectStore(s => s.selectedSegmentId);
+  const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
 
   if (!storyboard) return null;
 
-  const segment = storyboard.segments.find(s => s.id === selectedSegmentId);
+  const segment = storyboard.segments.find(s => s.id === selectedSegmentIds[0]);
 
   if (!segment) {
     return (

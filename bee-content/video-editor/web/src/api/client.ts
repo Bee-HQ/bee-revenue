@@ -2,6 +2,22 @@ import type { DownloadScriptInfo, DownloadStatus, DownloadTools, MediaListRespon
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
+interface StatusResponse {
+  status: string;
+  count?: number;
+  output?: string;
+}
+
+interface NarrationStatus {
+  running: boolean;
+  done: number;
+  total: number;
+  status?: string;
+  succeeded?: string[];
+  failed?: Array<{ file: string; error: string }>;
+  count?: number;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -27,7 +43,7 @@ export const api = {
   },
 
   assignMedia(segmentId: string, layer: string, mediaPath: string, layerIndex = 0) {
-    return request('/projects/assign', {
+    return request<StatusResponse>('/projects/assign', {
       method: 'PUT',
       body: JSON.stringify({
         segment_id: segmentId,
@@ -39,7 +55,7 @@ export const api = {
   },
 
   reorderSegments(order: string[]) {
-    return request('/projects/reorder', {
+    return request<StatusResponse>('/projects/reorder', {
       method: 'PUT',
       body: JSON.stringify({ segment_order: order }),
     });
@@ -55,7 +71,7 @@ export const api = {
     return fetch(`${BASE}/media/upload?category=${category}`, {
       method: 'POST',
       body: form,
-    }).then(r => r.json());
+    }).then(r => r.json()) as Promise<StatusResponse>;
   },
 
   mediaFileUrl(path: string): string {
@@ -67,34 +83,34 @@ export const api = {
   },
 
   initProject() {
-    return request('/production/init', { method: 'POST' });
+    return request<StatusResponse>('/production/init', { method: 'POST' });
   },
 
   generateGraphics() {
-    return request('/production/graphics', { method: 'POST' });
+    return request<StatusResponse>('/production/graphics', { method: 'POST' });
   },
 
   generateNarration(engine = 'edge', voice?: string) {
-    return request('/production/narration', {
+    return request<StatusResponse>('/production/narration', {
       method: 'POST',
       body: JSON.stringify({ tts_engine: engine, tts_voice: voice }),
     });
   },
 
-  getNarrationStatus(): Promise<any> {
+  getNarrationStatus(): Promise<NarrationStatus> {
     return request('/production/narration/status');
   },
 
   assembleVideo() {
-    return request('/production/assemble', { method: 'POST' });
+    return request<StatusResponse>('/production/assemble', { method: 'POST' });
   },
 
   generatePreview(segmentId: string) {
-    return request(`/production/preview/${segmentId}`, { method: 'POST' });
+    return request<{ preview?: string }>(`/production/preview/${segmentId}`, { method: 'POST' });
   },
 
   generateAllPreviews() {
-    return request('/production/previews', { method: 'POST' });
+    return request<StatusResponse>('/production/previews', { method: 'POST' });
   },
 
   // Download endpoints
@@ -107,7 +123,7 @@ export const api = {
   },
 
   runDownloadScript(scriptPath: string) {
-    return request('/media/download/run-script', {
+    return request<StatusResponse>('/media/download/run-script', {
       method: 'POST',
       body: JSON.stringify({ script_path: scriptPath }),
     });
@@ -116,7 +132,7 @@ export const api = {
   downloadWithYtDlp(url: string, category = 'footage', filename?: string) {
     const params = new URLSearchParams({ url, category });
     if (filename) params.set('filename', filename);
-    return request(`/media/download/yt-dlp?${params}`, { method: 'POST' });
+    return request<StatusResponse>(`/media/download/yt-dlp?${params}`, { method: 'POST' });
   },
 
   getDownloadStatus(): Promise<DownloadStatus[]> {
@@ -124,7 +140,7 @@ export const api = {
   },
 
   createMediaDirs() {
-    return request('/media/download/create-dirs', { method: 'POST' });
+    return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
   },
 
   connectProgress(
@@ -142,8 +158,12 @@ export const api = {
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      onMessage(data);
+      try {
+        const data = JSON.parse(event.data);
+        onMessage(data);
+      } catch {
+        console.error('WebSocket: failed to parse message', event.data);
+      }
     };
 
     ws.onclose = () => {
