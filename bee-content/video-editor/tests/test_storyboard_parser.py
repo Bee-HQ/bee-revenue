@@ -213,6 +213,58 @@ class TestParseStoryboard:
         assert summary["production_rules"] == 3
 
 
+class TestStoryboardParserResilience:
+    def test_malformed_segment_header_skipped(self):
+        md = """# Test Storyboard
+
+## SECTION (0:00 - 0:30)
+
+#### this is not a valid header
+| Layer | Content |
+|-------|---------|
+| Visual | `FOOTAGE:` test |
+
+#### 0:10 - 0:20 | VALID
+| Layer | Content |
+|-------|---------|
+| Visual | `FOOTAGE:` real content |
+"""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(md)
+            f.flush()
+            from bee_video_editor.parsers.storyboard import parse_storyboard
+            sb = parse_storyboard(f.name)
+            # Should parse at least the valid segment
+            valid = [s for s in sb.segments if s.title == "VALID"]
+            assert len(valid) >= 1
+
+    def test_normalize_cell_preserves_backticks(self):
+        from bee_video_editor.parsers.storyboard import _normalize_cell
+        assert _normalize_cell("  `FOOTAGE:` test  ") == "`FOOTAGE:` test"
+
+    def test_wrong_column_count_skipped(self):
+        md = """# Test Storyboard
+
+## SECTION (0:00 - 0:10)
+
+#### 0:00 - 0:10 | TEST
+| Layer | Content |
+|-------|---------|
+| Visual | content |
+| Bad row with no pipe separator
+| Audio | audio content |
+"""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(md)
+            f.flush()
+            from bee_video_editor.parsers.storyboard import parse_storyboard
+            sb = parse_storyboard(f.name)
+            # Should not crash, should parse what it can
+            assert len(sb.segments) >= 1
+
+
 class TestParseRealStoryboard:
     """Test against the actual Alex Murdaugh storyboard."""
 

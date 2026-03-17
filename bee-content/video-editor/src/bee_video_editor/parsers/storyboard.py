@@ -37,6 +37,11 @@ from bee_video_editor.models_storyboard import (
 )
 
 
+def _normalize_cell(text: str) -> str:
+    """Strip whitespace from table cell content. Preserves backticks."""
+    return text.strip()
+
+
 def parse_storyboard(path: str | Path) -> Storyboard:
     """Parse a storyboard markdown file into a Storyboard."""
     text = Path(path).read_text(encoding="utf-8")
@@ -143,11 +148,13 @@ def _parse_segment_block(
     subsection: str,
 ) -> StoryboardSegment | None:
     """Parse a segment header + its layer table."""
-    start = seg_match.group(1).strip()
-    end = seg_match.group(2).strip()
-    title = seg_match.group(3).strip()
-
-    seg_id = f"{start.replace(':', '_')}-{end.replace(':', '_')}"
+    try:
+        start = seg_match.group(1).strip()
+        end = seg_match.group(2).strip()
+        title = seg_match.group(3).strip()
+        seg_id = f"{start.replace(':', '_')}-{end.replace(':', '_')}"
+    except (AttributeError, IndexError):
+        return None
 
     segment = StoryboardSegment(
         id=seg_id,
@@ -200,10 +207,15 @@ def _parse_layer_row(line: str, segment: StoryboardSegment) -> None:
     if cells and not cells[-1]:
         cells = cells[:-1]
 
+    # Skip rows with fewer than 2 non-empty cells
+    non_empty = [c for c in cells if c]
+    if len(non_empty) < 2:
+        return
+
     if len(cells) < 2:
         return
 
-    layer_name_raw = cells[0].strip()
+    layer_name_raw = _normalize_cell(cells[0])
     content_raw = cells[1].strip()
 
     # Parse layer name and optional time range
