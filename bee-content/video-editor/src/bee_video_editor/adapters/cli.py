@@ -162,11 +162,17 @@ def graphics(
     project = _load_project(assembly_guide)
 
     console.print("[bold]Generating graphics...[/bold]")
-    generated = generate_graphics_for_project(project, config)
+    result = generate_graphics_for_project(project, config)
 
-    console.print(f"[green]Generated {len(generated)} graphics[/green]")
-    for g in generated:
+    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
+    for g in result.succeeded:
         console.print(f"  {g}")
+    if result.failed:
+        console.print(f"[red]Failed: {len(result.failed)}[/red]")
+        for f in result.failed:
+            console.print(f"  [red]{f.path}: {f.error}[/red]")
+    if result.skipped:
+        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
 
 
 @app.command()
@@ -187,9 +193,17 @@ def narration(
     project = _load_project(assembly_guide)
 
     console.print(f"[bold]Generating narration ({tts_engine})...[/bold]")
-    generated = generate_narration_for_project(project, config)
+    result = generate_narration_for_project(project, config)
 
-    console.print(f"[green]Generated {len(generated)} narration clips[/green]")
+    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
+    for g in result.succeeded:
+        console.print(f"  {g}")
+    if result.failed:
+        console.print(f"[red]Failed: {len(result.failed)}[/red]")
+        for f in result.failed:
+            console.print(f"  [red]{f.path}: {f.error}[/red]")
+    if result.skipped:
+        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
 
 
 @app.command()
@@ -208,9 +222,17 @@ def trim_footage(
     project = _load_project(assembly_guide)
 
     console.print("[bold]Trimming source footage...[/bold]")
-    trimmed = trim_source_footage(project, config)
+    result = trim_source_footage(project, config)
 
-    console.print(f"[green]Trimmed {len(trimmed)} clips[/green]")
+    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
+    for g in result.succeeded:
+        console.print(f"  {g}")
+    if result.failed:
+        console.print(f"[red]Failed: {len(result.failed)}[/red]")
+        for f in result.failed:
+            console.print(f"  [red]{f.path}: {f.error}[/red]")
+    if result.skipped:
+        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
 
 
 @app.command()
