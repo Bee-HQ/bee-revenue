@@ -126,4 +126,36 @@ UX refinements to add when touching nearby code.
 - [x] **`POST /produce` ignores TTS engine** — added `tts_engine` and `tts_voice` params, forwarded to `ProductionConfig`
 - [x] **`duration_seconds` precision loss** — changed `SegmentSchema.duration_seconds` from `int` to `float`
 - [x] **Undo/redo silently swallows API errors** — API call now happens before stack mutation; on failure, stacks stay untouched and error is logged
-- [x] **API smoke tests** — `test_api.py` with FastAPI TestClient covering project load, assign/unassign, reorder, media list, upload path traversal rejection, script execution path validation, production status
+- [x] **API smoke tests** — `test_api.py` with 42 FastAPI TestClient tests covering project load, assign/unassign, reorder, media list, upload path traversal, script execution, category validation, symlink traversal, preview session reads, task pruning
+
+### Future API test coverage (from v0.5.0 review)
+
+Untested endpoints and edge cases to add when touching nearby code.
+
+**WebSocket progress (zero coverage)**
+- [ ] `ws/progress` narration action — connect, send `{action: "narration"}`, verify step messages stream back and end with `{step: "complete"}`
+- [ ] `ws/progress` produce action — same pattern, verify step-by-step pipeline messages
+- [ ] `ws/progress` unknown action — verify error response, clean disconnect
+- [ ] `ws/progress` malformed JSON — verify error handling, no server crash
+
+**Production endpoints (partial coverage)**
+- [ ] `POST /graphics` with storyboard containing lower-thirds — verify PNGs generated, count matches
+- [ ] `POST /graphics` with no overlays — verify ok with count=0
+- [ ] `POST /captions` — verify ASS file generated, segment count returned
+- [ ] `POST /captions` with no NAR segments — verify count=0 response
+- [ ] `GET /preflight` — verify report structure, found/missing counts against known project layout
+- [ ] `POST /export/otio` — verify OTIO file created, segment count returned
+- [ ] `POST /narration` then `GET /narration/status` — verify running=true immediately, then poll to completion (needs mock TTS)
+- [ ] Concurrent `POST /narration` while one is running — verify 409
+
+**State integrity**
+- [ ] Load project A, assign media, load project B — verify A's assignments don't leak into B
+- [ ] Assign → reload same project — verify assignments restore from disk
+- [ ] Multiple assign/unassign cycles on same key — verify assignments.json stays consistent (no duplicate keys, no orphan entries)
+- [ ] Upload file with same name twice — verify overwrite behavior (currently silently overwrites)
+
+**Media edge cases**
+- [ ] Media list with files in nested subdirs — scanner uses `rglob`, verify deep files appear
+- [ ] Serve file with special characters in path (spaces, unicode) — verify URL encoding roundtrips
+- [ ] `POST /download/yt-dlp` with invalid category — verify 400 (matches upload validation)
+- [ ] Download scripts listing — verify only .sh files in project tree returned, not arbitrary files
