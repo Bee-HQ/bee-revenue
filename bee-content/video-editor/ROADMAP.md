@@ -70,7 +70,7 @@ Architectural work that unlocks new capabilities.
 - [x] **WebSocket progress** — real-time progress via `/ws/progress` for narration and produce pipeline (replaces polling)
 
 ### Graphics (formula alignment)
-- [ ] **Flow diagram** — `flow_diagram(nodes, connections, output)` animated money/process flow. Spec: `[FLOW-DIAGRAM]`. Priority for financial crime cases (Murdaugh Forge scheme, etc.)
+- [x] **Flow diagram** — `flow_diagram()` with directional arrows, red/teal colors, arrowheads, auto-layout
 - [ ] **Animated timeline sequence** — `timeline_sequence(events, output)` horizontal timeline with cursor/nodes. Spec: `[TIMELINE-SEQUENCE]`. Priority for cases spanning 6+ months
 
 ### Interop
