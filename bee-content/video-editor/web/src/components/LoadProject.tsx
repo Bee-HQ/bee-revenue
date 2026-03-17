@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 
 export function LoadProject() {
-  const [storyboardPath, setStoryboardPath] = useState('');
-  const [projectDir, setProjectDir] = useState('.');
+  const [storyboardPath, setStoryboardPath] = useState('../discovery/true-crime/cases/alex-murdaugh/storyboard.md');
+  const [projectDir, setProjectDir] = useState('../discovery/true-crime/cases/alex-murdaugh');
   const { loadProject, loading, error } = useProjectStore();
 
   const handleSubmit = (e: React.FormEvent) => {
