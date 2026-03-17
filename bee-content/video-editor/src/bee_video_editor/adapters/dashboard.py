@@ -274,22 +274,28 @@ def _render_produce(project, proj_dir):
         if st.button("Generate Graphics", use_container_width=True):
             from bee_video_editor.services.production import generate_graphics_for_project
             with st.spinner("Generating graphics..."):
-                generated = generate_graphics_for_project(project, config)
-            st.success(f"Generated {len(generated)} graphics")
+                result = generate_graphics_for_project(project, config)
+            st.success(f"Generated {len(result.succeeded)} graphics")
+            if result.failed:
+                st.error(f"Failed: {len(result.failed)} — {result.failed[0].error}")
 
     with col_n:
         if st.button("Generate Narration", use_container_width=True):
             from bee_video_editor.services.production import generate_narration_for_project
             with st.spinner("Generating narration..."):
-                generated = generate_narration_for_project(project, config)
-            st.success(f"Generated {len(generated)} narration clips")
+                result = generate_narration_for_project(project, config)
+            st.success(f"Generated {len(result.succeeded)} narration clips")
+            if result.failed:
+                st.error(f"Failed: {len(result.failed)} — {result.failed[0].error}")
 
     with col_t:
         if st.button("Trim Footage", use_container_width=True):
             from bee_video_editor.services.production import trim_source_footage
             with st.spinner("Trimming footage..."):
-                trimmed = trim_source_footage(project, config)
-            st.success(f"Trimmed {len(trimmed)} clips")
+                result = trim_source_footage(project, config)
+            st.success(f"Trimmed {len(result.succeeded)} clips")
+            if result.failed:
+                st.error(f"Failed: {len(result.failed)} — {result.failed[0].error}")
 
     with col_a:
         if st.button("Assemble Final", use_container_width=True):
