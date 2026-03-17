@@ -49,10 +49,10 @@ Features that meaningfully change the editing workflow.
 - [x] **Asset generation time estimate** — formula checklist updated from 3-4 hours to 6-8 hours
 
 ### Graphics (formula alignment)
-- [ ] **Text chat recreation** — `text_chat(messages, platform, output)` for iMessage/SMS/Snapchat bubble UI. Spec: visual-storyboard-bible.md `[TEXT-CHAT]`
-- [ ] **Social media post mockup** — `social_post(content, platform, output)` for Facebook/Instagram/Snapchat. Spec: `[SOCIAL-POST]`
-- [ ] **News headline montage** — `news_montage(headlines, output)` stacked headlines sliding in. Spec: `[NEWS-MONTAGE]`
-- [ ] **Evidence board** — `evidence_board(people, connections, output)` red-string corkboard style. Spec: `[EVIDENCE-BOARD]`
+- [x] **Text chat recreation** — `text_chat()` with iMessage/SMS/generic platforms, highlight support
+- [x] **Social media post mockup** — `social_post()` for Facebook/Instagram/Twitter/Snapchat
+- [x] **News headline montage** — `news_montage()` stacked rotated headline cards
+- [x] **Evidence board** — `evidence_board()` red-string corkboard with circle/grid layout
 - [ ] **Lottie animated overlays** — replace static Pillow PNGs with animated Lottie JSON for `[LOWER-THIRD]`, `[QUOTE-CARD]`, `[FINANCIAL-CARD]`, `[TIMELINE-MARKER]`. Uses `lottie` Python package + Cairo renderer → PNG frames → FFmpeg overlay. Biggest visual quality jump available. See: `discovery/true-crime/research/storyboard-format-research.md`
 
 ---
