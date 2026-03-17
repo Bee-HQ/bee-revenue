@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -19,6 +19,7 @@ class SessionStore:
     storyboard: Storyboard | None = None
     project_dir: Path | None = None
     assignments_path: Path | None = None
+    storyboard_path: Path | None = None  # remembered for session persistence
 
     def require_project(self) -> tuple[Storyboard, Path]:
         """Return (storyboard, project_dir) or raise 404."""
@@ -34,6 +35,7 @@ class SessionStore:
             raise HTTPException(400, f"Project directory not found: {project_dir}")
 
         self.project_dir = project_dir.resolve()
+        self.storyboard_path = storyboard_path.resolve()
         self.assignments_path = self.project_dir / ".bee-video" / "assignments.json"
         self.storyboard = parse_storyboard(storyboard_path)
 
@@ -42,6 +44,7 @@ class SessionStore:
             if seg.id in saved:
                 seg.assigned_media = saved[seg.id]
 
+        self._save_session()
         return self.storyboard
 
     def assign_media(
@@ -67,6 +70,23 @@ class SessionStore:
             "media_path": media_path,
         }
 
+    def _save_session(self) -> None:
+        """Persist session info for auto-reload on restart."""
+        if not self.project_dir or not self.storyboard_path:
+            return
+        data = {
+            "storyboard_path": str(self.storyboard_path),
+            "project_dir": str(self.project_dir),
+        }
+        # Project-local copy
+        session_file = self.project_dir / ".bee-video" / "session.json"
+        session_file.parent.mkdir(parents=True, exist_ok=True)
+        session_file.write_text(json.dumps(data, indent=2))
+        # Global pointer so the server can find it on restart
+        global_session = Path.home() / ".bee-video" / "last-session.json"
+        global_session.parent.mkdir(parents=True, exist_ok=True)
+        global_session.write_text(json.dumps(data, indent=2))
+
     def _load_assignments(self) -> dict:
         if self.assignments_path and self.assignments_path.exists():
             with open(self.assignments_path) as f:
@@ -81,7 +101,24 @@ class SessionStore:
 
 
 # Module-level singleton + dependency function
-_session = SessionStore()
+
+def _try_restore() -> SessionStore:
+    """Create SessionStore, attempting to restore the last session."""
+    store = SessionStore()
+    last_session = Path.home() / ".bee-video" / "last-session.json"
+    if last_session.exists():
+        try:
+            data = json.loads(last_session.read_text())
+            sb_path = Path(data["storyboard_path"])
+            proj_dir = Path(data["project_dir"])
+            if sb_path.exists() and proj_dir.exists():
+                store.load_project(sb_path, proj_dir)
+        except Exception:
+            pass  # Failed to restore — start fresh
+    return store
+
+
+_session = _try_restore()
 
 
 def get_session() -> SessionStore:

@@ -96,3 +96,99 @@ class TestSessionStore:
             with pytest.raises(Exception) as exc_info:
                 store.assign_media("nonexistent", "visual", 0, "/media/clip.mp4")
             assert exc_info.value.status_code == 404
+
+
+class TestSessionPersistence:
+    def test_save_session_creates_files(self):
+        store = SessionStore()
+        with tempfile.TemporaryDirectory() as d:
+            fake_home = Path(d) / "home"
+            fake_home.mkdir()
+            proj_dir = Path(d) / "project"
+            proj_dir.mkdir()
+            sb_path = Path(d) / "sb.md"
+            sb_path.write_text("# Test\n")
+
+            with patch("bee_video_editor.api.session.parse_storyboard") as mock_parse:
+                from bee_video_editor.models_storyboard import ProductionRules, Storyboard
+                mock_parse.return_value = Storyboard(
+                    title="Test", segments=[], stock_footage=[], photos_needed=[],
+                    maps_needed=[], production_rules=ProductionRules(),
+                )
+                with patch("bee_video_editor.api.session.Path") as mock_path_cls:
+                    real_path = Path
+                    mock_path_cls.side_effect = lambda *a, **kw: real_path(*a, **kw)
+                    mock_path_cls.home.return_value = fake_home
+                    store.load_project(sb_path, proj_dir)
+
+            # Check project-local session file
+            session_file = proj_dir.resolve() / ".bee-video" / "session.json"
+            assert session_file.exists()
+            data = json.loads(session_file.read_text())
+            assert "storyboard_path" in data
+            assert "project_dir" in data
+            assert Path(data["project_dir"]) == proj_dir.resolve()
+
+    def test_save_session_stores_storyboard_path(self):
+        store = SessionStore()
+        with tempfile.TemporaryDirectory() as d:
+            proj_dir = Path(d) / "project"
+            proj_dir.mkdir()
+            sb_path = Path(d) / "sb.md"
+            sb_path.write_text("# Test\n")
+
+            with patch("bee_video_editor.api.session.parse_storyboard") as mock_parse:
+                from bee_video_editor.models_storyboard import ProductionRules, Storyboard
+                mock_parse.return_value = Storyboard(
+                    title="Test", segments=[], stock_footage=[], photos_needed=[],
+                    maps_needed=[], production_rules=ProductionRules(),
+                )
+                store.load_project(sb_path, proj_dir)
+
+            session_file = proj_dir.resolve() / ".bee-video" / "session.json"
+            data = json.loads(session_file.read_text())
+            assert Path(data["storyboard_path"]) == sb_path.resolve()
+
+    def test_save_session_no_crash_when_empty(self):
+        store = SessionStore()
+        store._save_session()  # Should not crash
+
+    def test_storyboard_path_set_after_load(self):
+        store = SessionStore()
+        with tempfile.TemporaryDirectory() as d:
+            proj_dir = Path(d) / "project"
+            proj_dir.mkdir()
+            sb_path = Path(d) / "sb.md"
+            sb_path.write_text("# Test\n")
+
+            with patch("bee_video_editor.api.session.parse_storyboard") as mock_parse:
+                from bee_video_editor.models_storyboard import ProductionRules, Storyboard
+                mock_parse.return_value = Storyboard(
+                    title="Test", segments=[], stock_footage=[], photos_needed=[],
+                    maps_needed=[], production_rules=ProductionRules(),
+                )
+                store.load_project(sb_path, proj_dir)
+
+            assert store.storyboard_path == sb_path.resolve()
+
+    def test_try_restore_skips_missing_storyboard(self):
+        """_try_restore with a session pointing to non-existent files returns empty store."""
+        from bee_video_editor.api.session import _try_restore
+
+        with tempfile.TemporaryDirectory() as d:
+            fake_session = Path(d) / "last-session.json"
+            fake_session.write_text(json.dumps({
+                "storyboard_path": "/nonexistent/sb.md",
+                "project_dir": "/nonexistent/proj",
+            }))
+            with patch("bee_video_editor.api.session.Path") as mock_path_cls:
+                # Let real Path work for everything except home()
+                real_path = Path
+                def path_side_effect(*args, **kwargs):
+                    return real_path(*args, **kwargs)
+                mock_path_cls.side_effect = path_side_effect
+                mock_path_cls.home.return_value = Path(d)
+                store = _try_restore()
+            # storyboard_path is /nonexistent/sb.md which doesn't exist
+            # so store should be fresh (storyboard is None)
+            assert store.storyboard is None
