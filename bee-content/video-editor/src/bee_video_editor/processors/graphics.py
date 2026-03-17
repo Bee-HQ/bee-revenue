@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -22,6 +24,15 @@ COLORS = {
     "blue_wave": (68, 136, 255),
     "teal": (0, 212, 170),      # #00D4AA — information, context
     "gold": (212, 168, 67),     # #D4A843 — victim, family
+    # Chat / social
+    "imessage_blue": (0, 122, 255),
+    "imessage_grey": (229, 229, 234),
+    "sms_green": (52, 199, 89),
+    "facebook_blue": (24, 119, 242),
+    "instagram_pink": (225, 48, 108),
+    "snapchat_yellow": (255, 252, 0),
+    "newsprint": (245, 240, 232),
+    "corkboard": (42, 31, 20),
 }
 
 WIDTH = 1920
@@ -281,6 +292,384 @@ def mugshot_card(
     for line in sentence_lines:
         d.text((text_x, y), line, fill=COLORS["white"], font=body_font)
         y += 40
+
+    img.save(str(output_path))
+    return output_path
+
+
+@dataclass
+class ChatMessage:
+    text: str
+    sender: bool = True
+    timestamp: str | None = None
+
+
+@dataclass
+class SocialPost:
+    username: str
+    text: str
+    platform: str = "facebook"
+    timestamp: str | None = None
+    highlight_text: str | None = None
+
+
+def _draw_rounded_rect(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int, int, int],
+    radius: int,
+    fill: tuple,
+) -> None:
+    """Draw a filled rectangle with rounded corners."""
+    x0, y0, x1, y1 = xy
+    draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
+    draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
+    draw.ellipse([x0, y0, x0 + radius * 2, y0 + radius * 2], fill=fill)
+    draw.ellipse([x1 - radius * 2, y0, x1, y0 + radius * 2], fill=fill)
+    draw.ellipse([x0, y1 - radius * 2, x0 + radius * 2, y1], fill=fill)
+    draw.ellipse([x1 - radius * 2, y1 - radius * 2, x1, y1], fill=fill)
+
+
+def _underline_text(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    needle: str,
+    x: int,
+    y: int,
+    font: ImageFont.FreeTypeFont,
+    line_color: tuple,
+) -> None:
+    """Draw a red underline under needle within text starting at (x, y)."""
+    if needle not in text:
+        return
+    before = text[: text.index(needle)]
+    bbox_before = draw.textbbox((0, 0), before, font=font)
+    needle_bbox = draw.textbbox((0, 0), needle, font=font)
+    ux = x + (bbox_before[2] - bbox_before[0])
+    uw = needle_bbox[2] - needle_bbox[0]
+    uh = needle_bbox[3] - needle_bbox[1]
+    draw.line([(ux, y + uh + 2), (ux + uw, y + uh + 2)], fill=line_color, width=3)
+
+
+def text_chat(
+    messages: list[ChatMessage],
+    output_path: str | Path,
+    platform: str = "imessage",
+    highlight_text: str | None = None,
+) -> Path:
+    """Generate a chat conversation screenshot graphic (1920x1080)."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+    d = ImageDraw.Draw(img)
+
+    # Platform bubble color for sender
+    if platform == "imessage":
+        sender_color = COLORS["imessage_blue"]
+        sender_text = COLORS["white"]
+    elif platform == "sms":
+        sender_color = COLORS["sms_green"]
+        sender_text = COLORS["white"]
+    else:
+        sender_color = (60, 60, 70)
+        sender_text = COLORS["white"]
+
+    receiver_color = COLORS["imessage_grey"]
+    receiver_text = (30, 30, 30)
+
+    body_font = _get_font(32)
+    ts_font = _get_font(22)
+
+    bubble_max_width = 700
+    padding = 20
+    radius = 18
+    margin_x = 80
+    y = 80
+
+    for msg in messages:
+        # Optional timestamp above bubble
+        if msg.timestamp:
+            ts_bbox = d.textbbox((0, 0), msg.timestamp, font=ts_font)
+            ts_w = ts_bbox[2] - ts_bbox[0]
+            d.text(((WIDTH - ts_w) // 2, y), msg.timestamp, fill=COLORS["gray"], font=ts_font)
+            y += 36
+
+        lines = _word_wrap(d, msg.text, body_font, bubble_max_width - padding * 2)
+        line_h = 40
+        bubble_h = len(lines) * line_h + padding * 2
+        bubble_w = min(
+            max(
+                d.textbbox((0, 0), line, font=body_font)[2]
+                for line in lines
+            ) + padding * 2,
+            bubble_max_width,
+        )
+
+        if msg.sender:
+            bx0 = WIDTH - margin_x - bubble_w
+            bx1 = WIDTH - margin_x
+            fill = sender_color
+            text_color = sender_text
+        else:
+            bx0 = margin_x
+            bx1 = margin_x + bubble_w
+            fill = receiver_color
+            text_color = receiver_text
+
+        _draw_rounded_rect(d, (bx0, y, bx1, y + bubble_h), radius, fill)
+
+        ty = y + padding
+        for line in lines:
+            d.text((bx0 + padding, ty), line, fill=text_color, font=body_font)
+            if highlight_text and highlight_text in line:
+                _underline_text(d, line, highlight_text, bx0 + padding, ty, body_font, COLORS["red"])
+            ty += line_h
+
+        y += bubble_h + 16
+
+        if y > HEIGHT - 80:
+            break
+
+    img.save(str(output_path))
+    return output_path
+
+
+def social_post(
+    post: SocialPost,
+    output_path: str | Path,
+) -> Path:
+    """Generate a social media post card graphic (1920x1080)."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+    d = ImageDraw.Draw(img)
+
+    platform_colors = {
+        "facebook": COLORS["facebook_blue"],
+        "instagram": COLORS["instagram_pink"],
+        "twitter": (0, 0, 0),
+        "snapchat": COLORS["snapchat_yellow"],
+    }
+    header_color = platform_colors.get(post.platform, COLORS["facebook_blue"])
+
+    card_w = 1200
+    card_x = (WIDTH - card_w) // 2
+    card_y = 120
+    header_h = 60
+    card_padding = 40
+
+    # Estimate card height based on text
+    body_font = _get_font(34)
+    meta_font = _get_font(26)
+    username_font = _get_font(30, bold=True)
+
+    body_lines = _word_wrap(d, post.text, body_font, card_w - card_padding * 2)
+    body_h = len(body_lines) * 48
+
+    card_h = header_h + 80 + body_h + card_padding * 2
+
+    # Card background (dark surface)
+    card_color = (28, 28, 35)
+    d.rectangle([(card_x, card_y), (card_x + card_w, card_y + card_h)], fill=card_color)
+
+    # Platform header bar
+    d.rectangle([(card_x, card_y), (card_x + card_w, card_y + header_h)], fill=header_color)
+
+    # Username + timestamp
+    uy = card_y + header_h + 20
+    d.text((card_x + card_padding, uy), post.username, fill=COLORS["white"], font=username_font)
+    if post.timestamp:
+        ts_bbox = d.textbbox((0, 0), post.timestamp, font=meta_font)
+        ts_w = ts_bbox[2] - ts_bbox[0]
+        d.text((card_x + card_w - card_padding - ts_w, uy + 2), post.timestamp, fill=COLORS["gray"], font=meta_font)
+
+    # Body text
+    ty = uy + 52
+    for line in body_lines:
+        d.text((card_x + card_padding, ty), line, fill=COLORS["white"], font=body_font)
+        if post.highlight_text and post.highlight_text in line:
+            _underline_text(d, line, post.highlight_text, card_x + card_padding, ty, body_font, COLORS["red"])
+        ty += 48
+
+    img.save(str(output_path))
+    return output_path
+
+
+def _get_serif_font(size: int) -> ImageFont.FreeTypeFont:
+    """Load a bold serif font for news/print graphics, falling back to sans-serif."""
+    serif_paths = [
+        "/System/Library/Fonts/Supplemental/Georgia Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Georgia.ttf",
+        "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+    ]
+    for path in serif_paths:
+        if Path(path).exists():
+            return ImageFont.truetype(path, size)
+    return _get_font(size, bold=True)
+
+
+def news_montage(
+    headlines: list[str],
+    output_path: str | Path,
+) -> Path:
+    """Generate a news headline montage (1920x1080, stacked newspaper cards)."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+
+    if headlines:
+        headline_font = _get_serif_font(52)
+        card_w = 1400
+        card_h = 130
+        overlap = 20
+        total_h = len(headlines) * card_h - (len(headlines) - 1) * overlap
+        start_y = (HEIGHT - total_h) // 2
+
+        rotations = [-2, 1.5, -1, 2, -1.5, 1]
+
+        for i, headline in enumerate(headlines[:6]):
+            angle = rotations[i % len(rotations)]
+            card_x = (WIDTH - card_w) // 2
+            card_y = start_y + i * (card_h - overlap)
+
+            # Create card as separate image so we can rotate it
+            card = Image.new("RGBA", (card_w + 20, card_h + 20), (0, 0, 0, 0))
+            cd = ImageDraw.Draw(card)
+            cd.rectangle([(10, 10), (card_w + 10, card_h + 10)], fill=COLORS["newsprint"])
+
+            # Wrap and draw headline text on the card
+            lines = _word_wrap(cd, headline, headline_font, card_w - 60)
+            ty = 10 + (card_h - len(lines) * 58) // 2
+            for line in lines:
+                cd.text((40, ty), line, fill=(20, 20, 20), font=headline_font)
+                ty += 58
+
+            # Rotate card
+            card_rotated = card.rotate(angle, expand=True, resample=Image.BICUBIC)
+
+            # Paste rotated card onto main image
+            paste_x = card_x - (card_rotated.width - card_w) // 2
+            paste_y = card_y - (card_rotated.height - card_h) // 2
+            img.paste(card_rotated, (paste_x, paste_y), card_rotated)
+
+    img.save(str(output_path))
+    return output_path
+
+
+@dataclass
+class BoardPerson:
+    name: str
+    photo_path: Path | None = None
+
+
+@dataclass
+class BoardConnection:
+    from_name: str
+    to_name: str
+    label: str
+
+
+def evidence_board(
+    people: list[BoardPerson],
+    connections: list[BoardConnection],
+    output_path: str | Path,
+) -> Path:
+    """Generate an evidence board graphic with person cards and red connection lines."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["corkboard"])
+    d = ImageDraw.Draw(img)
+
+    if not people:
+        img.save(str(output_path))
+        return output_path
+
+    card_w = 160
+    card_h = 200
+    photo_h = 150
+    name_font = _get_font(24, bold=True)
+    label_font = _get_font(20)
+
+    # Compute person card center positions
+    positions: dict[str, tuple[int, int]] = {}
+
+    n = len(people)
+    if n <= 6:
+        # Arrange in a circle
+        cx, cy = WIDTH // 2, HEIGHT // 2
+        radius = min(WIDTH, HEIGHT) // 2 - 160
+        for i, person in enumerate(people):
+            angle = 2 * math.pi * i / n - math.pi / 2
+            px = int(cx + radius * math.cos(angle))
+            py = int(cy + radius * math.sin(angle))
+            positions[person.name] = (px, py)
+    else:
+        # Grid layout
+        cols = math.ceil(math.sqrt(n))
+        rows = math.ceil(n / cols)
+        x_spacing = WIDTH // (cols + 1)
+        y_spacing = HEIGHT // (rows + 1)
+        for i, person in enumerate(people):
+            col = i % cols
+            row = i // cols
+            positions[person.name] = ((col + 1) * x_spacing, (row + 1) * y_spacing)
+
+    # Draw red connection lines first (behind cards)
+    line_color = (220, 50, 50)  # #DC3232
+    for conn in connections:
+        if conn.from_name in positions and conn.to_name in positions:
+            x0, y0 = positions[conn.from_name]
+            x1, y1 = positions[conn.to_name]
+            d.line([(x0, y0), (x1, y1)], fill=line_color, width=3)
+            # Label at midpoint
+            mx, my = (x0 + x1) // 2, (y0 + y1) // 2
+            lbbox = d.textbbox((0, 0), conn.label, font=label_font)
+            lw = lbbox[2] - lbbox[0]
+            lh = lbbox[3] - lbbox[1]
+            d.rectangle([(mx - lw // 2 - 4, my - lh // 2 - 2), (mx + lw // 2 + 4, my + lh // 2 + 2)], fill=COLORS["corkboard"])
+            d.text((mx - lw // 2, my - lh // 2), conn.label, fill=COLORS["white"], font=label_font)
+
+    # Draw person cards
+    for person in people:
+        cx, cy = positions[person.name]
+        card_x = cx - card_w // 2
+        card_y = cy - card_h // 2
+
+        # Card background (cream/off-white)
+        d.rectangle([(card_x, card_y), (card_x + card_w, card_y + card_h)], fill=(230, 220, 200))
+
+        # Photo area
+        photo_loaded = False
+        if person.photo_path is not None:
+            try:
+                photo = Image.open(str(person.photo_path)).convert("RGB")
+                photo.thumbnail((card_w - 4, photo_h - 4), Image.LANCZOS)
+                px = card_x + (card_w - photo.width) // 2
+                py = card_y + 2 + (photo_h - photo.height) // 2
+                img.paste(photo, (px, py))
+                photo_loaded = True
+            except Exception:
+                pass
+
+        if not photo_loaded:
+            # Grey placeholder
+            d.rectangle(
+                [(card_x + 2, card_y + 2), (card_x + card_w - 2, card_y + photo_h)],
+                fill=(140, 140, 140),
+            )
+
+        # Name label below photo
+        nbbox = d.textbbox((0, 0), person.name, font=name_font)
+        nw = nbbox[2] - nbbox[0]
+        nx = card_x + (card_w - nw) // 2
+        ny = card_y + photo_h + 8
+        d.text((nx, ny), person.name, fill=(20, 20, 20), font=name_font)
 
     img.save(str(output_path))
     return output_path

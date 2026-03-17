@@ -172,3 +172,55 @@ class TestBlackFrame:
         img = Image.open(out)
         pixel = img.getpixel((960, 540))
         assert pixel == (0, 0, 0)
+
+
+class TestTextChat:
+    def test_basic_imessage(self, tmp_path):
+        from bee_video_editor.processors.graphics import text_chat, ChatMessage
+        msgs = [
+            ChatMessage("Hey, are you there?", sender=False),
+            ChatMessage("Yeah, what's up?", sender=True),
+        ]
+        out = tmp_path / "chat.png"
+        result = text_chat(msgs, out)
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_sms_platform(self, tmp_path):
+        from bee_video_editor.processors.graphics import text_chat, ChatMessage
+        msgs = [ChatMessage("Test", sender=True)]
+        out = tmp_path / "sms.png"
+        result = text_chat(msgs, out, platform="sms")
+        assert result.exists()
+
+    def test_empty_messages(self, tmp_path):
+        from bee_video_editor.processors.graphics import text_chat
+        out = tmp_path / "empty.png"
+        result = text_chat([], out)
+        assert result.exists()
+
+
+class TestSocialPost:
+    def test_facebook_post(self, tmp_path):
+        from bee_video_editor.processors.graphics import social_post, SocialPost
+        post = SocialPost(username="John Doe", text="This is a test post", platform="facebook")
+        out = tmp_path / "fb.png"
+        result = social_post(post, out)
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_instagram_post(self, tmp_path):
+        from bee_video_editor.processors.graphics import social_post, SocialPost
+        post = SocialPost(username="user", text="Content", platform="instagram")
+        out = tmp_path / "ig.png"
+        result = social_post(post, out)
+        assert result.exists()
+
+    def test_with_highlight(self, tmp_path):
+        from bee_video_editor.processors.graphics import social_post, SocialPost
+        post = SocialPost(username="user", text="I did it", platform="twitter", highlight_text="did it")
+        out = tmp_path / "tw.png"
+        result = social_post(post, out)
+        assert result.exists()
