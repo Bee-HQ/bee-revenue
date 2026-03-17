@@ -7,16 +7,39 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-17
+
 ### Added
 
-- ROADMAP.md with prioritized improvement plan (v0.3.1 → v0.5.0)
+- **ProductionResult** structured return type — all production functions return succeeded/failed/skipped lists instead of silently swallowing errors
+- **FailedItem** dataclass — captures path + error message for each failure
+- **track() context manager** on ProductionState — automatic segment status transitions (pending→processing→done/error) with disk persistence
+- **SessionStore** class — replaces 3 module-level globals with FastAPI Depends injection. Centralizes storyboard loading, media assignment, and session state
+- **Input validation** — tts_engine validated against allowed engines, transition names validated against XFADE_TRANSITIONS, project_dir existence checked on load
+- **Configurable API base URL** — `VITE_API_BASE` env var in frontend (default `/api`)
+- **CORS env var** — `CORS_ORIGINS` env var, comma-separated (default `*`)
+- **Media library search** — text filter by filename in MediaLibrary.tsx
+- **Async narration with progress** — TTS generation runs in background thread, frontend polls showing "Narration 3/12"
+- **Mugshot card** — `mugshot_card(photo_path, charges, sentence, output)` in graphics.py with photo right, charges left layout
+- **Quote card color variants** — `accent` parameter on `quote_card()`: red (threats), teal (info), gold (victim)
+- **Storyboard parser bible code support** — recognizes `[CODE]` and `[CODE: qualifier]` bracket syntax in addition to backtick notation
+- `state_path` property on ProductionConfig
+- `GET /api/production/narration/status` endpoint for progress polling
+- ROADMAP.md with prioritized improvement plan (v0.4.0 → v0.6.0+)
 - Screenshot infrastructure: `docs/screenshots/`, capture checklist, README integration
-- Default storyboard and project directory pre-filled in web editor and API
+- Design spec and implementation plan for production foundation
+- 19 new tests (128 total)
 
-### Fixed
+### Changed
 
-- API server version now matches pyproject.toml (was 0.2.0, now 0.3.0)
+- Production functions accept optional `state` parameter for progress tracking
+- API production endpoints return `{status, succeeded, failed, skipped, count}` instead of `{status, generated, count}`
+- API routes use `Depends(get_session)` instead of cross-module global imports
 
+### Removed
+
+- Module-level globals in `api/routes/projects.py` (`_current_storyboard`, `_current_project_dir`, `_assignments_path`)
+- Silent `except FFmpegError: pass` in production functions
 
 ## [0.3.0] - 2026-03-16
 

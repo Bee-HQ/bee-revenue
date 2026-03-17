@@ -4,7 +4,7 @@
 
 AI-assisted video production tool. Takes storyboard/assembly guide markdown → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.3.0
+**Version:** 0.3.1
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 
@@ -127,9 +127,9 @@ React 18 + TypeScript + Vite + Tailwind + Zustand.
 
 > **All gaps, issues, and planned work are tracked in `ROADMAP.md`** — that's the single source of truth. Summary below for quick reference.
 
-**Formula alignment gaps** (graphics the formula needs that bee-video can't generate): mugshot cards, text chat recreations, social media mockups, evidence boards, flow diagrams, animated timelines, news montages, subtitle generation, maps, asset preflight. See ROADMAP v0.3.1 through v0.5.0 for when each is planned.
+**Formula alignment gaps** (graphics the formula needs that bee-video can't generate): text chat recreations, social media mockups, evidence boards, flow diagrams, animated timelines, news montages, subtitle generation, maps, asset preflight. See ROADMAP v0.4.0 through v0.5.0 for when each is planned.
 
-**Code-level issues** (v0.3.1): FFmpeg errors silently swallowed, module-level globals for session state, hardcoded API base URL, segment statuses never updated during pipeline.
+**v0.3.1 code issues — all resolved:** FFmpeg errors now surface via ProductionResult. Module globals replaced by SessionStore. API base URL configurable. Segment statuses tracked via track(). Mugshot cards and quote card colors implemented.
 
 **Scale issues** (v0.6.0+): stock footage repetition across videos, no LLM screenplay generation, no batch graphics from config, no FOIA pipeline tracking.
 
@@ -170,7 +170,7 @@ my-project/
 
 | Doc | Purpose |
 |-----|---------|
-| `CHANGELOG.md` | Version history (v0.1.0 → v0.3.0) |
+| `CHANGELOG.md` | Version history (v0.1.0 → v0.3.1) |
 | `ROADMAP.md` | Planned features (v0.3.1 → v0.5.0) |
 | `PLAN.md` | Original v0.2.0 web editor design doc |
 | `README.md` | User-facing usage docs |
