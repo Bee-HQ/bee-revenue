@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass
 from math import ceil
 from pathlib import Path
@@ -211,4 +212,33 @@ def generate_captions_estimated(
             subs.events.append(event)
 
     subs.save(str(output_path))
+    return output_path
+
+
+def burn_captions(
+    video_path: Path,
+    ass_path: Path,
+    output_path: Path,
+) -> Path:
+    """Burn ASS subtitles into video via FFmpeg ass filter.
+
+    This is a post-processing step — runs a second encode pass.
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # FFmpeg ass filter needs absolute path with escaped colons
+    abs_ass = str(ass_path.resolve()).replace(":", "\\:")
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-vf", f"ass={abs_ass}",
+        "-c:a", "copy",
+        str(output_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg caption burn failed: {result.stderr[:500]}")
+
     return output_path

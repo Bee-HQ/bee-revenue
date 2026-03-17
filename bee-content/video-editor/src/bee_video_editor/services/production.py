@@ -150,7 +150,7 @@ def init_project(
     ]
 
     # Create output directories
-    for subdir in ["segments", "normalized", "composited", "graphics", "narration", "final"]:
+    for subdir in ["segments", "normalized", "composited", "graphics", "narration", "captions", "final"]:
         (config.output_dir / subdir).mkdir(parents=True, exist_ok=True)
 
     state.save(config.state_path)
@@ -382,6 +382,17 @@ def assemble_final(
         concat_with_transitions(segments, output, transition=transition, transition_duration=transition_duration)
     else:
         concat_segments(segments, output, reencode=True)
+
+    # Burn in captions if ASS file exists
+    captions_path = config.output_dir / "captions" / "captions.ass"
+    if output and captions_path.exists():
+        from bee_video_editor.processors.captions import burn_captions
+        captioned = output.parent / "final_with_captions.mp4"
+        try:
+            burn_captions(output, captions_path, captioned)
+            return captioned
+        except RuntimeError:
+            pass  # Fall through to return uncaptioned video
 
     return output
 
