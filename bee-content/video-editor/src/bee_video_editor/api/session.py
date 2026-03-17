@@ -30,6 +30,8 @@ class SessionStore:
         """Parse storyboard, restore assignments, set as current session."""
         if not storyboard_path.exists():
             raise HTTPException(404, f"Storyboard not found: {storyboard_path}")
+        if not project_dir.exists():
+            raise HTTPException(400, f"Project directory not found: {project_dir}")
 
         self.project_dir = project_dir.resolve()
         self.assignments_path = self.project_dir / ".bee-video" / "assignments.json"

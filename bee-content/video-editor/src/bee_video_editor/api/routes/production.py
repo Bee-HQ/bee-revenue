@@ -102,9 +102,14 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
     }
 
 
+VALID_TTS_ENGINES = {"edge", "kokoro", "openai"}
+
+
 @router.post("/narration")
 def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get_session)):
     """Generate TTS narration for narrator segments."""
+    if req.tts_engine not in VALID_TTS_ENGINES:
+        raise HTTPException(400, f"Invalid TTS engine '{req.tts_engine}'. Must be one of: {', '.join(sorted(VALID_TTS_ENGINES))}")
     storyboard, project_dir = session.require_project()
     output_dir = project_dir / "output"
     narration_dir = output_dir / "narration"
@@ -191,6 +196,10 @@ def assemble_video(
         transition: Optional xfade transition name.
         transition_duration: Transition duration in seconds.
     """
+    if transition:
+        from bee_video_editor.processors.ffmpeg import XFADE_TRANSITIONS
+        if transition not in XFADE_TRANSITIONS:
+            raise HTTPException(400, f"Invalid transition '{transition}'. Use GET /api/production/effects for valid options.")
     _, project_dir = session.require_project()
     output_dir = project_dir / "output"
 

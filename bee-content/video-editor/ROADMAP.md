@@ -11,15 +11,15 @@ Prioritized improvements for bee-video-editor, organized by effort and impact.
 Small, targeted fixes that improve daily usage.
 
 ### Code Quality
-- [ ] **Surface FFmpeg errors** — stop silently swallowing `FFmpegError` in `services/production.py`, return `{succeeded, failed}` instead
-- [ ] **Fix version in server.py** — currently says 0.2.0, should match pyproject.toml
-- [ ] **Input validation on API routes** — validate project_dir exists, tts_engine is valid, transition names exist
-- [ ] **Update segment status tracking** — `SegmentStatus` objects are created but never updated during pipeline execution; wire them to actual progress
+- [x] **Surface FFmpeg errors** — ProductionResult returns succeeded/failed/skipped (shipped in production foundation)
+- [x] **Fix version in server.py** — bumped to 0.3.1
+- [x] **Input validation on API routes** — validate tts_engine, transition names, project_dir existence
+- [x] **Update segment status tracking** — track() context manager on ProductionState (shipped in production foundation)
 
 ### Web UI
-- [ ] **Configurable API base URL** — replace hardcoded `/api` with `import.meta.env.VITE_API_BASE || '/api'` in `web/src/api/client.ts`
+- [x] **Configurable API base URL** — `import.meta.env.VITE_API_BASE || '/api'`
 - [ ] **Media library search** — text filter by filename in `MediaLibrary.tsx` (pure frontend)
-- [ ] **CORS env var** — `CORS_ORIGINS` env var, default `*` in dev mode
+- [x] **CORS env var** — `CORS_ORIGINS` env var, comma-separated, default `*`
 - [ ] **TTS progress** — poll `/api/production/status` during narration, show count in button ("Narration 3/12")
 
 ### Graphics (formula alignment)

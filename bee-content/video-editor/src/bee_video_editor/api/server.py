@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -16,12 +17,13 @@ def create_app(static_dir: Path | None = None) -> FastAPI:
     app = FastAPI(
         title="Bee Video Editor",
         description="Storyboard-first AI video production",
-        version="0.3.0",
+        version="0.3.1",
     )
 
+    cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
