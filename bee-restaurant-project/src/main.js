@@ -12,12 +12,36 @@ import { detectLiveFeatures } from './utils/device.js';
 const app = document.getElementById('app');
 
 async function init() {
-  // 1. Load config
+  // 1. Detect features first (in-app browser gate)
+  const features = await detectLiveFeatures();
+
+  // In-app browser gate (before any heavy loading)
+  if (features.isInAppBrowser) {
+    app.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:2rem;">
+        <div>
+          <h2 style="margin-bottom:0.5rem;">Open in your browser</h2>
+          <p style="color:#999;margin-bottom:1.5rem;font-size:0.9rem;">
+            This AR experience needs ${features.isIOS ? 'Safari' : 'Chrome'} to access your camera.
+          </p>
+          <button id="copy-link" style="
+            padding:0.75rem 1.5rem;border:none;border-radius:2rem;
+            background:#ff6b35;color:#fff;font-size:0.9rem;font-weight:600;cursor:pointer;
+          ">Copy Link</button>
+          <p id="copy-confirm" style="color:#7aff7a;font-size:0.8rem;margin-top:0.75rem;display:none;">Copied!</p>
+        </div>
+      </div>
+    `;
+    document.getElementById('copy-link').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(window.location.href);
+      document.getElementById('copy-confirm').style.display = 'block';
+    });
+    return;
+  }
+
+  // 2. Load config
   const config = await loadMenuConfig('/menu.json');
   const { restaurant, items } = config;
-
-  // 2. Detect features
-  const features = await detectLiveFeatures();
 
   // 3. Show loading screen
   const loading = createLoadingScreen(app, {
