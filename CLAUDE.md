@@ -13,7 +13,7 @@ Monorepo for automated revenue streams under Bee. This is a git submodule — th
 | `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
 | `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
 | `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
-| `bee-content/video-editor/` | Built (v0.5.0) | Python CLI + web editor — AI-assisted video production |
+| `bee-content/video-editor/` | Built (v0.6.0) | Python CLI + web editor — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
 ## bee-content/research (YouTube competitor analysis)
@@ -92,6 +92,11 @@ uv run bee-video narration <guide.md> -p ./proj --tts edge  # Generate TTS
 uv run bee-video trim-footage <guide.md> -p ./proj          # Trim source clips
 uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
 
+# v0.6.0 features
+uv run bee-video graphics-batch config.json -p ./proj       # Batch graphics from config
+uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for project
+uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
+
 # Effects (standalone)
 uv run bee-video effects in.mp4 out.mp4 --color noir --speed 1.5 --text "Ch 1"
 uv run bee-video transition a.mp4 b.mp4 out.mp4 --name dissolve
@@ -102,7 +107,8 @@ uv run bee-video list-effects
 ./start.sh      # Production (single server :8420)
 
 # Tests
-uv run --extra dev pytest tests/ -v
+./test.sh                                    # Backend + frontend type check
+uv run --extra dev pytest tests/ -v          # Backend only
 ```
 
 ### Architecture
@@ -111,17 +117,17 @@ uv run --extra dev pytest tests/ -v
 Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
 ```
 
-**Processors:** FFmpeg (17 functions — trim, concat, color grade, transitions, Ken Burns, PiP, speed, text overlay, audio mix), Pillow (lower thirds, timeline markers, financial cards), TTS (edge/kokoro/openai).
+**Processors:** FFmpeg (17 functions — trim, concat, color grade, transitions, Ken Burns, PiP, speed, text overlay, audio mix), Pillow (lower thirds, timeline markers, financial cards), TTS (edge/kokoro/openai/elevenlabs).
 
-**Two parsers:** Assembly guide (flat time-coded table → `Project`) and storyboard (shot-by-shot with 6 layers → `Storyboard`). Web UI uses storyboard, CLI uses assembly guide. Planned to unify in v0.4.0.
+**Two parsers:** Assembly guide (flat time-coded table → `Project`) and storyboard (shot-by-shot with 6 layers → `Storyboard`). Unified via `assembly_guide_to_storyboard()` converter.
 
 ### Key Details
 
 - Python >=3.11, managed with `uv` and `hatchling` build backend
 - 12 color presets, 30+ xfade transitions, 7 Ken Burns effects
-- 3 TTS engines (edge=free/cloud, kokoro=free/local, openai=paid/best)
-- Web UI: React 18 + Zustand + Tailwind, NLE-style segment editor with drag-drop media assignment
-- 113 tests across 7 test files
+- 4 TTS engines (edge=free/cloud, kokoro=free/local, openai=paid/best, elevenlabs=paid/free tier)
+- Web UI: React 19 + Zustand + Tailwind, NLE-style segment editor with drag-drop media assignment
+- 349 tests across 17 test files
 - System requirement: FFmpeg must be installed and on PATH
 
 ---

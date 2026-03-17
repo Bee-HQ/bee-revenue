@@ -27,6 +27,15 @@ uv run bee-video assemble -p ./my-project
 # Assemble with transitions between segments
 uv run bee-video assemble -p ./my-project --transition fade --transition-duration 1.0
 
+# Batch graphics from a config file
+uv run bee-video graphics-batch graphics.json -p ./my-project
+
+# Lock TTS voice for the project
+uv run bee-video voice-lock elevenlabs --voice Daniel -p ./my-project
+
+# Quick 720p rough cut (no grading, for structure review)
+uv run bee-video rough-cut storyboard.md -p ./my-project
+
 # Launch web editor
 uv run bee-video serve --dev
 ```
@@ -108,10 +117,64 @@ The full pipeline for producing a video from an assembly guide:
 1. parse       → Parse assembly guide markdown into structured Project
 2. init        → Create output directories and production state
 3. graphics    → Generate lower thirds, timeline markers, quote/financial cards
-4. narration   → Generate TTS narration (edge / kokoro / openai)
+4. narration   → Generate TTS narration (edge / kokoro / openai / elevenlabs)
 5. trim        → Trim source footage per assembly guide notes
 6. assemble    → Concatenate segments into final video (with optional transitions)
 ```
+
+Or run everything at once:
+
+```bash
+uv run bee-video produce storyboard.md -p ./my-project --tts edge
+```
+
+### Batch Graphics
+
+Generate all graphics from a JSON config file instead of one CLI call per graphic:
+
+```bash
+uv run bee-video graphics-batch graphics.json -p ./my-project
+```
+
+Config format:
+```json
+{
+  "output_dir": "output/graphics",
+  "graphics": [
+    {"type": "lower_third", "name": "Alex Murdaugh", "role": "Defendant"},
+    {"type": "timeline_marker", "date": "June 7, 2021", "description": "Night of the murders"},
+    {"type": "financial_card", "amount": "$10.5 million", "description": "Misappropriated funds"},
+    {"type": "quote_card", "quote": "I did him so bad.", "speaker": "Alex Murdaugh", "accent": "red"},
+    {"type": "text_overlay", "text": "Chapter 1: The Family", "position": "center"},
+    {"type": "black_frame"}
+  ]
+}
+```
+
+Supported types: `lower_third`, `timeline_marker`, `quote_card`, `financial_card`, `text_overlay`, `black_frame`, `mugshot_card`, `news_montage`.
+
+### Voice Lock
+
+Lock TTS engine and voice per project so narration stays consistent across sessions:
+
+```bash
+# Lock voice for this project
+uv run bee-video voice-lock elevenlabs --voice Daniel -p ./my-project
+
+# Subsequent narration commands auto-use the locked voice
+uv run bee-video narration guide.md -p ./my-project  # uses elevenlabs/Daniel
+uv run bee-video narration guide.md -p ./my-project --tts openai  # overrides lock
+```
+
+### Rough Cut
+
+Export a fast 720p rough cut for structure review before investing in full assembly:
+
+```bash
+uv run bee-video rough-cut storyboard.md -p ./my-project
+```
+
+No color grading, no transitions — just 720p normalize + concat. Output at `output/rough/rough_cut.mp4`.
 
 ## Web Editor
 
@@ -206,12 +269,16 @@ concat_with_transitions(
 | `edge` | Free | Microsoft Edge TTS, cloud-based, good quality |
 | `kokoro` | Free | Local model, 24kHz output, requires `tts-kokoro` extra |
 | `openai` | Paid | Best quality, requires API key and `tts-openai` extra |
+| `elevenlabs` | Free tier / Paid | High quality, requires `ELEVENLABS_API_KEY` env var |
 
 ```bash
 uv run bee-video narration guide.md --tts edge --voice en-US-GuyNeural
 uv run bee-video narration guide.md --tts kokoro --voice am_adam
 uv run bee-video narration guide.md --tts openai --voice onyx
+uv run bee-video narration guide.md --tts elevenlabs --voice Daniel
 ```
+
+Use `bee-video voice-lock` to persist your preferred engine/voice per project.
 
 ## Architecture
 
@@ -230,7 +297,10 @@ Adapters (CLI / Web API) → Services → Parsers + Processors
 # Install with dev dependencies
 uv sync --extra dev
 
-# Run tests
+# Run all tests (backend + frontend type check)
+./test.sh
+
+# Run backend tests only
 uv run --extra dev pytest tests/ -v
 
 # Run a specific test file
