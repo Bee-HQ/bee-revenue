@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "mind-ar": "^1.2.5",
     "three": "^0.160.0"
   },
   "devDependencies": {
