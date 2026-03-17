@@ -260,12 +260,15 @@ export function MediaLibrary() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDownloads, setShowDownloads] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
 
   const categories = Object.keys(mediaCategories);
-  const filteredFiles = activeCategory
-    ? mediaFiles.filter(f => f.category === activeCategory)
-    : mediaFiles;
+  const filteredFiles = mediaFiles.filter(f => {
+    const matchesCategory = !activeCategory || f.category === activeCategory;
+    const matchesSearch = !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
   const isEmpty = mediaFiles.length === 0;
 
   const handleDragStart = (file: MediaFile) => {
@@ -337,6 +340,21 @@ export function MediaLibrary() {
         </div>
       )}
 
+      {/* Search input */}
+      {!isEmpty && (
+        <div className="px-2 py-1.5 border-b border-editor-border">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search files..."
+            className="w-full bg-editor-surface border border-editor-border rounded px-2 py-1
+                       text-xs text-gray-200 placeholder-gray-600 outline-none
+                       focus:border-editor-accent/50"
+          />
+        </div>
+      )}
+
       {/* Category tabs */}
       {!isEmpty && (
         <div className="px-2 py-1.5 border-b border-editor-border flex gap-1 flex-wrap">
@@ -398,7 +416,7 @@ export function MediaLibrary() {
 
         {filteredFiles.length === 0 && !isEmpty && !uploading && (
           <div className="px-2 py-4 text-xs text-gray-600 text-center">
-            No files in this category.
+            {searchQuery ? 'No files match your search.' : 'No files in this category.'}
           </div>
         )}
 
