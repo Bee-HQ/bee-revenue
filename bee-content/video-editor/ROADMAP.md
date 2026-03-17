@@ -39,8 +39,8 @@ Features that meaningfully change the editing workflow.
 - [ ] **Batch media assignment** — multi-select segments (shift/ctrl click), assign one file to all
 
 ### Architecture
-- [ ] **Unify data models** — make `Storyboard` the canonical model, add `assembly_guide_to_storyboard()` converter, deprecate direct `Project` usage in production service
-- [ ] **Parser resilience** — normalize whitespace before parsing, expand test fixtures with malformed markdown
+- [x] **Unify data models** — `assembly_guide_to_storyboard()` converter, `_ensure_storyboard()` in production service, both input formats work
+- [x] **Parser resilience** — whitespace normalization, missing section handling, malformed row skipping in both parsers
 - [x] **Parse bible visual codes** — parser recognizes `[CODE]` and `[CODE: qualifier]` bracket syntax (shipped in v0.3.1)
 
 ### Pipeline
