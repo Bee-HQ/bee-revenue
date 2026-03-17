@@ -67,7 +67,7 @@ Architectural work that unlocks new capabilities.
 - [x] **Parallel narration processing** — `--workers N` flag for concurrent TTS via ThreadPoolExecutor (default: sequential)
 
 ### Real-time
-- [ ] **WebSocket progress** — real-time progress for TTS, FFmpeg, and assembly (replace polling)
+- [x] **WebSocket progress** — real-time progress via `/ws/progress` for narration and produce pipeline (replaces polling)
 
 ### Graphics (formula alignment)
 - [ ] **Flow diagram** — `flow_diagram(nodes, connections, output)` animated money/process flow. Spec: `[FLOW-DIAGRAM]`. Priority for financial crime cases (Murdaugh Forge scheme, etc.)
