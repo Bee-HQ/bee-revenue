@@ -106,7 +106,7 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
     }
 
 
-VALID_TTS_ENGINES = {"edge", "kokoro", "openai"}
+VALID_TTS_ENGINES = {"edge", "kokoro", "openai", "elevenlabs"}
 
 
 def _count_narration_segments(storyboard) -> int:

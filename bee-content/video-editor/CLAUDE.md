@@ -103,6 +103,7 @@ All output 1920x1080 PNG. Colors follow Dr. Insanity palette (dark bg, red/teal 
 | Edge | Free (cloud) | Good | Default voice: en-US-GuyNeural |
 | Kokoro | Free (local) | Good | 24kHz WAV, needs `kokoro>=0.9.4` |
 | OpenAI | Paid | Best | gpt-4o-mini-tts, 1200-word chunking |
+| ElevenLabs | Free tier / Paid | Best | Default voice: Daniel. Needs `ELEVENLABS_API_KEY` env var. Formula-recommended engine. |
 
 `extract_narrator_sections(screenplay_path)` pulls `**NARRATOR:**` lines from screenplay markdown.
 

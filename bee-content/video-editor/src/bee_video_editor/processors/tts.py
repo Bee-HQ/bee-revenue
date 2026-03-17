@@ -18,7 +18,7 @@ def generate_narration(
     Args:
         text: The narrator text to synthesize.
         output_path: Where to save the audio file.
-        engine: "edge" (free), "kokoro" (free/local), "openai" (paid).
+        engine: "edge" (free), "kokoro" (free/local), "openai" (paid), "elevenlabs" (paid/free tier).
         voice: Engine-specific voice ID. Defaults per engine.
         speed: Speech speed multiplier (lower = slower/more gravitas).
     """
@@ -29,6 +29,7 @@ def generate_narration(
         "edge": _generate_edge,
         "kokoro": _generate_kokoro,
         "openai": _generate_openai,
+        "elevenlabs": _generate_elevenlabs,
     }
 
     if engine not in engines:
@@ -122,6 +123,49 @@ def _generate_openai(
         all_audio += response.content
 
     output_path.write_bytes(all_audio)
+    return output_path
+
+
+def _generate_elevenlabs(
+    text: str,
+    output_path: Path,
+    voice: str | None = None,
+    speed: float = 0.95,
+) -> Path:
+    """Generate audio using ElevenLabs TTS (paid API, free tier available).
+
+    Requires ELEVENLABS_API_KEY env var. Free tier: 10k chars/month.
+    Default voice: "Daniel" (deep male, good for narration).
+    """
+    import os
+    from elevenlabs import ElevenLabs
+
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        raise ValueError(
+            "ELEVENLABS_API_KEY env var not set. "
+            "Get a free key at https://elevenlabs.io"
+        )
+
+    client = ElevenLabs(api_key=api_key)
+
+    # Default to Daniel — deep, measured male voice good for true crime narration
+    voice = voice or "Daniel"
+
+    # ElevenLabs expects stability/similarity_boost for voice settings
+    # Lower stability = more expressive, higher = more consistent
+    audio_generator = client.text_to_speech.convert(
+        text=text,
+        voice_id=voice,
+        model_id="eleven_multilingual_v2",
+        output_format="mp3_44100_128",
+    )
+
+    # audio_generator yields chunks — collect and write
+    with open(output_path, "wb") as f:
+        for chunk in audio_generator:
+            f.write(chunk)
+
     return output_path
 
 
