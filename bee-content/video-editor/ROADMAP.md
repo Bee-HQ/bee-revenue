@@ -33,7 +33,7 @@ Small, targeted fixes that improve daily usage.
 Features that meaningfully change the editing workflow.
 
 ### Editor
-- [ ] **Persistent session state** — auto-reload last project on server start, replace module-level globals with `SessionStore` class, persist to `.bee-video/session.json`
+- [ ] **Persistent session state** — auto-reload last project on server start, persist session to `.bee-video/session.json` (SessionStore class already exists from v0.3.1, just needs persistence)
 - [ ] **Undo/redo** — Zustand history stack for media assignments, Ctrl+Z / Ctrl+Shift+Z
 - [ ] **Segment reordering** — drag-and-drop in segment list, persist order in sidecar JSON
 - [ ] **Batch media assignment** — multi-select segments (shift/ctrl click), assign one file to all
@@ -41,10 +41,11 @@ Features that meaningfully change the editing workflow.
 ### Architecture
 - [ ] **Unify data models** — make `Storyboard` the canonical model, add `assembly_guide_to_storyboard()` converter, deprecate direct `Project` usage in production service
 - [ ] **Parser resilience** — normalize whitespace before parsing, expand test fixtures with malformed markdown
-- [ ] **Parse bible visual codes** — parser should recognize `[CODE: qualifier]` tags and map them to asset requirements. This enables the preflight check (below)
+- [x] **Parse bible visual codes** — parser recognizes `[CODE]` and `[CODE: qualifier]` bracket syntax (shipped in v0.3.1)
 
 ### Pipeline
-- [ ] **Asset preflight command** — `bee-video preflight <guide> -p ./proj` scans the assembly guide/storyboard, generates an asset manifest (segment → file path + status), reports what's missing before assembly. This is the #1 time-waster in production — finding missing assets mid-assembly
+- [ ] **Asset preflight command** — `bee-video preflight <guide> -p ./proj` scans the assembly guide/storyboard, generates an asset manifest (segment → file path + status), reports what's missing before assembly
+- [ ] **ASS caption generation** — new `processors/captions.py` using `pysubs2`. Generate styled ASS subtitles from narration segments with word-by-word highlighting. Renders natively via FFmpeg's `ass` filter. Fills the `[CAPTION-ANIMATED]` formula requirement. See: `discovery/true-crime/research/storyboard-format-research.md`
 - [ ] **Asset generation time estimate** — current checklist says 3-4 hours, realistic is 6-8 hours. Update all time estimates to match reality
 
 ### Graphics (formula alignment)
@@ -52,6 +53,7 @@ Features that meaningfully change the editing workflow.
 - [ ] **Social media post mockup** — `social_post(content, platform, output)` for Facebook/Instagram/Snapchat. Spec: `[SOCIAL-POST]`
 - [ ] **News headline montage** — `news_montage(headlines, output)` stacked headlines sliding in. Spec: `[NEWS-MONTAGE]`
 - [ ] **Evidence board** — `evidence_board(people, connections, output)` red-string corkboard style. Spec: `[EVIDENCE-BOARD]`
+- [ ] **Lottie animated overlays** — replace static Pillow PNGs with animated Lottie JSON for `[LOWER-THIRD]`, `[QUOTE-CARD]`, `[FINANCIAL-CARD]`, `[TIMELINE-MARKER]`. Uses `lottie` Python package + Cairo renderer → PNG frames → FFmpeg overlay. Biggest visual quality jump available. See: `discovery/true-crime/research/storyboard-format-research.md`
 
 ---
 
@@ -70,7 +72,9 @@ Architectural work that unlocks new capabilities.
 ### Graphics (formula alignment)
 - [ ] **Flow diagram** — `flow_diagram(nodes, connections, output)` animated money/process flow. Spec: `[FLOW-DIAGRAM]`. Priority for financial crime cases (Murdaugh Forge scheme, etc.)
 - [ ] **Animated timeline sequence** — `timeline_sequence(events, output)` horizontal timeline with cursor/nodes. Spec: `[TIMELINE-SEQUENCE]`. Priority for cases spanning 6+ months
-- [ ] **Subtitle generation** — generate ASS/SRT from narration segments. Currently no subtitle support at all — high impact for accessibility and the formula's `[CAPTION-ANIMATED]` requirement
+
+### Interop
+- [ ] **OTIO timeline export** — compile storyboard to OpenTimelineIO timeline with custom metadata (visual codes). Enables export to DaVinci Resolve / Premiere for human final polish. Python SDK: `opentimelineio`. See: `discovery/true-crime/research/storyboard-format-research.md`
 
 ### Maps
 - [ ] **Map generation** — integrate MapLibre or static maps API to generate `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from coordinates. Currently requires manual Google Earth Studio export. High effort but eliminates the most manual step in asset creation
