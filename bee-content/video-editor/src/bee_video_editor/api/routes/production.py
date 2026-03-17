@@ -8,7 +8,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
-from bee_video_editor.api.schemas import CaptionRequest, GenerateRequest, ProductionStatusSchema
+from bee_video_editor.api.schemas import (
+    BatchGraphicsRequest,
+    CaptionRequest,
+    GenerateRequest,
+    ProductionStatusSchema,
+    VoiceLockRequest,
+)
 from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
@@ -160,6 +166,7 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
         tts_engine=req.tts_engine,
         tts_voice=req.tts_voice,
     )
+    config.apply_voice_lock()
     config.output_dir.joinpath("narration").mkdir(parents=True, exist_ok=True)
 
     total = _count_narration_segments(storyboard)
@@ -326,6 +333,7 @@ async def _ws_narration(websocket: WebSocket, session, params: dict):
         tts_engine=params.get("tts_engine", "edge"),
         tts_voice=params.get("tts_voice"),
     )
+    config.apply_voice_lock()
     workers = params.get("workers", 1)
 
     narration_dir = config.output_dir / "narration"
@@ -387,6 +395,7 @@ async def _ws_produce(websocket: WebSocket, session, params: dict):
         tts_engine=params.get("tts_engine", "edge"),
         tts_voice=params.get("tts_voice"),
     )
+    config.apply_voice_lock()
 
     msg_queue: queue.Queue = queue.Queue()
     result_holder: dict = {}
@@ -463,6 +472,7 @@ def produce_video(
         tts_engine=tts_engine,
         tts_voice=tts_voice,
     )
+    config.apply_voice_lock()
 
     result = run_full_pipeline(
         storyboard_path=session.storyboard_path,
@@ -601,3 +611,60 @@ def assemble_video(
                     raise HTTPException(500, f"Assembly failed: {e}")
 
     raise HTTPException(400, "No segments found to assemble. Generate assets first.")
+
+
+@router.post("/graphics-batch")
+def batch_graphics(req: BatchGraphicsRequest, session: SessionStore = Depends(get_session)):
+    """Generate graphics from a JSON config file."""
+    from bee_video_editor.services.batch_graphics import generate_batch, parse_graphics_config
+
+    _, project_dir = session.require_project()
+    config_path = Path(req.config_path)
+    if not config_path.exists():
+        raise HTTPException(404, f"Config file not found: {req.config_path}")
+
+    try:
+        specs, output_dir_rel = parse_graphics_config(config_path)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    output_dir = project_dir / output_dir_rel
+    result = generate_batch(specs, output_dir)
+
+    status = "ok" if result.ok else ("partial" if result.succeeded else "error")
+    return {
+        "status": status,
+        "count": len(result.succeeded),
+        "succeeded": [str(p) for p in result.succeeded],
+        "failed": [{"file": f.path, "error": f.error} for f in result.failed],
+        "skipped": result.skipped,
+    }
+
+
+@router.put("/voice-lock")
+def save_voice_lock(req: VoiceLockRequest, session: SessionStore = Depends(get_session)):
+    """Save TTS voice config for this project."""
+    session.save_voice_config(req.engine, req.voice, req.speed)
+    return {"status": "ok", "engine": req.engine, "voice": req.voice, "speed": req.speed}
+
+
+@router.get("/voice-lock")
+def get_voice_lock(session: SessionStore = Depends(get_session)):
+    """Get saved TTS voice config for this project."""
+    config = session.load_voice_config()
+    return config or {}
+
+
+@router.post("/rough-cut")
+def rough_cut(session: SessionStore = Depends(get_session)):
+    """Export a fast 720p rough cut for structure review."""
+    from bee_video_editor.services.production import ProductionConfig, rough_cut_export
+
+    storyboard, project_dir = session.require_project()
+    config = ProductionConfig(project_dir=project_dir)
+    result = rough_cut_export(storyboard, config)
+
+    if result is None:
+        raise HTTPException(400, "No assigned media found. Assign media to segments first.")
+
+    return {"status": "ok", "output": str(result)}

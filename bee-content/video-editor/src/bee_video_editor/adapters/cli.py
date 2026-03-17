@@ -734,6 +734,83 @@ def generate_map(
     console.print(f"[green]Map generated: {out_path}[/green]")
 
 
+@app.command()
+def graphics_batch(
+    config_file: str = typer.Argument(..., help="Path to graphics config JSON file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Generate all graphics from a JSON config file."""
+    from bee_video_editor.services.batch_graphics import generate_batch, parse_graphics_config
+
+    config_path = Path(config_file)
+    if not config_path.exists():
+        console.print(f"[red]Config not found: {config_file}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        specs, output_dir_rel = parse_graphics_config(config_path)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+    output_dir = Path(project_dir) / output_dir_rel
+    console.print(f"[bold]Generating {len(specs)} graphics...[/bold]")
+
+    result = generate_batch(specs, output_dir)
+
+    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
+    for g in result.succeeded:
+        console.print(f"  {g}")
+    if result.failed:
+        console.print(f"[red]Failed: {len(result.failed)}[/red]")
+        for f in result.failed:
+            console.print(f"  [red]{f.path}: {f.error}[/red]")
+    if result.skipped:
+        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
+
+
+@app.command()
+def voice_lock(
+    engine: str = typer.Argument(..., help="TTS engine (edge/kokoro/openai/elevenlabs)"),
+    voice: str | None = typer.Option(None, "--voice", "-v", help="Voice ID"),
+    speed: float = typer.Option(0.95, "--speed", "-s", help="Speech speed"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Lock TTS voice config for this project. Narration will use these defaults."""
+    import json as json_mod
+
+    proj = Path(project_dir).resolve()
+    config_path = proj / ".bee-video" / "voice.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {"engine": engine, "speed": speed}
+    if voice:
+        data["voice"] = voice
+    config_path.write_text(json_mod.dumps(data, indent=2))
+    console.print(f"[green]Voice locked: engine={engine}, voice={voice or '(default)'}, speed={speed}[/green]")
+    console.print(f"[dim]Saved to {config_path}[/dim]")
+
+
+@app.command()
+def rough_cut(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Export a fast 720p rough cut — no grading, no transitions. For structure review."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.services.production import ProductionConfig, rough_cut_export
+
+    sb = parse_storyboard(storyboard_path)
+    config = ProductionConfig(project_dir=Path(project_dir))
+
+    console.print("[bold]Exporting rough cut (720p, no grading)...[/bold]")
+    result = rough_cut_export(sb, config)
+
+    if result:
+        console.print(f"[bold green]Rough cut: {result}[/bold green]")
+    else:
+        console.print("[yellow]No assigned media found. Assign media to segments first.[/yellow]")
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)

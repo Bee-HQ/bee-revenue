@@ -91,12 +91,12 @@ Features needed when producing 2+ videos/month consistently.
 ### Pipeline Automation
 - [ ] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" --duration 10` hits Pexels API, downloads, renames per naming convention. Eliminates manual stock footage sourcing
 - [ ] **LLM screenplay → assembly guide** — accept a case-research doc + formula, generate an assembly guide draft. Human review required but saves 2-3 hours per video
-- [ ] **Batch graphics from config** — accept a JSON/YAML with all graphic specs (lower thirds, quote cards, financial cards, etc.) and generate all in one command. Currently requires one CLI call per graphic
+- [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file. Supports lower_third, timeline_marker, quote_card, financial_card, text_overlay, black_frame, mugshot_card, news_montage
 
 ### Quality
 - [ ] **Stock footage library** — track which stock clips have been used across videos to avoid repetition. Tag by visual code, case, and usage count
-- [ ] **TTS voice lock** — persist voice config per channel so narration stays consistent across videos
-- [ ] **Rough cut review** — export low-quality 720p rough cut quickly (no color grading) for structure review before investing in final assembly
+- [x] **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project in `.bee-video/voice.json`; narration uses locked voice unless explicitly overridden
+- [x] **Rough cut review** — `bee-video rough-cut` exports a fast 720p concatenation (no grading, no transitions) for structure review before investing in final assembly
 
 ### Infrastructure
 - [ ] **FOIA pipeline tracker** — not a bee-video feature per se, but the production pipeline stalls on footage acquisition. At minimum: a structured template for tracking FOIA requests per case (filed date, jurisdiction, expected response, received date, status)

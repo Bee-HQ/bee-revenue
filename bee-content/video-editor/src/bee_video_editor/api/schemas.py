@@ -109,6 +109,16 @@ class CaptionRequest(BaseModel):
     style: str = "karaoke"  # "karaoke" or "phrase"
 
 
+class BatchGraphicsRequest(BaseModel):
+    config_path: str
+
+
+class VoiceLockRequest(BaseModel):
+    engine: str = "edge"
+    voice: str | None = None
+    speed: float = 0.95
+
+
 class AssetEntrySchema(BaseModel):
     segment_id: str
     layer: str

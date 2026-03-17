@@ -7,6 +7,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-17
+
+### Added
+
+- **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics (lower thirds, quote cards, financial cards, timeline markers, text overlays, mugshot cards, news montages, black frames) from a single JSON config file with idempotent numbered outputs
+- **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project in `.bee-video/voice.json`; narration commands use locked voice unless explicitly overridden via `--tts`/`--voice` flags
+- **Rough cut export** — `bee-video rough-cut` exports a fast 720p concatenation (no color grading, no transitions) for structure review before investing in full assembly
+
+### Fixed
+
+- **Security: category path traversal** — upload and yt-dlp endpoints now reject unknown media categories (previously `category=../../evil` could write files outside the project directory)
+- **Security: upload filename sanitization** — filenames with path traversal (`../../etc/passwd`), dots (`.`, `..`), or hidden prefixes are rejected or sanitized
+- **Security: script execution path validation** — `run-script` endpoint validates script is within the project directory tree
+- **Preview reads from session memory** — preview endpoint now uses in-memory `seg.assigned_media` instead of reading stale `assignments.json` from disk
+- **Undo/redo backend sync** — undo of fresh assignments now calls backend with empty string to remove from `assignments.json`; undo/redo failures no longer corrupt history stacks
+- **Narration codepath dedup** — REST narration endpoint now delegates to `generate_narration_for_project` service (same as WebSocket), eliminating duplicated logic
+- **`POST /produce` forwards TTS engine** — HTTP produce endpoint now passes `tts_engine`/`tts_voice` to `ProductionConfig` (previously hardcoded defaults)
+- **`duration_seconds` precision** — `SegmentSchema.duration_seconds` changed from `int` to `float`
+- **Download tasks bounded** — completed download tasks pruned to last 20 entries
+- **Removed dead code** — deleted unused `PreviewPanel.tsx`, removed deprecated `selectedSegmentId` store shim
+
+### Added (Tests)
+
+- 72 API smoke tests via FastAPI TestClient covering all route groups, security boundaries, batch graphics, voice lock, rough cut, and edge cases
+- 9 batch graphics tests (config parsing + generation orchestration)
+- 9 voice lock tests (save/load/corrupt/integration with ProductionConfig)
+- 4 rough cut tests (media collection, missing files, 720p normalization)
+
 ## [0.5.0] - 2026-03-17
 
 ### Added

@@ -4,7 +4,7 @@
 
 AI-assisted video production tool. Takes storyboard/assembly guide markdown → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.5.0
+**Version:** 0.6.0
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 
@@ -21,12 +21,18 @@ uv run bee-video narration <guide.md> -p ./proj --tts edge  # Generate TTS
 uv run bee-video trim-footage <guide.md> -p ./proj          # Trim source clips
 uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
 
+# v0.6.0 features
+uv run bee-video graphics-batch config.json -p ./proj       # Batch graphics from config
+uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for project
+uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
+
 # Web editor
 ./dev.sh        # Dev mode (backend :8420 + frontend :5173 hot reload)
 ./start.sh      # Production (single server :8420, built frontend)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # All 113 tests
+uv run --extra dev pytest tests/ -v          # All tests
+./test.sh                                    # Backend tests + frontend type check
 uv run --extra dev pytest tests/FILE -v      # Single file
 ```
 

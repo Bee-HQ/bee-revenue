@@ -109,6 +109,28 @@ class SessionStore:
         except Exception:
             return None
 
+    def save_voice_config(self, engine: str, voice: str | None, speed: float = 0.95) -> None:
+        """Persist TTS voice config to .bee-video/voice.json."""
+        self.require_project()
+        config_path = self.project_dir / ".bee-video" / "voice.json"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        data = {"engine": engine, "speed": speed}
+        if voice:
+            data["voice"] = voice
+        config_path.write_text(json.dumps(data, indent=2))
+
+    def load_voice_config(self) -> dict | None:
+        """Load TTS voice config from .bee-video/voice.json, or None if absent/corrupt."""
+        if self.project_dir is None:
+            return None
+        config_path = self.project_dir / ".bee-video" / "voice.json"
+        if not config_path.exists():
+            return None
+        try:
+            return json.loads(config_path.read_text())
+        except Exception:
+            return None
+
     def _save_session(self) -> None:
         """Persist session info for auto-reload on restart."""
         if not self.project_dir or not self.storyboard_path:

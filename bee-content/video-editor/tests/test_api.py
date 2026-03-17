@@ -672,3 +672,99 @@ class TestReorderWithStaleIds:
         assert "GHOST" not in ids
         # seg_b should come before seg_a (the valid reorder)
         assert ids.index("seg_b") < ids.index("seg_a")
+
+
+# ─── v0.6.0 feature tests ───────────────────────────────────────────────────
+
+
+class TestBatchGraphics:
+    def test_batch_graphics_from_config(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        config = {
+            "graphics": [
+                {"type": "lower_third", "name": "Test", "role": "Witness"},
+                {"type": "black_frame"},
+            ]
+        }
+        config_path = proj_dir / "graphics.json"
+        config_path.write_text(json.dumps(config))
+
+        with patch("bee_video_editor.services.batch_graphics.gfx") as mock_gfx:
+            mock_gfx.lower_third.return_value = Path("out.png")
+            mock_gfx.black_frame.return_value = Path("out.png")
+            r = client.post("/api/production/graphics-batch", json={
+                "config_path": str(config_path),
+            })
+
+        assert r.status_code == 200
+        assert r.json()["count"] == 2
+
+    def test_batch_graphics_missing_config_404(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.post("/api/production/graphics-batch", json={
+            "config_path": "/nonexistent/config.json",
+        })
+        assert r.status_code == 404
+
+    def test_batch_graphics_invalid_type_400(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        config = {"graphics": [{"type": "nonexistent"}]}
+        config_path = proj_dir / "graphics.json"
+        config_path.write_text(json.dumps(config))
+
+        r = client.post("/api/production/graphics-batch", json={
+            "config_path": str(config_path),
+        })
+        assert r.status_code == 400
+
+
+class TestVoiceLock:
+    def test_save_voice_config(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        r = client.put("/api/production/voice-lock", json={
+            "engine": "elevenlabs",
+            "voice": "Daniel",
+            "speed": 0.9,
+        })
+        assert r.status_code == 200
+        config_path = proj_dir.resolve() / ".bee-video" / "voice.json"
+        assert config_path.exists()
+        data = json.loads(config_path.read_text())
+        assert data["engine"] == "elevenlabs"
+
+    def test_get_voice_config(self, loaded_project):
+        client, session, _ = loaded_project
+        session.save_voice_config("openai", "nova", 1.0)
+        r = client.get("/api/production/voice-lock")
+        assert r.status_code == 200
+        assert r.json()["engine"] == "openai"
+
+    def test_get_voice_config_empty(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.get("/api/production/voice-lock")
+        assert r.status_code == 200
+        assert r.json() == {}
+
+
+class TestRoughCut:
+    def test_rough_cut_no_media_400(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.post("/api/production/rough-cut")
+        assert r.status_code == 400
+
+    def test_rough_cut_with_media(self, loaded_project):
+        client, session, proj_dir = loaded_project
+        clip = proj_dir / "footage" / "clip.mp4"
+        clip.parent.mkdir(parents=True, exist_ok=True)
+        clip.write_bytes(b"\x00" * 100)
+        session.assign_media("seg_a", "visual", 0, str(clip))
+
+        with patch("bee_video_editor.services.production.normalize_format") as mock_norm, \
+             patch("bee_video_editor.services.production.concat_segments") as mock_concat:
+            mock_norm.side_effect = lambda i, o, **kw: Path(o)
+            output = proj_dir / "output" / "rough" / "rough_cut.mp4"
+            mock_concat.return_value = output
+            r = client.post("/api/production/rough-cut")
+
+        assert r.status_code == 200
+        assert "rough_cut" in r.json()["output"]

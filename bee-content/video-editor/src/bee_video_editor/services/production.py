@@ -88,6 +88,21 @@ class ProductionConfig:
     def state_path(self) -> Path:
         return self.output_dir / "production_state.json"
 
+    def apply_voice_lock(self) -> None:
+        """Apply voice lock from .bee-video/voice.json if no explicit engine/voice was set."""
+        voice_path = self.project_dir / ".bee-video" / "voice.json"
+        if not voice_path.exists():
+            return
+        try:
+            data = json.loads(voice_path.read_text())
+        except Exception:
+            return
+
+        # Only apply if using defaults (engine=edge, voice=None)
+        if self.tts_engine == "edge" and self.tts_voice is None:
+            self.tts_engine = data.get("engine", self.tts_engine)
+            self.tts_voice = data.get("voice", self.tts_voice)
+
 
 @dataclass
 class SegmentStatus:
@@ -669,6 +684,47 @@ def generate_all_previews(
             result.failed.append(FailedItem(path=str(media_path), error=str(e)))
 
     return result
+
+
+def rough_cut_export(
+    project: Project | Storyboard,
+    config: ProductionConfig,
+) -> Path | None:
+    """Export a fast 720p rough cut — no grading, no transitions.
+
+    Collects assigned media (visual:0) from each segment, normalizes to
+    720p/30fps, and concatenates. Returns output path or None if no media.
+    """
+    sb = _ensure_storyboard(project)
+    rough_dir = config.output_dir / "rough"
+    rough_dir.mkdir(parents=True, exist_ok=True)
+
+    # Collect assigned clips in segment order
+    clips = []
+    for seg in sb.segments:
+        media_path = seg.assigned_media.get("visual:0")
+        if not media_path or not Path(media_path).exists():
+            continue
+        clips.append((seg.id, Path(media_path)))
+
+    if not clips:
+        return None
+
+    # Normalize each to 720p
+    normalized = []
+    norm_dir = rough_dir / "normalized"
+    norm_dir.mkdir(parents=True, exist_ok=True)
+
+    for seg_id, clip_path in clips:
+        out_path = norm_dir / f"{seg_id}.mp4"
+        if not out_path.exists():
+            normalize_format(clip_path, out_path, width=1280, height=720, fps=30)
+        normalized.append(out_path)
+
+    # Concat
+    output_path = rough_dir / "rough_cut.mp4"
+    concat_segments(normalized, output_path, reencode=True)
+    return output_path
 
 
 def _extract_narrator_text(audio_field: str) -> str:
