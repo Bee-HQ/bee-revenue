@@ -218,6 +218,30 @@ Available providers:
 
 Output goes to `generated/` directory and appears in the media library.
 
+## Project Validation
+
+Check your project structure and naming conventions:
+
+```bash
+uv run bee-video validate -p ./my-project
+```
+
+Reports missing directories, invalid sidecar JSON, filenames with spaces or uppercase. Issues are categorized as errors (broken structure), warnings (naming issues), or info (suggestions).
+
+## Stock Footage Library
+
+Track which stock clips you've used across projects to avoid repetition:
+
+```bash
+# List all tracked clips
+uv run bee-video stock-list
+
+# Check if a query has been used before
+uv run bee-video stock-check "aerial farm"
+```
+
+Clips are auto-registered when downloaded via `fetch-stock`. The library lives at `~/.bee-video/stock-library.db`.
+
 ## Web Editor
 
 ### Helper Scripts

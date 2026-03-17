@@ -27,6 +27,9 @@ uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
 uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
 uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
+uv run bee-video validate -p ./proj                            # Validate project structure
+uv run bee-video stock-list                                    # List tracked stock clips
+uv run bee-video stock-check "aerial farm"                     # Check for clip reuse
 
 # Web editor
 ./dev.sh        # Dev mode (backend :8420 + frontend :5173 hot reload)

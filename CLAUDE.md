@@ -98,6 +98,9 @@ uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
 uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
 uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
+uv run bee-video validate -p ./proj                            # Validate project structure
+uv run bee-video stock-list                                    # List tracked stock clips
+uv run bee-video stock-check "aerial farm"                     # Check for clip reuse
 
 # Effects (standalone)
 uv run bee-video effects in.mp4 out.mp4 --color noir --speed 1.5 --text "Ch 1"
@@ -129,7 +132,7 @@ Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
 - 12 color presets, 30+ xfade transitions, 7 Ken Burns effects
 - 4 TTS engines (edge=free/cloud, kokoro=free/local, openai=paid/best, elevenlabs=paid/free tier)
 - Web UI: React 19 + Zustand + Tailwind, NLE-style segment editor with drag-drop media assignment
-- 349 tests across 17 test files
+- 391 tests across 20 test files
 - System requirement: FFmpeg must be installed and on PATH
 
 ---

@@ -854,6 +854,18 @@ def fetch_stock(
         try:
             download_stock_clip(clip.hd_url, out_path)
             console.print(f"  [green]{filename}[/green] ({clip.duration}s, {clip.width}x{clip.height})")
+            # Auto-register in stock library
+            try:
+                from bee_video_editor.services.stock_library import StockLibrary
+                with StockLibrary() as lib:
+                    lib.register_clip(
+                        pexels_id=clip.id,
+                        query=query,
+                        path=str(out_path),
+                        project=Path(project_dir).resolve().name,
+                    )
+            except Exception:
+                pass  # Library tracking is non-critical
         except RuntimeError as e:
             console.print(f"  [red]{filename}: {e}[/red]")
 
@@ -922,6 +934,82 @@ def generate_clip(
     except Exception as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1)
+
+
+@app.command()
+def validate(
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Validate project directory structure and naming conventions."""
+    from bee_video_editor.services.validator import validate_project
+
+    report = validate_project(Path(project_dir))
+
+    severity_colors = {"error": "red", "warning": "yellow", "info": "dim"}
+    severity_icons = {"error": "✗", "warning": "!", "info": "·"}
+
+    for issue in report.issues:
+        color = severity_colors[issue.severity]
+        icon = severity_icons[issue.severity]
+        console.print(f"  [{color}]{icon} {issue.message}[/{color}]")
+        if issue.path:
+            console.print(f"    [dim]{issue.path}[/dim]")
+
+    console.print()
+    if report.ok:
+        console.print(f"[green]Validation passed[/green] ({report.warnings} warnings, {report.total} total)")
+    else:
+        console.print(f"[red]{report.errors} errors[/red], {report.warnings} warnings ({report.total} total)")
+
+
+@app.command(name="stock-list")
+def stock_library_list():
+    """List all tracked stock footage clips."""
+    from bee_video_editor.services.stock_library import StockLibrary
+
+    with StockLibrary() as lib:
+        clips = lib.list_clips()
+
+    if not clips:
+        console.print("[dim]No stock clips tracked yet.[/dim]")
+        return
+
+    table = Table(title=f"Stock Library ({len(clips)} clips)")
+    table.add_column("Pexels ID", style="cyan")
+    table.add_column("Query")
+    table.add_column("Uses", justify="right")
+    table.add_column("First Project")
+    table.add_column("Path", max_width=40)
+
+    for clip in clips:
+        table.add_row(
+            str(clip["pexels_id"]),
+            clip["query"],
+            str(clip["usage_count"]),
+            clip["first_used_project"],
+            clip["path"][-40:],
+        )
+
+    console.print(table)
+
+
+@app.command(name="stock-check")
+def stock_library_check(
+    query: str = typer.Argument(..., help="Search query to check for prior usage"),
+):
+    """Check if stock clips from a query were already used in other projects."""
+    from bee_video_editor.services.stock_library import StockLibrary
+
+    with StockLibrary() as lib:
+        matches = lib.check_query(query)
+
+    if not matches:
+        console.print(f"[green]No prior usage found for '{query}'.[/green]")
+    else:
+        console.print(f"[yellow]Found {len(matches)} previously used clip(s) matching '{query}':[/yellow]")
+        for m in matches:
+            console.print(f"  Pexels {m['pexels_id']} — used {m['usage_count']}x, first in {m['first_used_project']}")
+        console.print("[dim]Consider varying your search terms to avoid visual repetition.[/dim]")
 
 
 def _load_project(assembly_guide: str):

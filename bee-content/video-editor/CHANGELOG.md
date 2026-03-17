@@ -12,6 +12,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Stock footage API** — `bee-video fetch-stock "aerial farm dusk" -n 3` searches Pexels for stock video, downloads HD clips to project's `stock/` directory. Streaming download (no OOM on large files). API endpoints: `POST /stock/search`, `POST /stock/download` with SSRF protection
 - **AI video generation infra** — pluggable provider interface for text-to-video generation. `bee-video generate-clip --prompt "..." --provider stub`. Ships with stub provider for testing; real providers (Runway, Kling, Luma) registered automatically when their packages are installed. API endpoint: `POST /generate-clip`
 - **"generated" media category** — AI-generated clips in `generated/` directory appear in the media library automatically
+- **Stub → FFmpeg video** — stub video generation provider now produces real playable MP4 (black frame + drawtext prompt) instead of JSON metadata, enabling full pipeline testing without an AI API
+- **Project validator** — `bee-video validate` checks project directory structure (expected dirs, output subdirs, sidecar JSON validity) and media filename conventions (no spaces, lowercase)
+- **Stock footage library** — SQLite tracker at `~/.bee-video/stock-library.db` records which Pexels clips have been used in which projects. `bee-video stock-list` shows all tracked clips, `bee-video stock-check "query"` warns about reuse. Auto-registers clips on `fetch-stock` download
 
 ## [0.6.0] - 2026-03-17
 

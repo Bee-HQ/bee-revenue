@@ -1,8 +1,8 @@
 """Video generation — pluggable provider interface.
 
 Providers generate video clips from text prompts and optional reference media.
-Ships with a 'stub' provider for testing. Real providers (Runway, Kling, Luma, etc.)
-are optional extras.
+Ships with a 'stub' provider that generates real MP4s via FFmpeg.
+Real providers (Runway, Kling, Luma, etc.) are optional extras.
 
 Usage:
     from bee_video_editor.processors.videogen import generate_clip, GenerationRequest
@@ -13,7 +13,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -88,34 +87,59 @@ def generate_clip(
     return fn(request, output_path)
 
 
-# ─── Stub provider (always available, for testing) ───────────────────────────
+# ─── Stub provider (always available) ────────────────────────────────────────
 
 def _generate_stub(request: GenerationRequest, output_path: Path) -> GenerationResult:
-    """Generate a placeholder clip — writes metadata JSON instead of real video.
+    """Generate a placeholder video — black frame with prompt text burned in.
 
-    For testing and development. Real providers replace this with actual
-    AI-generated video.
+    Uses FFmpeg to create a real playable MP4 so downstream pipeline
+    processing (trim, normalize, concat) works without a real AI provider.
     """
-    placeholder = {
-        "type": "stub_generated_clip",
-        "prompt": request.prompt,
-        "duration": request.duration,
-        "width": request.width,
-        "height": request.height,
-        "reference_images": [str(p) for p in request.reference_images],
-        "reference_videos": [str(p) for p in request.reference_videos],
-        "style": request.style,
-    }
-    output_path.write_text(json.dumps(placeholder, indent=2))
+    from bee_video_editor.processors.ffmpeg import FFmpegError, run_ffmpeg
 
-    return GenerationResult(
-        success=True,
-        output_path=output_path,
-        provider="stub",
-        prompt=request.prompt,
-        duration=request.duration,
-        metadata=placeholder,
-    )
+    # Escape for FFmpeg drawtext (same pattern as ffmpeg.py:drawtext)
+    escaped = request.prompt.replace("'", "'\\\\\\''").replace(":", "\\:")
+
+    # Truncate long prompts for display
+    if len(escaped) > 80:
+        escaped = escaped[:77] + "..."
+
+    try:
+        args = [
+            "-f", "lavfi",
+            "-i", f"color=c=black:s={request.width}x{request.height}:d={request.duration}:r=30",
+            "-f", "lavfi",
+            "-i", f"anullsrc=r=44100:cl=stereo",
+            "-t", str(request.duration),
+            "-vf", (
+                f"drawtext=text='{escaped}'"
+                f":fontcolor=white:fontsize=28"
+                f":x=(w-text_w)/2:y=(h-text_h)/2"
+            ),
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+            "-c:a", "aac", "-b:a", "64k",
+            "-shortest",
+            str(output_path),
+        ]
+        run_ffmpeg(args)
+
+        return GenerationResult(
+            success=True,
+            output_path=output_path,
+            provider="stub",
+            prompt=request.prompt,
+            duration=request.duration,
+            metadata={"type": "stub_ffmpeg", "width": request.width, "height": request.height},
+        )
+    except FFmpegError as e:
+        return GenerationResult(
+            success=False,
+            output_path=output_path,
+            provider="stub",
+            prompt=request.prompt,
+            duration=request.duration,
+            error=str(e),
+        )
 
 
 def _ensure_providers_loaded():
@@ -123,7 +147,7 @@ def _ensure_providers_loaded():
     if _PROVIDERS:
         return
 
-    _register("stub", "Placeholder — writes metadata JSON (for testing)", _generate_stub)
+    _register("stub", "Placeholder — generates FFmpeg test video with prompt text", _generate_stub)
 
     # Optional providers — registered only if their dependencies are installed
     try:

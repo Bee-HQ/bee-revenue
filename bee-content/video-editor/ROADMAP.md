@@ -99,20 +99,20 @@ Wire up real AI providers for `generate-clip`. The infra is built — each provi
 - [ ] **Runway Gen-4** — text-to-video + image-to-video. Supports reference images for style/content guidance. Needs `RUNWAY_API_KEY` env var. Add as `video-gen-runway = ["runwayml"]` extra in pyproject.toml
 - [ ] **Kling** — text-to-video + image-to-video. Strong at realistic motion. Needs API key. Add as `video-gen-kling` extra
 - [ ] **Luma Dream Machine** — text-to-video + image-to-video. Good at cinematic shots. Needs API key. Add as `video-gen-luma` extra
-- [ ] **Stub → FFmpeg placeholder** — upgrade the stub provider to generate an actual playable MP4 (black frame with burned-in prompt text via FFmpeg `drawtext`) instead of JSON metadata. Makes downstream pipeline testing realistic without needing an AI API
+- [x] **Stub → FFmpeg placeholder** — stub provider now generates a real playable MP4 (black frame + drawtext prompt) via FFmpeg instead of JSON metadata
 
 ### Pipeline Automation (continued)
 - [ ] **LLM screenplay → assembly guide** — accept a case-research doc + formula, generate an assembly guide draft. Human review required but saves 2-3 hours per video
 - [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file. Supports lower_third, timeline_marker, quote_card, financial_card, text_overlay, black_frame, mugshot_card, news_montage
 
 ### Quality
-- [ ] **Stock footage library** — track which stock clips have been used across videos to avoid repetition. Tag by visual code, case, and usage count
+- [x] **Stock footage library** — SQLite tracker at `~/.bee-video/stock-library.db`. `bee-video stock-list` / `stock-check`. Auto-registers clips on `fetch-stock`
 - [x] **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project in `.bee-video/voice.json`; narration uses locked voice unless explicitly overridden
 - [x] **Rough cut review** — `bee-video rough-cut` exports a fast 720p concatenation (no grading, no transitions) for structure review before investing in final assembly
 
 ### Infrastructure
 - [ ] **FOIA pipeline tracker** — not a bee-video feature per se, but the production pipeline stalls on footage acquisition. At minimum: a structured template for tracking FOIA requests per case (filed date, jurisdiction, expected response, received date, status)
-- [ ] **Naming convention enforcement** — `bee-video validate` checks that project directories follow the naming convention defined in the formula's Phase 6.5
+- [x] **Naming convention enforcement** — `bee-video validate` checks project structure (expected dirs, output subdirs, sidecar JSON validity, filename conventions)
 
 ---
 

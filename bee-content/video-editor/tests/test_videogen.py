@@ -2,9 +2,11 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+from bee_video_editor.processors.ffmpeg import FFmpegError
 from bee_video_editor.processors.videogen import (
     GenerationRequest,
     GenerationResult,
@@ -46,22 +48,37 @@ class TestListProviders:
 
 
 class TestGenerateClip:
-    def test_stub_creates_placeholder(self):
+    def test_stub_creates_file(self):
         req = GenerationRequest(prompt="test prompt", duration=3.0)
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "generated.mp4"
-            result = generate_clip(req, output, provider="stub")
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg") as mock_ff:
+                result = generate_clip(req, output, provider="stub")
             assert result.provider == "stub"
             assert result.output_path == output
             assert result.success is True
-            assert output.exists()
+            mock_ff.assert_called_once()
 
-    def test_stub_output_has_content(self):
-        req = GenerationRequest(prompt="test", duration=2.0)
+    def test_stub_ffmpeg_args_contain_prompt(self):
+        req = GenerationRequest(prompt="aerial shot of farm", duration=5.0, width=1280, height=720)
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "out.mp4"
-            generate_clip(req, output, provider="stub")
-            assert output.stat().st_size > 0
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg") as mock_ff:
+                generate_clip(req, output, provider="stub")
+            args = mock_ff.call_args[0][0]
+            args_str = " ".join(args)
+            assert "aerial" in args_str
+            assert "1280" in args_str
+            assert "720" in args_str
+
+    def test_stub_duration_in_args(self):
+        req = GenerationRequest(prompt="test", duration=7.5)
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d) / "out.mp4"
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg") as mock_ff:
+                generate_clip(req, output, provider="stub")
+            args = mock_ff.call_args[0][0]
+            assert "7.5" in " ".join(args)
 
     def test_unknown_provider_raises(self):
         req = GenerationRequest(prompt="test", duration=1.0)
@@ -74,14 +91,26 @@ class TestGenerateClip:
         req = GenerationRequest(prompt="test", duration=1.0)
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "deep" / "nested" / "out.mp4"
-            result = generate_clip(req, output, provider="stub")
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg"):
+                result = generate_clip(req, output, provider="stub")
             assert result.success
-            assert output.exists()
+            assert output.parent.exists()
 
     def test_result_includes_metadata(self):
         req = GenerationRequest(prompt="a beautiful sunset", duration=5.0)
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "out.mp4"
-            result = generate_clip(req, output, provider="stub")
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg"):
+                result = generate_clip(req, output, provider="stub")
             assert result.prompt == "a beautiful sunset"
             assert result.duration == 5.0
+
+    def test_ffmpeg_failure_returns_error(self):
+        req = GenerationRequest(prompt="test", duration=1.0)
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d) / "out.mp4"
+            with patch("bee_video_editor.processors.ffmpeg.run_ffmpeg",
+                       side_effect=FFmpegError("boom")):
+                result = generate_clip(req, output, provider="stub")
+            assert result.success is False
+            assert "boom" in result.error
