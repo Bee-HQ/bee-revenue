@@ -224,3 +224,62 @@ class TestSocialPost:
         out = tmp_path / "tw.png"
         result = social_post(post, out)
         assert result.exists()
+
+
+class TestNewsMontage:
+    def test_basic_headlines(self, tmp_path):
+        from bee_video_editor.processors.graphics import news_montage
+        headlines = ["Murder Suspect Arrested", "Trial Date Set for January", "Key Evidence Found"]
+        out = tmp_path / "news.png"
+        result = news_montage(headlines, out)
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_single_headline(self, tmp_path):
+        from bee_video_editor.processors.graphics import news_montage
+        out = tmp_path / "single.png"
+        result = news_montage(["Breaking News"], out)
+        assert result.exists()
+
+    def test_empty_headlines(self, tmp_path):
+        from bee_video_editor.processors.graphics import news_montage
+        out = tmp_path / "empty.png"
+        result = news_montage([], out)
+        assert result.exists()
+
+
+class TestEvidenceBoard:
+    def test_basic_board(self, tmp_path):
+        from bee_video_editor.processors.graphics import evidence_board, BoardPerson, BoardConnection
+        people = [
+            BoardPerson("Alex"),
+            BoardPerson("Maggie"),
+            BoardPerson("Paul"),
+        ]
+        connections = [
+            BoardConnection("Alex", "Maggie", "married"),
+            BoardConnection("Alex", "Paul", "father"),
+        ]
+        out = tmp_path / "board.png"
+        result = evidence_board(people, connections, out)
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_with_photo(self, tmp_path):
+        from bee_video_editor.processors.graphics import evidence_board, BoardPerson, BoardConnection
+        photo = tmp_path / "photo.png"
+        Image.new("RGB", (200, 250), (128, 128, 128)).save(str(photo))
+        people = [BoardPerson("Alex", photo_path=photo), BoardPerson("Maggie")]
+        connections = [BoardConnection("Alex", "Maggie", "married")]
+        out = tmp_path / "board.png"
+        result = evidence_board(people, connections, out)
+        assert result.exists()
+
+    def test_no_connections(self, tmp_path):
+        from bee_video_editor.processors.graphics import evidence_board, BoardPerson
+        people = [BoardPerson("Alex"), BoardPerson("Maggie")]
+        out = tmp_path / "board.png"
+        result = evidence_board(people, [], out)
+        assert result.exists()
