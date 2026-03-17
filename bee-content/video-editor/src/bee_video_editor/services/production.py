@@ -5,6 +5,7 @@ from __future__ import annotations
 import glob as globmod
 import json
 import re
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -102,6 +103,27 @@ class ProductionState:
             SegmentStatus(**s) for s in data.get("segment_statuses", [])
         ]
         return state
+
+    @contextmanager
+    def track(self, index: int, state_path: Path):
+        """Track segment processing. Sets status to processing/done/error and saves."""
+        if index < 0 or index >= len(self.segment_statuses):
+            raise ValueError(
+                f"Segment index {index} out of range (0-{len(self.segment_statuses) - 1})"
+            )
+        seg = self.segment_statuses[index]
+        seg.status = "processing"
+        seg.error = None
+        self.save(state_path)
+        try:
+            yield seg
+            seg.status = "done"
+        except Exception as e:
+            seg.status = "error"
+            seg.error = str(e)[:200]
+            raise
+        finally:
+            self.save(state_path)
 
 
 def init_project(

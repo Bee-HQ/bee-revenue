@@ -109,6 +109,56 @@ class TestProductionConfig:
             assert config.state_path == Path(d) / "custom" / "production_state.json"
 
 
+class TestProductionStateTrack:
+    def _make_state(self):
+        state = ProductionState(assembly_guide_path="/test.md", phase="parsed")
+        state.segment_statuses = [
+            SegmentStatus(index=0, time_range="0:00-0:15", segment_type="NAR"),
+            SegmentStatus(index=1, time_range="0:15-0:30", segment_type="REAL"),
+        ]
+        return state
+
+    def test_track_success(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = self._make_state()
+            state_path = Path(d) / "state.json"
+            with state.track(0, state_path):
+                assert state.segment_statuses[0].status == "processing"
+            assert state.segment_statuses[0].status == "done"
+            loaded = ProductionState.load(state_path)
+            assert loaded.segment_statuses[0].status == "done"
+
+    def test_track_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = self._make_state()
+            state_path = Path(d) / "state.json"
+            with pytest.raises(RuntimeError):
+                with state.track(1, state_path):
+                    raise RuntimeError("ffmpeg died")
+            assert state.segment_statuses[1].status == "error"
+            assert "ffmpeg died" in state.segment_statuses[1].error
+            loaded = ProductionState.load(state_path)
+            assert loaded.segment_statuses[1].status == "error"
+
+    def test_track_bounds_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = self._make_state()
+            state_path = Path(d) / "state.json"
+            with pytest.raises(ValueError, match="out of range"):
+                with state.track(5, state_path):
+                    pass
+
+    def test_track_saves_processing_on_enter(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = self._make_state()
+            state_path = Path(d) / "state.json"
+            with pytest.raises(RuntimeError):
+                with state.track(0, state_path):
+                    intermediate = ProductionState.load(state_path)
+                    assert intermediate.segment_statuses[0].status == "processing"
+                    raise RuntimeError("crash")
+
+
 class TestExtractNarratorText:
     def test_quoted(self):
         text = _extract_narrator_text('NAR: "This is Alex Murdaugh..." + dark ambient music')
