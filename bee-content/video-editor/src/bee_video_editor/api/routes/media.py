@@ -111,9 +111,10 @@ async def upload_media(file: UploadFile, category: str = "footage", session: Ses
     """Upload a media file to the project."""
     _, project_dir = session.require_project()
 
-    # Determine target directory
-    target_dirs = MEDIA_CATEGORIES.get(category, [category])
-    target_dir = project_dir / target_dirs[0]
+    # Determine target directory — only allow known categories
+    if category not in MEDIA_CATEGORIES:
+        raise HTTPException(400, f"Invalid category '{category}'. Must be one of: {', '.join(sorted(MEDIA_CATEGORIES))}")
+    target_dir = project_dir / MEDIA_CATEGORIES[category][0]
     target_dir.mkdir(parents=True, exist_ok=True)
 
     safe_name = Path(file.filename).name if file.filename else "upload"
@@ -267,7 +268,10 @@ async def download_with_ytdlp(url: str, category: str = "footage", filename: str
         raise HTTPException(400, "yt-dlp is not installed. Install with: pip install yt-dlp")
 
     _, project_dir = session.require_project()
-    target_dir = project_dir / category
+
+    if category not in MEDIA_CATEGORIES:
+        raise HTTPException(400, f"Invalid category '{category}'. Must be one of: {', '.join(sorted(MEDIA_CATEGORIES))}")
+    target_dir = project_dir / MEDIA_CATEGORIES[category][0]
     target_dir.mkdir(parents=True, exist_ok=True)
 
     output_template = str(target_dir / (filename or "%(title)s.%(ext)s"))

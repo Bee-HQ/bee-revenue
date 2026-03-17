@@ -486,24 +486,16 @@ def produce_video(
 @router.post("/preview/{segment_id}")
 def generate_segment_preview(segment_id: str, session: SessionStore = Depends(get_session)):
     """Generate a preview for a single segment."""
-    import json
     from bee_video_editor.services.production import generate_preview
 
     storyboard, project_dir = session.require_project()
 
-    # Find segment
+    # Find segment from in-memory session state (not disk)
     seg = next((s for s in storyboard.segments if s.id == segment_id), None)
     if not seg:
         raise HTTPException(404, f"Segment not found: {segment_id}")
 
-    # Get assignment
-    assignments_path = project_dir / ".bee-video" / "assignments.json"
-    assignments = {}
-    if assignments_path.exists():
-        assignments = json.loads(assignments_path.read_text())
-
-    seg_assignments = assignments.get(segment_id, {})
-    media_path_str = seg_assignments.get("visual:0")
+    media_path_str = seg.assigned_media.get("visual:0")
     if not media_path_str:
         raise HTTPException(400, f"No media assigned to segment {segment_id}")
 

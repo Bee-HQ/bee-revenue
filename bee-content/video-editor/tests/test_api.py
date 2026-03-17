@@ -451,3 +451,224 @@ class TestCreateMediaDirs:
         assert r.status_code == 200
         assert (proj_dir / "footage").is_dir()
         assert (proj_dir / "music").is_dir()
+
+
+# ─── Bug-hunting tests ──────────────────────────────────────────────────────
+# These test real edge cases and attack vectors, not just happy paths.
+
+
+class TestUploadCategoryTraversal:
+    """BUG: category param flows into project_dir / category unsanitized.
+    An attacker passing category=../../evil creates dirs outside the project."""
+
+    def test_upload_traversal_category_blocked(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        r = client.post(
+            "/api/media/upload?category=../../evil",
+            files={"file": ("test.mp4", b"\x00" * 50, "video/mp4")},
+        )
+        assert r.status_code == 400
+        # The file must not have been written anywhere
+        assert not (proj_dir / "../../evil" / "test.mp4").exists()
+
+    def test_upload_unknown_category_rejected(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        r = client.post(
+            "/api/media/upload?category=custom_stuff",
+            files={"file": ("test.mp4", b"\x00" * 50, "video/mp4")},
+        )
+        assert r.status_code == 400
+
+
+class TestServeSymlinkTraversal:
+    """Symlinks inside the project pointing outside should be blocked."""
+
+    def test_symlink_to_outside_blocked(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        # Create a symlink inside project pointing to /etc/passwd
+        link = proj_dir / "evil_link"
+        try:
+            link.symlink_to("/etc/passwd")
+        except OSError:
+            pytest.skip("Cannot create symlinks")
+
+        r = client.get(f"/api/media/file?path={link}")
+        assert r.status_code == 403, "Symlink traversal should be blocked"
+
+
+class TestUnassignPreservesOtherAssignments:
+    """Unassigning one layer must not corrupt other layers on the same segment."""
+
+    def test_unassign_visual_preserves_audio(self, loaded_project):
+        client, _, proj_dir = loaded_project
+
+        # Assign both visual and audio
+        client.put("/api/projects/assign", json={
+            "segment_id": "seg_a", "layer": "visual",
+            "media_path": "/media/video.mp4", "layer_index": 0,
+        })
+        client.put("/api/projects/assign", json={
+            "segment_id": "seg_a", "layer": "audio",
+            "media_path": "/media/narration.mp3", "layer_index": 0,
+        })
+
+        # Unassign visual only
+        client.put("/api/projects/assign", json={
+            "segment_id": "seg_a", "layer": "visual",
+            "media_path": "", "layer_index": 0,
+        })
+
+        # Audio must survive
+        r = client.get("/api/projects/current")
+        seg = next(s for s in r.json()["segments"] if s["id"] == "seg_a")
+        assert "visual:0" not in seg["assigned_media"]
+        assert seg["assigned_media"]["audio:0"] == "/media/narration.mp3"
+
+        # Disk must also have audio but not visual
+        assignments_path = proj_dir.resolve() / ".bee-video" / "assignments.json"
+        disk = json.loads(assignments_path.read_text())
+        assert "visual:0" not in disk.get("seg_a", {})
+        assert disk["seg_a"]["audio:0"] == "/media/narration.mp3"
+
+
+class TestDownloadTaskPruning:
+    """Verify completed download tasks are actually pruned at the boundary."""
+
+    def test_prune_keeps_max_completed(self):
+        from bee_video_editor.api.routes.media import (
+            _MAX_COMPLETED_TASKS,
+            _download_tasks,
+            _prune_download_tasks,
+        )
+
+        _download_tasks.clear()
+
+        # Fill with 25 completed tasks
+        for i in range(25):
+            _download_tasks[f"task-{i}"] = {
+                "running": False,
+                "finished_at": float(i),  # older tasks have lower timestamps
+                "return_code": 0,
+                "output_lines": [],
+            }
+        # Add 2 running tasks (should never be pruned)
+        _download_tasks["running-1"] = {"running": True, "output_lines": [], "return_code": None}
+        _download_tasks["running-2"] = {"running": True, "output_lines": [], "return_code": None}
+
+        _prune_download_tasks()
+
+        # Should keep 20 completed + 2 running = 22 total
+        completed = [t for t in _download_tasks.values() if not t.get("running")]
+        running = [t for t in _download_tasks.values() if t.get("running")]
+        assert len(completed) == _MAX_COMPLETED_TASKS
+        assert len(running) == 2
+
+        # Oldest should be gone (task-0 through task-4)
+        assert "task-0" not in _download_tasks
+        assert "task-4" not in _download_tasks
+        # Newest should survive
+        assert "task-24" in _download_tasks
+
+        _download_tasks.clear()
+
+
+class TestPreviewReadsFromSession:
+    """The preview endpoint should use in-memory assignments, not just disk.
+    BUG: It reads from assignments.json directly, bypassing session state."""
+
+    def test_preview_sees_in_memory_assignment(self, loaded_project):
+        client, session, proj_dir = loaded_project
+
+        # Create a real media file so the preview endpoint won't 404 on the file
+        media_file = proj_dir / "footage" / "clip.mp4"
+        media_file.parent.mkdir(parents=True, exist_ok=True)
+        media_file.write_bytes(b"\x00" * 100)
+
+        # Assign via API (writes to both memory and disk)
+        client.put("/api/projects/assign", json={
+            "segment_id": "seg_a", "layer": "visual",
+            "media_path": str(media_file), "layer_index": 0,
+        })
+
+        # Verify in-memory state has it
+        seg = next(s for s in session.storyboard.segments if s.id == "seg_a")
+        assert seg.assigned_media.get("visual:0") == str(media_file)
+
+        # Now corrupt the disk file to test which source the preview endpoint reads
+        assignments_path = proj_dir.resolve() / ".bee-video" / "assignments.json"
+        assignments_path.write_text("{}")  # wipe disk
+
+        # Preview should still work because session has the assignment in memory
+        # If this fails with 400 "No media assigned", the endpoint reads from disk
+        with patch("bee_video_editor.services.production.generate_preview") as mock_gen:
+            mock_gen.return_value = proj_dir / "output" / "previews" / "seg_a.mp4"
+            r = client.post("/api/production/preview/seg_a")
+
+        # This assertion exposes the bug: endpoint reads disk, not memory
+        assert r.status_code != 400, \
+            "Preview endpoint reads assignments.json from disk instead of session memory"
+
+
+class TestUploadFilenameEdgeCases:
+    """Edge cases in filename sanitization."""
+
+    def test_upload_dotdot_filename_rejected(self, loaded_project):
+        """Filename '..' should be rejected (starts with '.')."""
+        client, _, _ = loaded_project
+        r = client.post(
+            "/api/media/upload?category=footage",
+            files={"file": ("..", b"data", "application/octet-stream")},
+        )
+        assert r.status_code == 400
+
+    def test_upload_dot_filename_rejected(self, loaded_project):
+        """Filename '.' resolves to empty name, should be rejected."""
+        client, _, _ = loaded_project
+        r = client.post(
+            "/api/media/upload?category=footage",
+            files={"file": (".", b"data", "application/octet-stream")},
+        )
+        assert r.status_code == 400
+
+    def test_upload_nested_traversal_sanitized(self, loaded_project):
+        """Filename 'foo/../../bar.txt' should be stripped to 'bar.txt'."""
+        client, _, proj_dir = loaded_project
+        r = client.post(
+            "/api/media/upload?category=footage",
+            files={"file": ("foo/../../bar.txt", b"data", "text/plain")},
+        )
+        assert r.status_code == 200
+        assert r.json()["name"] == "bar.txt"
+        assert (proj_dir / "footage" / "bar.txt").exists()
+
+
+class TestReorderWithStaleIds:
+    """Reordering with IDs that don't exist in the storyboard.
+    The server saves whatever you send — verify reload handles it gracefully."""
+
+    def test_reorder_with_unknown_ids_then_reload(self, project_env):
+        client, session, proj_dir, sb_path = project_env
+
+        seg_a = _make_segment("seg_a", "A")
+        seg_b = _make_segment("seg_b", "B")
+        sb = _make_storyboard([seg_a, seg_b])
+
+        with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
+            session.load_project(sb_path, proj_dir)
+
+        # Save order with a nonexistent ID
+        client.put("/api/projects/reorder", json={
+            "segment_order": ["seg_b", "GHOST", "seg_a"],
+        })
+
+        # Reload — should not crash, should skip unknown ID
+        with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
+            r = client.post("/api/projects/load", json={
+                "storyboard_path": str(sb_path),
+                "project_dir": str(proj_dir),
+            })
+        assert r.status_code == 200
+        ids = [s["id"] for s in r.json()["segments"]]
+        assert "GHOST" not in ids
+        # seg_b should come before seg_a (the valid reorder)
+        assert ids.index("seg_b") < ids.index("seg_a")
