@@ -53,7 +53,7 @@ Features that meaningfully change the editing workflow.
 - [x] **Social media post mockup** — `social_post()` for Facebook/Instagram/Twitter/Snapchat
 - [x] **News headline montage** — `news_montage()` stacked rotated headline cards
 - [x] **Evidence board** — `evidence_board()` red-string corkboard with circle/grid layout
-- [ ] **Lottie animated overlays** — replace static Pillow PNGs with animated Lottie JSON for `[LOWER-THIRD]`, `[QUOTE-CARD]`, `[FINANCIAL-CARD]`, `[TIMELINE-MARKER]`. Uses `lottie` Python package + Cairo renderer → PNG frames → FFmpeg overlay. Biggest visual quality jump available. See: `discovery/true-crime/research/storyboard-format-research.md`
+- [x] **Lottie animated overlays (lower-third POC)** — `--animated` CLI flag produces WebM overlays with draw-in/slide/fade animation via Lottie + Cairo + FFmpeg VP9. Proof of concept for `[LOWER-THIRD]`; other overlays remain static PNGs for now
 
 ---
 
