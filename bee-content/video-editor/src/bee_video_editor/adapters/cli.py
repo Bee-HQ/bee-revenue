@@ -196,6 +196,7 @@ def narration(
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
     tts_engine: str = typer.Option("edge", "--tts", help="TTS engine (edge/kokoro/openai)"),
     voice: str | None = typer.Option(None, "--voice", "-v", help="Voice ID"),
+    workers: int = typer.Option(1, "--workers", "-w", help="Parallel workers for TTS (default: 1)"),
 ):
     """Generate TTS narration for all narrator segments."""
     from bee_video_editor.services.production import ProductionConfig, generate_narration_for_project
@@ -208,7 +209,7 @@ def narration(
     project = _load_project(assembly_guide)
 
     console.print(f"[bold]Generating narration ({tts_engine})...[/bold]")
-    result = generate_narration_for_project(project, config)
+    result = generate_narration_for_project(project, config, workers=workers)
 
     console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
     for g in result.succeeded:
@@ -611,6 +612,7 @@ def produce(
     skip_captions: bool = typer.Option(False, "--skip-captions"),
     skip_trim: bool = typer.Option(False, "--skip-trim"),
     animated: bool = typer.Option(False, "--animated"),
+    workers: int = typer.Option(1, "--workers", "-w", help="Parallel TTS workers"),
 ):
     """Run the full production pipeline: init → graphics → captions → narration → trim → assemble."""
     from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
@@ -647,6 +649,7 @@ def produce(
         transition_duration=transition_duration,
         animated=animated,
         on_step=on_step,
+        workers=workers,
     )
 
     if result.ok:

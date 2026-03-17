@@ -284,6 +284,7 @@ def generate_narration_for_project(
     project: Project | Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
+    workers: int = 1,
 ) -> ProductionResult:
     """Generate TTS narration for all NAR segments."""
     result = ProductionResult()
@@ -296,36 +297,58 @@ def generate_narration_for_project(
 
     from bee_video_editor.processors.captions import _clean_text
 
+    # Collect all narration tasks
+    tasks = []
     for i, seg in enumerate(sb.segments):
         for entry in seg.audio:
             if entry.content_type != "NAR":
                 continue
-
             nar_text = _clean_text(entry.content)
             if not nar_text:
                 continue
-
             out = narration_dir / f"nar-{i:03d}-{_slugify(seg.subsection or seg.section)[:30]}.mp3"
             if out.exists():
                 result.skipped.append(f"narration segment {i} already exists")
                 continue
+            tasks.append((i, nar_text, out))
 
+    if not tasks:
+        return result
+
+    def _generate_one(task):
+        idx, text, out_path = task
+        generate_narration(
+            text=text, output_path=out_path,
+            engine=config.tts_engine, voice=config.tts_voice,
+        )
+        return idx, out_path
+
+    if workers > 1:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_generate_one, t): t for t in tasks}
+            for future in as_completed(futures):
+                task = futures[future]
+                idx, _, out_path = task
+                try:
+                    future.result()
+                    result.succeeded.append(out_path)
+                except Exception as e:
+                    result.failed.append(FailedItem(path=f"segment-{idx}", error=str(e)))
+    else:
+        # Sequential (original behavior)
+        for task in tasks:
+            idx, text, out_path = task
             try:
                 if state:
-                    with state.track(i, config.state_path):
-                        generate_narration(
-                            text=nar_text, output_path=out,
-                            engine=config.tts_engine, voice=config.tts_voice,
-                        )
-                        result.succeeded.append(out)
+                    with state.track(idx, config.state_path):
+                        _generate_one(task)
+                        result.succeeded.append(out_path)
                 else:
-                    generate_narration(
-                        text=nar_text, output_path=out,
-                        engine=config.tts_engine, voice=config.tts_voice,
-                    )
-                    result.succeeded.append(out)
+                    _generate_one(task)
+                    result.succeeded.append(out_path)
             except Exception as e:
-                result.failed.append(FailedItem(path=f"segment-{i}", error=str(e)))
+                result.failed.append(FailedItem(path=f"segment-{idx}", error=str(e)))
 
     return result
 
@@ -456,6 +479,7 @@ def run_full_pipeline(
     transition_duration: float = 1.0,
     animated: bool = False,
     on_step: callable | None = None,
+    workers: int = 1,
 ) -> PipelineResult:
     """Run the full production pipeline: init → graphics → captions → narration → trim → assemble.
 
@@ -532,7 +556,7 @@ def run_full_pipeline(
         result.steps.append(PipelineStep(name="narration", status="skipped", message="already exists"))
     else:
         def do_narration():
-            r = generate_narration_for_project(storyboard, config)
+            r = generate_narration_for_project(storyboard, config, workers=workers)
             return f"{len(r.succeeded)} clips, {len(r.failed)} failed"
         if not _step("narration", do_narration):
             return result

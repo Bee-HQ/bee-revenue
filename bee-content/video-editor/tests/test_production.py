@@ -385,3 +385,13 @@ class TestGenerateAllPreviews:
                 result = generate_all_previews(sb, proj)
                 assert len(result.succeeded) == 1
                 assert result.ok
+
+
+class TestParallelNarration:
+    def test_workers_parameter_accepted(self):
+        """Verify workers parameter doesn't crash with default value."""
+        import inspect
+        from bee_video_editor.services.production import generate_narration_for_project
+        sig = inspect.signature(generate_narration_for_project)
+        assert "workers" in sig.parameters
+        assert sig.parameters["workers"].default == 1
