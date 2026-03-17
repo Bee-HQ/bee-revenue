@@ -33,10 +33,10 @@ Small, targeted fixes that improve daily usage.
 Features that meaningfully change the editing workflow.
 
 ### Editor
-- [ ] **Persistent session state** — auto-reload last project on server start, persist session to `.bee-video/session.json` (SessionStore class already exists from v0.3.1, just needs persistence)
-- [ ] **Undo/redo** — Zustand history stack for media assignments, Ctrl+Z / Ctrl+Shift+Z
-- [ ] **Segment reordering** — drag-and-drop in segment list, persist order in sidecar JSON
-- [ ] **Batch media assignment** — multi-select segments (shift/ctrl click), assign one file to all
+- [x] **Persistent session state** — auto-reload last project on restart via `~/.bee-video/last-session.json`
+- [x] **Undo/redo** — Zustand history stack for media assignments, Ctrl+Z / Ctrl+Shift+Z, undo/redo buttons in ProductionBar
+- [x] **Segment reordering** — HTML5 drag-drop in segment list, persisted to `.bee-video/segment-order.json`
+- [x] **Batch media assignment** — shift-click multi-select, drop assigns to all selected segments
 
 ### Architecture
 - [x] **Unify data models** — `assembly_guide_to_storyboard()` converter, `_ensure_storyboard()` in production service, both input formats work
