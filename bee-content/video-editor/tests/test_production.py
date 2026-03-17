@@ -98,6 +98,16 @@ class TestProductionConfig:
             assert config.output_dir == Path(d) / "custom_output"
             assert config.footage_dir == Path(d) / "custom_footage"
 
+    def test_state_path(self):
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d))
+            assert config.state_path == Path(d) / "output" / "production_state.json"
+
+    def test_state_path_custom_output(self):
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d), output_dir=Path(d) / "custom")
+            assert config.state_path == Path(d) / "custom" / "production_state.json"
+
 
 class TestExtractNarratorText:
     def test_quoted(self):

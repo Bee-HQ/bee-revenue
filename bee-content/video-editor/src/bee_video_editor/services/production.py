@@ -62,6 +62,10 @@ class ProductionConfig:
         if self.footage_dir is None:
             self.footage_dir = self.project_dir / "footage"
 
+    @property
+    def state_path(self) -> Path:
+        return self.output_dir / "production_state.json"
+
 
 @dataclass
 class SegmentStatus:
