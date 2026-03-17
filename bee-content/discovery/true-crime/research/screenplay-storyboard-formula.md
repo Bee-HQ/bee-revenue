@@ -961,7 +961,7 @@ segments/
 - [ ] Verify: short-punch rhythm (medium-medium-long-SHORT-long)
 - [ ] Verify: no narrator stretch exceeds 90 seconds without a real audio clip
 
-### Asset Generation (3-4 hours)
+### Asset Generation (6-8 hours)
 - [ ] [BRAND-STING] frame
 - [ ] [DISCLAIMER] card
 - [ ] [MAP-FLAT], [MAP-3D], [MAP-TACTICAL], [MAP-PULSE] for property

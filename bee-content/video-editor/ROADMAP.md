@@ -44,9 +44,9 @@ Features that meaningfully change the editing workflow.
 - [x] **Parse bible visual codes** — parser recognizes `[CODE]` and `[CODE: qualifier]` bracket syntax (shipped in v0.3.1)
 
 ### Pipeline
-- [ ] **Asset preflight command** — `bee-video preflight <guide> -p ./proj` scans the assembly guide/storyboard, generates an asset manifest (segment → file path + status), reports what's missing before assembly
-- [ ] **ASS caption generation** — new `processors/captions.py` using `pysubs2`. Generate styled ASS subtitles from narration segments with word-by-word highlighting. Renders natively via FFmpeg's `ass` filter. Fills the `[CAPTION-ANIMATED]` formula requirement. See: `discovery/true-crime/research/storyboard-format-research.md`
-- [ ] **Asset generation time estimate** — current checklist says 3-4 hours, realistic is 6-8 hours. Update all time estimates to match reality
+- [x] **Asset preflight command** — `bee-video preflight` scans storyboard against project files, reports found/missing/needs-check, writes JSON manifest
+- [x] **ASS caption generation** — `bee-video captions` generates styled ASS with karaoke (word-by-word) and phrase modes via pysubs2. Burns into final video via FFmpeg `ass` filter.
+- [x] **Asset generation time estimate** — formula checklist updated from 3-4 hours to 6-8 hours
 
 ### Graphics (formula alignment)
 - [ ] **Text chat recreation** — `text_chat(messages, platform, output)` for iMessage/SMS/Snapchat bubble UI. Spec: visual-storyboard-bible.md `[TEXT-CHAT]`
