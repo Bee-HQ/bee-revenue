@@ -74,7 +74,7 @@ Architectural work that unlocks new capabilities.
 - [x] **Timeline sequence** — `timeline_sequence()` horizontal timeline with active/current/future nodes, red/grey line segments, date+label per node
 
 ### Interop
-- [ ] **OTIO timeline export** — compile storyboard to OpenTimelineIO timeline with custom metadata (visual codes). Enables export to DaVinci Resolve / Premiere for human final polish. Python SDK: `opentimelineio`. See: `discovery/true-crime/research/storyboard-format-research.md`
+- [x] **OTIO timeline export** — `bee-video export` compiles storyboard to OTIO with visual code metadata, section markers, media references. NLE interchange for Resolve/Premiere.
 
 ### Maps
 - [ ] **Map generation** — integrate MapLibre or static maps API to generate `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from coordinates. Currently requires manual Google Earth Studio export. High effort but eliminates the most manual step in asset creation
