@@ -561,6 +561,24 @@ def generate_all_segment_previews(session: SessionStore = Depends(get_session)):
     }
 
 
+@router.post("/export/otio")
+def export_otio_timeline(
+    fps: float = 30.0,
+    session: SessionStore = Depends(get_session),
+):
+    """Export storyboard to OTIO format."""
+    from bee_video_editor.exporters.otio_export import export_otio
+
+    storyboard, project_dir = session.require_project()
+    output_dir = project_dir / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "timeline.otio"
+
+    export_otio(storyboard, output_path, fps=fps)
+
+    return {"status": "ok", "output": str(output_path), "segments": storyboard.total_segments}
+
+
 @router.post("/assemble")
 def assemble_video(
     transition: str | None = None,

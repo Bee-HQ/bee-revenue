@@ -664,6 +664,29 @@ def produce(
         raise typer.Exit(1)
 
 
+@app.command()
+def export(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    output: str = typer.Option(None, "--output", "-o", help="Output file path (default: <project>/output/timeline.otio)"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    fps: float = typer.Option(30.0, "--fps", help="Frame rate"),
+):
+    """Export storyboard to OpenTimelineIO format for NLE editing."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.exporters.otio_export import export_otio
+
+    sb = parse_storyboard(storyboard_path)
+
+    if output is None:
+        out_dir = Path(project_dir) / "output"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output = str(out_dir / "timeline.otio")
+
+    result = export_otio(sb, Path(output), fps=fps)
+    console.print(f"[green]Exported OTIO timeline: {result}[/green]")
+    console.print(f"[dim]Segments: {len(sb.segments)}, Tracks: 2 (V1 + A1)[/dim]")
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)
