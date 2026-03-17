@@ -323,3 +323,49 @@ class TestFlowDiagram:
         out = tmp_path / "no_arrows.png"
         result = flow_diagram(nodes, [], out)
         assert result.exists()
+
+
+class TestTimelineSequence:
+    def test_basic_timeline(self, tmp_path):
+        from bee_video_editor.processors.graphics import timeline_sequence, TimelineEvent
+        events = [
+            TimelineEvent("Feb 2019", "Boat Crash", active=True),
+            TimelineEvent("June 2021", "Double Murder", active=True, current=True),
+            TimelineEvent("Jan 2023", "Trial Begins", active=False),
+            TimelineEvent("March 2023", "Verdict", active=False),
+        ]
+        out = tmp_path / "timeline.png"
+        result = timeline_sequence(events, out, title="Murdaugh Case Timeline")
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_single_event(self, tmp_path):
+        from bee_video_editor.processors.graphics import timeline_sequence, TimelineEvent
+        events = [TimelineEvent("2021", "Event", active=True, current=True)]
+        out = tmp_path / "single.png"
+        result = timeline_sequence(events, out)
+        assert result.exists()
+
+    def test_empty_timeline(self, tmp_path):
+        from bee_video_editor.processors.graphics import timeline_sequence
+        out = tmp_path / "empty.png"
+        result = timeline_sequence([], out)
+        assert result.exists()
+
+    def test_all_future(self, tmp_path):
+        from bee_video_editor.processors.graphics import timeline_sequence, TimelineEvent
+        events = [
+            TimelineEvent("2024", "Event A", active=False),
+            TimelineEvent("2025", "Event B", active=False),
+        ]
+        out = tmp_path / "future.png"
+        result = timeline_sequence(events, out)
+        assert result.exists()
+
+    def test_with_title(self, tmp_path):
+        from bee_video_editor.processors.graphics import timeline_sequence, TimelineEvent
+        events = [TimelineEvent("2021", "Test", active=True)]
+        out = tmp_path / "titled.png"
+        result = timeline_sequence(events, out, title="Case Timeline")
+        assert result.exists()

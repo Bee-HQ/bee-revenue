@@ -852,6 +852,115 @@ def flow_diagram(
     return output_path
 
 
+@dataclass
+class TimelineEvent:
+    date: str               # e.g. "June 7, 2021", "Feb 24, 2019"
+    label: str              # e.g. "Double Murder", "Boat Crash"
+    active: bool = True     # True = past/current (red), False = future (dim grey)
+    current: bool = False   # True = highlighted as current event (white, larger)
+
+
+def timeline_sequence(
+    events: list[TimelineEvent],
+    output_path: str | Path,
+    title: str = "",
+) -> Path:
+    """Generate a horizontal timeline showing event progression.
+
+    Events are placed left-to-right along a horizontal line.
+    Spec: visual-storyboard-bible.md [TIMELINE-SEQUENCE]
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+    d = ImageDraw.Draw(img)
+
+    # Optional title at top center
+    if title:
+        title_font = _get_font(36, bold=True)
+        tbbox = d.textbbox((0, 0), title, font=title_font)
+        tw = tbbox[2] - tbbox[0]
+        d.text(((WIDTH - tw) // 2, 60), title, fill=COLORS["white"], font=title_font)
+
+    # Timeline geometry
+    line_y = HEIGHT // 2
+    line_x0 = 100
+    line_x1 = 1820
+
+    node_radius = 20
+    current_radius = 25
+
+    date_font = _get_font(22)
+    label_font = _get_font(20)
+
+    # Colours
+    grey_line = (85, 85, 85)        # #555555 for future line segments
+    dim_grey = (68, 68, 68)         # #444444 for future nodes
+    red = COLORS["red"]
+    white = COLORS["white"]
+
+    if not events:
+        # Just draw a plain grey line
+        d.line([(line_x0, line_y), (line_x1, line_y)], fill=grey_line, width=2)
+        img.save(str(output_path))
+        return output_path
+
+    n = len(events)
+    if n == 1:
+        positions = [(line_x0 + line_x1) // 2]
+    else:
+        span = line_x1 - line_x0
+        positions = [line_x0 + round(i * span / (n - 1)) for i in range(n)]
+
+    # Draw the line in segments: red between active nodes, grey between future
+    for i in range(len(positions) - 1):
+        x0 = positions[i]
+        x1 = positions[i + 1]
+        # Segment colour: red if both endpoints are active (past), else grey
+        seg_color = red if (events[i].active and events[i + 1].active) else grey_line
+        d.line([(x0, line_y), (x1, line_y)], fill=seg_color, width=2)
+
+    # If only one node, still draw the background line
+    if n == 1:
+        line_color = red if events[0].active else grey_line
+        d.line([(line_x0, line_y), (line_x1, line_y)], fill=line_color, width=2)
+
+    # Draw nodes and labels
+    for i, (event, x) in enumerate(zip(events, positions)):
+        if event.current:
+            r = current_radius
+            node_fill = white
+        elif event.active:
+            r = node_radius
+            node_fill = red
+        else:
+            r = node_radius
+            node_fill = dim_grey
+
+        # Circle on the line
+        d.ellipse([(x - r, line_y - r), (x + r, line_y + r)], fill=node_fill)
+
+        # Date text above the node
+        dbbox = d.textbbox((0, 0), event.date, font=date_font)
+        dw = dbbox[2] - dbbox[0]
+        dh = dbbox[3] - dbbox[1]
+        d.text((x - dw // 2, line_y - r - dh - 10), event.date, fill=white, font=date_font)
+
+        # Label text below the node (word-wrapped, grey)
+        label_max_w = max(120, (line_x1 - line_x0) // n - 10)
+        label_lines = _word_wrap(d, event.label, label_font, label_max_w)
+        ly = line_y + r + 12
+        for line in label_lines:
+            lbbox = d.textbbox((0, 0), line, font=label_font)
+            lw = lbbox[2] - lbbox[0]
+            d.text((x - lw // 2, ly), line, fill=COLORS["light_gray"], font=label_font)
+            ly += 26
+
+    img.save(str(output_path))
+    return output_path
+
+
 def _word_wrap(
     draw: ImageDraw.ImageDraw,
     text: str,
