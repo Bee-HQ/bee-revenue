@@ -154,6 +154,7 @@ def init(
 def graphics(
     assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    animated: bool = typer.Option(False, "--animated", help="Use Lottie animations for lower-thirds (requires lottie + Cairo)"),
 ):
     """Generate all graphics assets (lower thirds, timelines, etc.)."""
     from bee_video_editor.services.production import ProductionConfig, generate_graphics_for_project
@@ -161,8 +162,22 @@ def graphics(
     config = ProductionConfig(project_dir=Path(project_dir))
     project = _load_project(assembly_guide)
 
-    console.print("[bold]Generating graphics...[/bold]")
-    result = generate_graphics_for_project(project, config)
+    if animated:
+        try:
+            from bee_video_editor.processors.lottie_overlays import _has_cairo
+
+            console.print("[bold]Generating graphics (animated lower-thirds)...[/bold]")
+            if not _has_cairo():
+                console.print("[yellow]Cairo not available — animated lower-thirds will require Cairo for full rendering.[/yellow]")
+        except ImportError:
+            console.print("[yellow]lottie package not installed — falling back to static PNGs.[/yellow]")
+            console.print("[dim]Install with: uv sync --extra animation[/dim]")
+            animated = False
+
+    if not animated:
+        console.print("[bold]Generating graphics...[/bold]")
+
+    result = generate_graphics_for_project(project, config, animated=animated)
 
     console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
     for g in result.succeeded:

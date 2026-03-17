@@ -171,6 +171,7 @@ def generate_graphics_for_project(
     project: Project | Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
+    animated: bool = False,
 ) -> ProductionResult:
     """Generate all graphics assets."""
     result = ProductionResult()
@@ -180,6 +181,15 @@ def generate_graphics_for_project(
     if state:
         state.phase = "graphics"
         state.save(config.state_path)
+
+    # Resolve animated lower-third renderer
+    _animated_lower_third = None
+    if animated:
+        try:
+            from bee_video_editor.processors.lottie_overlays import generate_animated_lower_third
+            _animated_lower_third = generate_animated_lower_third
+        except ImportError:
+            pass  # fall back to static
 
     lower_third_idx = 0
     for seg in sb.segments:
@@ -194,12 +204,19 @@ def generate_graphics_for_project(
                     name = f"Character {lower_third_idx}"
                     role = ""
 
-                out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
+                if _animated_lower_third is not None:
+                    out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.webm"
+                else:
+                    out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
+
                 if out.exists():
                     result.skipped.append(str(out))
                 else:
                     try:
-                        gfx.lower_third(name, role, out)
+                        if _animated_lower_third is not None:
+                            _animated_lower_third(name, role, out)
+                        else:
+                            gfx.lower_third(name, role, out)
                         result.succeeded.append(out)
                     except Exception as e:
                         result.failed.append(FailedItem(path=str(out), error=str(e)))
