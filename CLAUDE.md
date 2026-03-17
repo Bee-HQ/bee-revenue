@@ -13,7 +13,7 @@ Monorepo for automated revenue streams under Bee. This is a git submodule — th
 | `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
 | `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
 | `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
-| `bee-content/video-editor/` | Built (v0.1.0) | Python CLI + dashboard — AI-assisted video production |
+| `bee-content/video-editor/` | Built (v0.3.0) | Python CLI + web editor — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
 ## bee-content/research (YouTube competitor analysis)
@@ -37,26 +37,6 @@ uv run --extra dev pytest tests/test_analyzers.py -v
 
 # Run a single test
 uv run --extra dev pytest tests/test_analyzers.py::test_name -v
-```
-
-## bee-content/video-editor (AI video production)
-
-### Commands
-
-```bash
-cd bee-content/video-editor
-
-# Parse assembly guide
-uv run bee-video parse <assembly-guide>
-
-# List segments
-uv run bee-video segments <assembly-guide> [--section] [--type]
-
-# Initialize project
-uv run bee-video init <assembly-guide> [--project-dir] [--tts]
-
-# Run tests
-uv run --extra dev pytest tests/ -v
 ```
 
 ### Architecture
@@ -94,6 +74,55 @@ def outliers(db, target, threshold=2.0):
 ### Test Patterns
 
 Tests use **tempfile-based DB isolation** — each test gets a fresh SQLite in a temp directory. Integration tests use `_seed_database()` to create realistic data (3 channels, 20 videos each). No network calls in tests — fetchers are mocked at the subprocess/API level. Analyzer tests use synthetic data fixtures since analyzers are pure functions.
+
+## bee-content/video-editor (AI video production)
+
+> Full architecture documented in `bee-content/video-editor/CLAUDE.md`
+
+### Commands
+
+```bash
+cd bee-content/video-editor
+
+# CLI workflow
+uv run bee-video parse <guide.md>                           # Inspect
+uv run bee-video init <guide.md> --project-dir ./proj       # Create project
+uv run bee-video graphics <guide.md> -p ./proj              # Generate overlays
+uv run bee-video narration <guide.md> -p ./proj --tts edge  # Generate TTS
+uv run bee-video trim-footage <guide.md> -p ./proj          # Trim source clips
+uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
+
+# Effects (standalone)
+uv run bee-video effects in.mp4 out.mp4 --color noir --speed 1.5 --text "Ch 1"
+uv run bee-video transition a.mp4 b.mp4 out.mp4 --name dissolve
+uv run bee-video list-effects
+
+# Web editor
+./dev.sh        # Dev mode (backend :8420 + frontend :5173)
+./start.sh      # Production (single server :8420)
+
+# Tests
+uv run --extra dev pytest tests/ -v
+```
+
+### Architecture
+
+```
+Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
+```
+
+**Processors:** FFmpeg (17 functions — trim, concat, color grade, transitions, Ken Burns, PiP, speed, text overlay, audio mix), Pillow (lower thirds, timeline markers, financial cards), TTS (edge/kokoro/openai).
+
+**Two parsers:** Assembly guide (flat time-coded table → `Project`) and storyboard (shot-by-shot with 6 layers → `Storyboard`). Web UI uses storyboard, CLI uses assembly guide. Planned to unify in v0.4.0.
+
+### Key Details
+
+- Python >=3.11, managed with `uv` and `hatchling` build backend
+- 12 color presets, 30+ xfade transitions, 7 Ken Burns effects
+- 3 TTS engines (edge=free/cloud, kokoro=free/local, openai=paid/best)
+- Web UI: React 18 + Zustand + Tailwind, NLE-style segment editor with drag-drop media assignment
+- 113 tests across 7 test files
+- System requirement: FFmpeg must be installed and on PATH
 
 ---
 
