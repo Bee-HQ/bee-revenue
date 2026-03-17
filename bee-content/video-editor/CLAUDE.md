@@ -123,34 +123,15 @@ React 18 + TypeScript + Vite + Tailwind + Zustand.
 - `POST /api/production/{graphics|narration|assemble}` — generate assets
 - `GET /api/production/status` — phase + file counts
 
-## Known Gaps
+## Known Gaps & Issues
 
-### What the formula needs that bee-video can't generate yet:
+> **All gaps, issues, and planned work are tracked in `ROADMAP.md`** — that's the single source of truth. Summary below for quick reference.
 
-| Missing | Impact | Workaround |
-|---------|--------|------------|
-| Quote cards (may be stubbed) | Medium | Manual Pillow or Canva |
-| Mugshot cards | Medium | Manual graphics |
-| Maps (MapLibre/Google Earth) | High | Google Earth Studio export, import as media |
-| Text chat recreations [TEXT-CHAT] | Medium | Manual mockup |
-| Social media mockups [SOCIAL-POST] | Low | Manual mockup |
-| Evidence board [EVIDENCE-BOARD] | Low | Manual diagram |
-| Flow diagrams [FLOW-DIAGRAM] | Medium | Manual diagram |
-| Animated timeline [TIMELINE-SEQUENCE] | Medium | Manual or After Effects |
-| News headline montage [NEWS-MONTAGE] | Low | Manual graphic |
-| Subtitle generation (ASS/SRT) | High | External tool (Whisper, manual) |
-| Asset preflight check | High | Manual verification |
+**Formula alignment gaps** (graphics the formula needs that bee-video can't generate): mugshot cards, text chat recreations, social media mockups, evidence boards, flow diagrams, animated timelines, news montages, subtitle generation, maps, asset preflight. See ROADMAP v0.3.1 through v0.5.0 for when each is planned.
 
-### Code-level issues:
+**Code-level issues** (v0.3.1): FFmpeg errors silently swallowed, module-level globals for session state, hardcoded API base URL, segment statuses never updated during pipeline.
 
-| Issue | Location | Severity |
-|-------|----------|----------|
-| FFmpegError silently swallowed | `services/production.py` | High — errors disappear |
-| Module-level globals for session | `api/routes/projects.py` | Medium — not thread-safe |
-| Hardcoded API base URL | `web/src/api/client.ts` | Low — breaks non-local deploys |
-| Segment statuses never updated | `services/production.py` | Medium — progress tracking broken |
-| No retry logic | `services/production.py` | Low — transient failures unhandled |
-| Sequential processing only | `services/production.py` | Medium — slow for 50+ segments |
+**Scale issues** (v0.6.0+): stock footage repetition across videos, no LLM screenplay generation, no batch graphics from config, no FOIA pipeline tracking.
 
 ## Project Directory Structure (after init)
 

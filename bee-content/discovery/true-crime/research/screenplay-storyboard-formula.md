@@ -1125,29 +1125,13 @@ This formula doesn't live alone. These documents evolve together:
 
 ---
 
-## Appendix C: Known Scalability Issues (Future Work)
+## Appendix C: Scalability & Tooling
 
-> These issues don't affect the formula or individual video quality — they affect the ability to produce videos consistently at volume. Documented here so they're addressed before scaling beyond 1 video/month.
+> **Actionable items are tracked in `bee-content/video-editor/ROADMAP.md`** (the single source of truth for what needs to be built). This appendix captures the strategic context — the "why" behind the roadmap items.
 
-### S1: Asset Generation Time Estimate Is Wrong
+### Production Velocity
 
-The production checklist says "Asset Generation: 3-4 hours" for 40-50 assets. Realistic estimate based on the Murdaugh case: **6-8 hours.** The body diagram alone can take 1-2 hours. Maps with Google Earth Studio keyframing take 30-60 minutes. PIP photo selection (choosing the right emotional tone per scene) adds up.
-
-**To fix:** Revise the checklist estimate. Or — more usefully — build Pillow/FFmpeg templates that accept parameters and batch-generate lower thirds, timeline markers, quote cards, and financial cards from a config file. The `bee-video graphics` command already handles some of this. Expand it to cover mugshot cards, waveform visualizations, and maps.
-
-### S2: FOIA Is the Real Bottleneck
-
-For non-famous cases, FOIA requests for bodycam and 911 audio take **2-8 weeks**. This dominates the production timeline and can't be automated.
-
-**To fix:**
-- File FOIA on day 1 of case selection — before writing the screenplay. Write while waiting.
-- Maintain a case pipeline with 2-3 cases at different stages (FOIA pending, screenplay in progress, in assembly)
-- Build a FOIA request template per state (different states have different processes and response times — Florida and Texas are fastest)
-- Pre-select cases with known public footage (Court TV trials, widely covered cases) to reduce FOIA dependency
-
-### S3: 4 Videos/Month Is Not Realistic Year One
-
-At current efficiency: **15-21 hours of active human work per video** (screenplay 4-6h, assets 6-8h, narration 1-2h, assembly 6-8h, preflight 1h). Plus 2-4 weeks FOIA wait time.
+At current efficiency: **15-21 hours of active human work per video** (screenplay 4-6h, assets 6-8h, narration 1-2h, assembly 6-8h, preflight 1h). Plus 2-4 weeks FOIA wait time for non-famous cases.
 
 **Realistic trajectory:**
 - Months 1-3: 1 video/month (learning the pipeline, building templates)
@@ -1155,23 +1139,17 @@ At current efficiency: **15-21 hours of active human work per video** (screenpla
 - Months 7-12: 2-3 videos/month (stock library built, asset generation mostly automated)
 - Year 2+: 4 videos/month possible with LLM drafts, full automation, pre-built asset library, and 6-8 week FOIA lead time
 
-**What needs to change for 4/month:**
-- LLM-generated screenplay first drafts (saves 2-3h per video)
-- Fully automated asset generation pipeline via `bee-video` (saves 3-4h per video)
-- Pre-built stock footage library per genre (dark hallways, courthouses, rural aerials) — avoid searching Pexels every time
-- Parallel production across 2-3 videos at different pipeline stages
-- Cases pre-selected in a queue with FOIA filed 6-8 weeks ahead
+### FOIA Strategy
 
-### S4: What Breaks at Scale (After 10 Videos)
+FOIA is the least automatable bottleneck. Mitigation:
+- File on day 1 of case selection — before writing the screenplay
+- Maintain 2-3 cases at different pipeline stages (FOIA pending, screenplay in progress, in assembly)
+- Pre-select cases with known public footage (Court TV, widely covered cases) to reduce FOIA dependency
+- Florida and Texas have fastest response times
 
-**Stock footage repetition.** The same "dark hallway cinematic" and "gavel close-up" clips will appear across videos. Viewers who watch multiple videos will notice. Need a stock footage library that grows with each production, tagged by usage, with duplicate-avoidance tracking.
+### What Breaks After 10 Videos
 
-**Formula fatigue.** Regular viewers will pattern-match the structure (trailer montage → dynasty backstory → investigation → sponsor → confrontation → verdict). The formula needs progressive evolution: video 10 should do something video 1 didn't. Consider rotating cold open styles, varying the act structure occasionally, or introducing series-level arcs.
-
-**FOIA pipeline chaos.** 10+ pending FOIA requests across multiple jurisdictions with different response timelines. Need a case pipeline tracker — what's filed, what's received, what's expired, what's stale. Spreadsheet minimum, database preferably.
-
-**Asset naming chaos.** Hundreds of clips across multiple project directories. Without strict naming conventions enforced by tooling, files get lost. The naming convention in Phase 6.5 helps, but needs tooling to enforce it (`bee-video validate` or similar).
-
-**Narration voice drift.** If TTS parameters change between videos, the voice subtly shifts. Viewers notice. Lock one voice config and version it.
-
-**No cross-video brand building.** The formula has no guidance for: consistent intro/outro sequence, series arcs (covering related cases), community engagement patterns (which cases get requested), or YouTube algorithm feedback (what lengths and posting schedules perform). These become critical after 10 videos when the channel needs an identity beyond individual case videos.
+- **Stock footage repetition** — viewers notice the same "dark hallway" clip across videos. Need a tagged stock library with usage tracking.
+- **Formula fatigue** — regular viewers pattern-match the structure. Need progressive evolution: rotate cold open styles, vary act structure, introduce series arcs.
+- **Narration voice drift** — TTS parameters shift between videos. Lock one voice config and version it.
+- **No cross-video brand building** — no consistent intro/outro, no series arcs, no community engagement patterns, no YouTube algorithm feedback loop.
