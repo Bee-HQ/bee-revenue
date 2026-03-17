@@ -71,7 +71,7 @@ Architectural work that unlocks new capabilities.
 
 ### Graphics (formula alignment)
 - [x] **Flow diagram** — `flow_diagram()` with directional arrows, red/teal colors, arrowheads, auto-layout
-- [ ] **Animated timeline sequence** — `timeline_sequence(events, output)` horizontal timeline with cursor/nodes. Spec: `[TIMELINE-SEQUENCE]`. Priority for cases spanning 6+ months
+- [x] **Timeline sequence** — `timeline_sequence()` horizontal timeline with active/current/future nodes, red/grey line segments, date+label per node
 
 ### Interop
 - [ ] **OTIO timeline export** — compile storyboard to OpenTimelineIO timeline with custom metadata (visual codes). Enables export to DaVinci Resolve / Premiere for human final polish. Python SDK: `opentimelineio`. See: `discovery/true-crime/research/storyboard-format-research.md`
