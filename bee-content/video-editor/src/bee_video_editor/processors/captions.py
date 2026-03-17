@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from math import ceil
 from pathlib import Path
 
+import pysubs2
+
 from bee_video_editor.models_storyboard import Storyboard
 
 
@@ -84,3 +86,129 @@ def extract_caption_segments(storyboard: Storyboard) -> list[CaptionSegment]:
             ))
 
     return results
+
+
+def _create_ass_styles(subs: pysubs2.SSAFile) -> None:
+    """Add caption styles to an ASS file."""
+    base = dict(
+        fontname="Arial",
+        fontsize=48,
+        primarycolor=pysubs2.Color(255, 255, 255, 0),
+        outlinecolor=pysubs2.Color(0, 0, 0, 0),
+        backcolor=pysubs2.Color(0, 0, 0, 128),
+        bold=True,
+        outline=3,
+        shadow=2,
+        alignment=2,  # bottom-center
+        marginl=40,
+        marginr=40,
+        marginv=50,
+    )
+    subs.styles["Narrator"] = pysubs2.SSAStyle(**base)
+    subs.styles["NarratorPhrase"] = pysubs2.SSAStyle(**base)
+    subs.styles["RealAudio"] = pysubs2.SSAStyle(
+        **{**base, "fontsize": 44, "italic": True, "outline": 2},
+    )
+
+
+def _karaoke_text(text: str, duration_ms: int) -> str:
+    """Generate karaoke-tagged text with \\kf tags.
+
+    Distributes duration proportionally to word length with
+    integer division. Any remainder is added to the last word
+    so the total always sums exactly to total_cs.
+    """
+    words = text.split()
+    if not words:
+        return text
+
+    total_cs = duration_ms // 10
+    if total_cs <= 0:
+        return text
+
+    total_chars = sum(len(w) for w in words)
+    if total_chars == 0:
+        # All empty strings somehow
+        per_word = total_cs // len(words)
+        return " ".join(f"{{\\kf{per_word}}}{w}" for w in words)
+
+    base_per_char = total_cs // total_chars
+    remainder = total_cs - (base_per_char * total_chars)
+
+    parts = []
+    for i, word in enumerate(words):
+        dur = base_per_char * len(word)
+        if i == len(words) - 1:
+            dur += remainder  # dump remainder onto last word
+        parts.append(f"{{\\kf{dur}}}{word}")
+
+    return " ".join(parts)
+
+
+def _phrase_chunks(words: list[str], target_size: int = 4) -> list[list[str]]:
+    """Split words into balanced chunks of 3-5 words."""
+    if len(words) <= 5:
+        return [words]
+
+    chunk_size = min(5, max(3, len(words) // ceil(len(words) / target_size)))
+    chunks = []
+    for i in range(0, len(words), chunk_size):
+        chunk = words[i:i + chunk_size]
+        chunks.append(chunk)
+    return chunks
+
+
+def generate_captions_estimated(
+    segments: list[CaptionSegment],
+    output_path: Path,
+    style: str = "karaoke",
+) -> Path:
+    """Generate ASS captions from text + duration estimates.
+
+    Args:
+        segments: List of CaptionSegment with text, timing, and style.
+        output_path: Where to write the .ass file.
+        style: "karaoke" for word-by-word fill, "phrase" for 3-5 word blocks.
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    subs = pysubs2.SSAFile()
+    subs.info["PlayResX"] = "1920"
+    subs.info["PlayResY"] = "1080"
+    _create_ass_styles(subs)
+
+    for seg in segments:
+        if style == "phrase":
+            words = seg.text.split()
+            chunks = _phrase_chunks(words)
+            total_dur = seg.end_ms - seg.start_ms
+            dur_per_chunk = total_dur // len(chunks) if chunks else total_dur
+
+            for j, chunk in enumerate(chunks):
+                chunk_start = seg.start_ms + j * dur_per_chunk
+                chunk_end = chunk_start + dur_per_chunk
+                if j == len(chunks) - 1:
+                    chunk_end = seg.end_ms  # last chunk gets remainder
+
+                event = pysubs2.SSAEvent(
+                    start=chunk_start,
+                    end=chunk_end,
+                    text=" ".join(chunk),
+                    style=seg.style_name if seg.style_name != "Narrator" else "NarratorPhrase",
+                )
+                subs.events.append(event)
+        else:
+            # Karaoke mode
+            duration_ms = seg.end_ms - seg.start_ms
+            tagged_text = _karaoke_text(seg.text, duration_ms)
+            event = pysubs2.SSAEvent(
+                start=seg.start_ms,
+                end=seg.end_ms,
+                text=tagged_text,
+                style=seg.style_name,
+            )
+            subs.events.append(event)
+
+    subs.save(str(output_path))
+    return output_path

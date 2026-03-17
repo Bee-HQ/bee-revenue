@@ -1,5 +1,6 @@
 """Tests for ASS caption generation."""
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -103,3 +104,95 @@ class TestExtractCaptionSegments:
         result = extract_caption_segments(sb)
         assert len(result) == 1
         assert result[0].text == "Narrator line"
+
+
+from bee_video_editor.processors.captions import generate_captions_estimated
+import pysubs2
+
+
+class TestGenerateCaptionsEstimated:
+    def test_karaoke_generates_ass(self):
+        segments = [
+            CaptionSegment("Hello world test", 0, 3000, "Narrator"),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            result = generate_captions_estimated(segments, out, style="karaoke")
+            assert result.exists()
+            # Verify it's valid ASS
+            subs = pysubs2.load(str(result))
+            assert len(subs.events) == 1
+            assert r"\kf" in subs.events[0].text
+
+    def test_karaoke_timing_sums_exactly(self):
+        segments = [
+            CaptionSegment("This is a test sentence with several words", 0, 5000, "Narrator"),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out, style="karaoke")
+            subs = pysubs2.load(str(out))
+            event = subs.events[0]
+            # Extract all \kfNN values and sum them
+            kf_values = [int(m) for m in re.findall(r'\\kf(\d+)', event.text)]
+            total_cs = 500  # 5000ms = 500cs
+            assert sum(kf_values) == total_cs
+
+    def test_phrase_mode(self):
+        text = "This is a test sentence with many words in it"
+        segments = [CaptionSegment(text, 0, 5000, "Narrator")]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out, style="phrase")
+            subs = pysubs2.load(str(out))
+            # Phrase mode creates multiple events per segment
+            assert len(subs.events) >= 2
+            # Each event should have 3-5 words
+            for event in subs.events:
+                word_count = len(event.text.strip().split())
+                assert 1 <= word_count <= 5
+
+    def test_phrase_mode_short_segment(self):
+        segments = [CaptionSegment("Two words", 0, 2000, "Narrator")]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out, style="phrase")
+            subs = pysubs2.load(str(out))
+            assert len(subs.events) == 1
+
+    def test_multiple_segments(self):
+        segments = [
+            CaptionSegment("First segment", 0, 3000, "Narrator"),
+            CaptionSegment("Second segment", 3000, 6000, "RealAudio"),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out)
+            subs = pysubs2.load(str(out))
+            assert len(subs.events) == 2
+            assert subs.events[0].style == "Narrator"
+            assert subs.events[1].style == "RealAudio"
+
+    def test_styles_defined(self):
+        segments = [CaptionSegment("Test", 0, 1000, "Narrator")]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out)
+            subs = pysubs2.load(str(out))
+            assert "Narrator" in subs.styles
+            assert "NarratorPhrase" in subs.styles
+            assert "RealAudio" in subs.styles
+
+    def test_reparse_is_valid(self):
+        segments = [
+            CaptionSegment("Hello world", 0, 2000, "Narrator"),
+            CaptionSegment("Real audio clip", 2000, 4000, "RealAudio"),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "captions.ass"
+            generate_captions_estimated(segments, out)
+            # Should not raise
+            subs = pysubs2.load(str(out))
+            resaved = Path(d) / "resaved.ass"
+            subs.save(str(resaved))
+            assert resaved.exists()
