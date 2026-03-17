@@ -128,6 +128,14 @@ export function ProductionBar() {
         Assemble
       </button>
 
+      <button
+        className={buttonClass('previews')}
+        disabled={isRunning}
+        onClick={() => runAction('previews', api.generateAllPreviews)}
+      >
+        Previews
+      </button>
+
       {message && (
         <span className="text-xs text-gray-500 ml-auto truncate max-w-md">
           {message}

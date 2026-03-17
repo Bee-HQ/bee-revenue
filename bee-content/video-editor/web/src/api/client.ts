@@ -89,6 +89,14 @@ export const api = {
     return request('/production/assemble', { method: 'POST' });
   },
 
+  generatePreview(segmentId: string) {
+    return request(`/production/preview/${segmentId}`, { method: 'POST' });
+  },
+
+  generateAllPreviews() {
+    return request('/production/previews', { method: 'POST' });
+  },
+
   // Download endpoints
   listDownloadScripts(): Promise<DownloadScriptInfo[]> {
     return request('/media/download/scripts');

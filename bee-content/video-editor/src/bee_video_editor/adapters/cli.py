@@ -534,6 +534,30 @@ def preflight(
 
 
 @app.command()
+def previews(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+):
+    """Generate low-res preview clips for all assigned segments."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.services.production import generate_all_previews
+
+    sb = parse_storyboard(storyboard_path)
+    proj = Path(project_dir)
+
+    console.print("[bold]Generating previews...[/bold]")
+    result = generate_all_previews(sb, proj)
+
+    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
+    if result.failed:
+        console.print(f"[red]Failed: {len(result.failed)}[/red]")
+        for f in result.failed:
+            console.print(f"  [red]{f.path}: {f.error}[/red]")
+    if result.skipped:
+        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
+
+
+@app.command()
 def serve(
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Bind host"),
     port: int = typer.Option(8420, "--port", "-p", help="Bind port"),

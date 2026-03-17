@@ -3,6 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -24,6 +25,8 @@ from bee_video_editor.services.production import (
     _ensure_storyboard,
     _extract_narrator_text,
     _slugify,
+    generate_all_previews,
+    generate_preview,
     trim_source_footage,
 )
 
@@ -250,3 +253,135 @@ class TestTrimWithStoryboard:
             assert isinstance(result, ProductionResult)
             assert result.ok
             assert len(result.succeeded) == 0
+
+
+class TestGeneratePreview:
+    def test_video_preview(self):
+        """Test preview of a video file (mocked FFmpeg)."""
+        with tempfile.TemporaryDirectory() as d:
+            media = Path(d) / "test.mp4"
+            media.touch()
+            out = Path(d) / "preview.mp4"
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=0)
+                result = generate_preview(media, out)
+                mock_run.assert_called_once()
+                cmd = mock_run.call_args[0][0]
+                assert "ultrafast" in cmd
+                assert "360" in " ".join(cmd)
+                assert result == out
+
+    def test_video_preview_ffmpeg_error(self):
+        """Test that FFmpeg failure raises RuntimeError."""
+        with tempfile.TemporaryDirectory() as d:
+            media = Path(d) / "test.mp4"
+            media.touch()
+            out = Path(d) / "preview.mp4"
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=1, stderr="codec not found")
+                with pytest.raises(RuntimeError, match="Preview generation failed"):
+                    generate_preview(media, out)
+
+    def test_creates_output_parent_dirs(self):
+        """Test that nested output directories are created automatically."""
+        with tempfile.TemporaryDirectory() as d:
+            media = Path(d) / "test.mp4"
+            media.touch()
+            out = Path(d) / "deep" / "nested" / "preview.mp4"
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=0)
+                generate_preview(media, out)
+                assert out.parent.exists()
+
+
+class TestGenerateAllPreviews:
+    def _make_storyboard_with_segment(self, seg_id: str) -> Storyboard:
+        seg = StoryboardSegment(
+            id=seg_id,
+            start="0:00",
+            end="0:15",
+            title="Test Segment",
+            section="Act 1",
+            section_time="0:00 - 1:00",
+            subsection="",
+        )
+        sb = Storyboard(title="Test", production_rules=ProductionRules())
+        sb.segments = [seg]
+        return sb
+
+    def test_no_assignments_skips_all(self):
+        """Segments without assignments produce no output."""
+        with tempfile.TemporaryDirectory() as d:
+            sb = self._make_storyboard_with_segment("seg-001")
+            result = generate_all_previews(sb, Path(d))
+            assert result.ok
+            assert len(result.succeeded) == 0
+            assert len(result.failed) == 0
+
+    def test_missing_file_adds_to_failed(self):
+        """Assigned media that doesn't exist is recorded as failed."""
+        with tempfile.TemporaryDirectory() as d:
+            proj = Path(d)
+            seg_id = "seg-001"
+            sb = self._make_storyboard_with_segment(seg_id)
+
+            assignments_dir = proj / ".bee-video"
+            assignments_dir.mkdir(parents=True)
+            assignments_path = assignments_dir / "assignments.json"
+            assignments_path.write_text(json.dumps({
+                seg_id: {"visual:0": "/nonexistent/file.mp4"}
+            }))
+
+            result = generate_all_previews(sb, proj)
+            assert len(result.failed) == 1
+            assert "not found" in result.failed[0].error
+
+    def test_already_existing_preview_is_skipped(self):
+        """Segments whose preview already exists are skipped."""
+        with tempfile.TemporaryDirectory() as d:
+            proj = Path(d)
+            seg_id = "seg-001"
+            sb = self._make_storyboard_with_segment(seg_id)
+
+            media = proj / "media.mp4"
+            media.touch()
+
+            assignments_dir = proj / ".bee-video"
+            assignments_dir.mkdir(parents=True)
+            (assignments_dir / "assignments.json").write_text(json.dumps({
+                seg_id: {"visual:0": str(media)}
+            }))
+
+            # Pre-create the preview so it gets skipped
+            previews_dir = proj / "output" / "previews"
+            previews_dir.mkdir(parents=True)
+            (previews_dir / f"{seg_id}.mp4").touch()
+
+            result = generate_all_previews(sb, proj)
+            assert len(result.skipped) == 1
+            assert len(result.succeeded) == 0
+
+    def test_successful_preview_generation(self):
+        """Full success path with mocked FFmpeg."""
+        with tempfile.TemporaryDirectory() as d:
+            proj = Path(d)
+            seg_id = "seg-001"
+            sb = self._make_storyboard_with_segment(seg_id)
+
+            media = proj / "media.mp4"
+            media.touch()
+
+            assignments_dir = proj / ".bee-video"
+            assignments_dir.mkdir(parents=True)
+            (assignments_dir / "assignments.json").write_text(json.dumps({
+                seg_id: {"visual:0": str(media)}
+            }))
+
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = MagicMock(returncode=0)
+                result = generate_all_previews(sb, proj)
+                assert len(result.succeeded) == 1
+                assert result.ok

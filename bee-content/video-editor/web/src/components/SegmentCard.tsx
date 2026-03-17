@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { LayerEntry, LayerName, Segment } from '../types';
 import { useProjectStore } from '../stores/project';
+import { api } from '../api/client';
 
 const VISUAL_TYPE_COLORS: Record<string, string> = {
   FOOTAGE: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
@@ -44,6 +45,29 @@ export function SegmentCard({ segment }: Props) {
   const isSelected = selectedSegmentIds.includes(segment.id);
   const multiSelected = selectedSegmentIds.length > 1 && isSelected;
   const hasAssignments = Object.keys(segment.assigned_media).length > 0;
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewLoading(true);
+    try {
+      const result = await api.generatePreview(segment.id);
+      if (result.preview) {
+        useProjectStore.getState().setPreviewMedia({
+          name: `preview-${segment.id}.mp4`,
+          path: result.preview,
+          relative_path: `output/previews/${segment.id}.mp4`,
+          size_bytes: 0,
+          category: 'previews',
+          extension: '.mp4',
+        });
+      }
+    } catch (e) {
+      console.error('Preview failed:', e);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleClick = (e: React.MouseEvent) => {
     toggleSegmentSelection(segment.id, e.shiftKey);
@@ -156,6 +180,20 @@ export function SegmentCard({ segment }: Props) {
           <span className="text-[10px] text-gray-600">{segment.duration_seconds}s</span>
           {hasAssignments && (
             <span className="w-1.5 h-1.5 bg-editor-accent rounded-full" title="Has media assigned" />
+          )}
+          {hasAssignments && (
+            <button
+              className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                previewLoading
+                  ? 'text-yellow-500 bg-yellow-600/10'
+                  : 'text-gray-600 hover:text-gray-400 bg-editor-hover'
+              }`}
+              onClick={handlePreview}
+              disabled={previewLoading}
+              title="Generate preview clip"
+            >
+              {previewLoading ? '…' : '▷'}
+            </button>
           )}
           <button
             className="text-gray-600 hover:text-gray-400 text-xs"

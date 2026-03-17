@@ -178,7 +178,7 @@ def init_project(
     ]
 
     # Create output directories
-    for subdir in ["segments", "normalized", "composited", "graphics", "narration", "captions", "final"]:
+    for subdir in ["segments", "normalized", "composited", "graphics", "narration", "captions", "final", "previews"]:
         (config.output_dir / subdir).mkdir(parents=True, exist_ok=True)
 
     state.save(config.state_path)
@@ -558,6 +558,91 @@ def run_full_pipeline(
         return "no segments to assemble"
     if not _step("assemble", do_assemble):
         return result
+
+    return result
+
+
+def generate_preview(
+    media_path: Path,
+    output_path: Path,
+    width: int = 640,
+    height: int = 360,
+    max_duration: float = 5.0,
+) -> Path:
+    """Generate a low-res preview clip from a media file.
+
+    For video: first 5 seconds at 360p.
+    For images: convert to 5-second 360p video with Ken Burns.
+    """
+    import subprocess
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    suffix = media_path.suffix.lower()
+
+    if suffix in (".png", ".jpg", ".jpeg", ".webp", ".bmp"):
+        # Image → video with Ken Burns
+        image_to_video(media_path, output_path, duration=max_duration, ken_burns="zoom_in")
+        # Scale down
+        scaled = output_path.parent / f"_scaled_{output_path.name}"
+        normalize_format(output_path, scaled, width, height, 30)
+        scaled.rename(output_path)
+    else:
+        # Video → first N seconds at low res
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(media_path),
+            "-t", str(max_duration),
+            "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+            "-c:a", "aac", "-b:a", "64k",
+            "-y", str(output_path),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"Preview generation failed: {result.stderr[:300]}")
+
+    return output_path
+
+
+def generate_all_previews(
+    storyboard: Storyboard,
+    project_dir: Path,
+) -> ProductionResult:
+    """Generate preview clips for all segments with assigned media."""
+    result = ProductionResult()
+    previews_dir = project_dir / "output" / "previews"
+    previews_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load assignments
+    assignments_path = project_dir / ".bee-video" / "assignments.json"
+    assignments: dict = {}
+    if assignments_path.exists():
+        assignments = json.loads(assignments_path.read_text())
+
+    for seg in storyboard.segments:
+        seg_assignments = assignments.get(seg.id, {})
+        # Look for visual:0 assignment (primary visual)
+        media_path_str = seg_assignments.get("visual:0")
+        if not media_path_str:
+            continue
+
+        media_path = Path(media_path_str)
+        if not media_path.exists():
+            result.failed.append(FailedItem(path=media_path_str, error="file not found"))
+            continue
+
+        preview_path = previews_dir / f"{seg.id}.mp4"
+        if preview_path.exists():
+            result.skipped.append(f"{seg.id} already has preview")
+            continue
+
+        try:
+            generate_preview(media_path, preview_path)
+            result.succeeded.append(preview_path)
+        except Exception as e:
+            result.failed.append(FailedItem(path=str(media_path), error=str(e)))
 
     return result
 

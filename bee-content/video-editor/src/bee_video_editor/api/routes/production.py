@@ -352,6 +352,62 @@ def produce_video(
     }
 
 
+@router.post("/preview/{segment_id}")
+def generate_segment_preview(segment_id: str, session: SessionStore = Depends(get_session)):
+    """Generate a preview for a single segment."""
+    import json
+    from bee_video_editor.services.production import generate_preview
+
+    storyboard, project_dir = session.require_project()
+
+    # Find segment
+    seg = next((s for s in storyboard.segments if s.id == segment_id), None)
+    if not seg:
+        raise HTTPException(404, f"Segment not found: {segment_id}")
+
+    # Get assignment
+    assignments_path = project_dir / ".bee-video" / "assignments.json"
+    assignments = {}
+    if assignments_path.exists():
+        assignments = json.loads(assignments_path.read_text())
+
+    seg_assignments = assignments.get(segment_id, {})
+    media_path_str = seg_assignments.get("visual:0")
+    if not media_path_str:
+        raise HTTPException(400, f"No media assigned to segment {segment_id}")
+
+    media_path = Path(media_path_str)
+    if not media_path.exists():
+        raise HTTPException(404, f"Assigned media not found: {media_path_str}")
+
+    previews_dir = project_dir / "output" / "previews"
+    previews_dir.mkdir(parents=True, exist_ok=True)
+    preview_path = previews_dir / f"{segment_id}.mp4"
+
+    try:
+        generate_preview(media_path, preview_path)
+        return {"status": "ok", "preview": str(preview_path)}
+    except Exception as e:
+        raise HTTPException(500, f"Preview generation failed: {e}")
+
+
+@router.post("/previews")
+def generate_all_segment_previews(session: SessionStore = Depends(get_session)):
+    """Generate previews for all segments with assigned media."""
+    from bee_video_editor.services.production import generate_all_previews
+
+    storyboard, project_dir = session.require_project()
+    result = generate_all_previews(storyboard, project_dir)
+
+    status = "ok" if result.ok else "partial" if result.succeeded else "error"
+    return {
+        "status": status,
+        "succeeded": len(result.succeeded),
+        "failed": len(result.failed),
+        "skipped": len(result.skipped),
+    }
+
+
 @router.post("/assemble")
 def assemble_video(
     transition: str | None = None,
