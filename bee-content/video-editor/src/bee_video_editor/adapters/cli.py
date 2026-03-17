@@ -687,6 +687,53 @@ def export(
     console.print(f"[dim]Segments: {len(sb.segments)}, Tracks: 2 (V1 + A1)[/dim]")
 
 
+@app.command(name="map")
+def generate_map(
+    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route"),
+    lat: float = typer.Option(..., help="Center latitude"),
+    lng: float = typer.Option(..., help="Center longitude"),
+    output: str = typer.Option(None, "--output", "-o"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    zoom: int = typer.Option(12, "--zoom", "-z"),
+    label: str = typer.Option("", "--label", "-l"),
+):
+    """Generate a styled map image."""
+    try:
+        from bee_video_editor.processors.maps import (
+            MapLocation,
+            map_flat,
+            map_pulse,
+            map_route,
+            map_tactical,
+        )
+    except ImportError:
+        console.print("[red]Missing dependency. Install with: uv sync --extra maps[/red]")
+        raise typer.Exit(1)
+
+    if output is None:
+        out_dir = Path(project_dir) / "output" / "maps"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        output = str(out_dir / f"map-{map_type}-{lat:.2f}-{lng:.2f}.png")
+
+    out_path = Path(output)
+    markers = [MapLocation(lat=lat, lng=lng, label=label)] if label else None
+
+    if map_type == "flat":
+        map_flat(lat, lng, out_path, zoom=zoom, markers=markers)
+    elif map_type == "tactical":
+        map_tactical(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
+    elif map_type == "pulse":
+        map_pulse(lat, lng, out_path, zoom=zoom, label=label)
+    elif map_type == "route":
+        console.print("[red]Route requires multiple points — use the Python API directly.[/red]")
+        return
+    else:
+        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route[/red]")
+        return
+
+    console.print(f"[green]Map generated: {out_path}[/green]")
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)
