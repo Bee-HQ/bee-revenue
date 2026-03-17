@@ -1,0 +1,92 @@
+{
+  "restaurant": {
+    "name": "Demo Pizza Co",
+    "slug": "demo-pizza",
+    "branding": {
+      "primaryColor": "#ff6b35"
+    }
+  },
+  "targetImage": "targets/menu.mind",
+  "items": [
+    {
+      "id": "margherita",
+      "name": "Margherita Pizza",
+      "price": "₹499",
+      "description": "Fresh mozzarella, San Marzano tomatoes, basil",
+      "category": "pizza",
+      "models": {
+        "glb": "models/margherita.glb",
+        "usdz": "models/margherita.usdz"
+      },
+      "transform": {
+        "scale": [0.3, 0.3, 0.3],
+        "position": [0, 0.05, 0],
+        "rotation": [0, 0, 0]
+      }
+    },
+    {
+      "id": "pepperoni",
+      "name": "Pepperoni Pizza",
+      "price": "₹599",
+      "description": "Spicy pepperoni, mozzarella, tomato sauce",
+      "category": "pizza",
+      "models": {
+        "glb": "models/pepperoni.glb",
+        "usdz": "models/pepperoni.usdz"
+      },
+      "transform": {
+        "scale": [0.3, 0.3, 0.3],
+        "position": [0, 0.05, 0],
+        "rotation": [0, 0, 0]
+      }
+    },
+    {
+      "id": "pasta-carbonara",
+      "name": "Pasta Carbonara",
+      "price": "₹449",
+      "description": "Creamy egg sauce, pancetta, parmesan",
+      "category": "pasta",
+      "models": {
+        "glb": "models/pasta-carbonara.glb",
+        "usdz": "models/pasta-carbonara.usdz"
+      },
+      "transform": {
+        "scale": [0.25, 0.25, 0.25],
+        "position": [0, 0.03, 0],
+        "rotation": [0, 0, 0]
+      }
+    },
+    {
+      "id": "tiramisu",
+      "name": "Tiramisu",
+      "price": "₹349",
+      "description": "Classic Italian coffee-flavored dessert",
+      "category": "dessert",
+      "models": {
+        "glb": "models/tiramisu.glb",
+        "usdz": "models/tiramisu.usdz"
+      },
+      "transform": {
+        "scale": [0.2, 0.2, 0.2],
+        "position": [0, 0.02, 0],
+        "rotation": [0, 0, 0]
+      }
+    },
+    {
+      "id": "bruschetta",
+      "name": "Bruschetta",
+      "price": "₹299",
+      "description": "Grilled bread, tomatoes, garlic, fresh basil",
+      "category": "appetizer",
+      "models": {
+        "glb": "models/bruschetta.glb",
+        "usdz": "models/bruschetta.usdz"
+      },
+      "transform": {
+        "scale": [0.2, 0.2, 0.2],
+        "position": [0, 0.02, 0],
+        "rotation": [0, 0, 0]
+      }
+    }
+  ]
+}
