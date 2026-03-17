@@ -153,8 +153,7 @@ def init_project(
     for subdir in ["segments", "normalized", "composited", "graphics", "narration", "final"]:
         (config.output_dir / subdir).mkdir(parents=True, exist_ok=True)
 
-    state_path = config.output_dir / "production_state.json"
-    state.save(state_path)
+    state.save(config.state_path)
 
     return project, state
 
@@ -162,10 +161,15 @@ def init_project(
 def generate_graphics_for_project(
     project: Project,
     config: ProductionConfig,
-) -> list[Path]:
+    state: ProductionState | None = None,
+) -> ProductionResult:
     """Generate all graphics assets from project pre-production list."""
     graphics_dir = config.output_dir / "graphics"
-    generated = []
+    result = ProductionResult()
+
+    if state:
+        state.phase = "graphics"
+        state.save(config.state_path)
 
     # Generate lower thirds from segments that mention "lower third"
     lower_third_idx = 0
@@ -184,9 +188,14 @@ def generate_graphics_for_project(
                 role = ""
 
             out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
-            if not out.exists():
-                gfx.lower_third(name, role, out)
-                generated.append(out)
+            if out.exists():
+                result.skipped.append(str(out))
+            else:
+                try:
+                    gfx.lower_third(name, role, out)
+                    result.succeeded.append(out)
+                except Exception as e:
+                    result.failed.append(FailedItem(path=str(out), error=str(e)))
             lower_third_idx += 1
 
     # Generate timeline markers
@@ -197,9 +206,14 @@ def generate_graphics_for_project(
             if match:
                 text = match.group(1).strip()
                 out = graphics_dir / f"timeline-{timeline_idx:02d}-{_slugify(text)[:30]}.png"
-                if not out.exists():
-                    gfx.timeline_marker(text, "", out)
-                    generated.append(out)
+                if out.exists():
+                    result.skipped.append(str(out))
+                else:
+                    try:
+                        gfx.timeline_marker(text, "", out)
+                        result.succeeded.append(out)
+                    except Exception as e:
+                        result.failed.append(FailedItem(path=str(out), error=str(e)))
                 timeline_idx += 1
 
     # Generate financial cards
@@ -211,21 +225,31 @@ def generate_graphics_for_project(
                 amount = match.group(1).strip()
                 desc = ""
                 out = graphics_dir / f"financial-{fin_idx:02d}-{_slugify(amount)[:20]}.png"
-                if not out.exists():
-                    gfx.financial_card(amount, desc, out)
-                    generated.append(out)
+                if out.exists():
+                    result.skipped.append(str(out))
+                else:
+                    try:
+                        gfx.financial_card(amount, desc, out)
+                        result.succeeded.append(out)
+                    except Exception as e:
+                        result.failed.append(FailedItem(path=str(out), error=str(e)))
                 fin_idx += 1
 
-    return generated
+    return result
 
 
 def generate_narration_for_project(
     project: Project,
     config: ProductionConfig,
-) -> list[Path]:
+    state: ProductionState | None = None,
+) -> ProductionResult:
     """Generate TTS narration for all NAR and MIX segments."""
     narration_dir = config.output_dir / "narration"
-    generated = []
+    result = ProductionResult()
+
+    if state:
+        state.phase = "narration"
+        state.save(config.state_path)
 
     for i, seg in enumerate(project.segments):
         if seg.segment_type not in (SegmentType.NAR, SegmentType.MIX):
@@ -237,63 +261,95 @@ def generate_narration_for_project(
             continue
 
         out = narration_dir / f"nar-{i:03d}-{_slugify(seg.subsection or seg.section)[:30]}.mp3"
-        if not out.exists():
-            generate_narration(
-                text=nar_text,
-                output_path=out,
-                engine=config.tts_engine,
-                voice=config.tts_voice,
-            )
-            generated.append(out)
+        if out.exists():
+            result.skipped.append(str(out))
+            continue
 
-    return generated
+        try:
+            if state:
+                with state.track(i, config.state_path):
+                    generate_narration(
+                        text=nar_text,
+                        output_path=out,
+                        engine=config.tts_engine,
+                        voice=config.tts_voice,
+                    )
+            else:
+                generate_narration(
+                    text=nar_text,
+                    output_path=out,
+                    engine=config.tts_engine,
+                    voice=config.tts_voice,
+                )
+            result.succeeded.append(out)
+        except Exception as e:
+            result.failed.append(FailedItem(path=str(out), error=str(e)))
+
+    return result
 
 
 def trim_source_footage(
     project: Project,
     config: ProductionConfig,
-) -> list[Path]:
+    state: ProductionState | None = None,
+) -> ProductionResult:
     """Trim source footage based on assembly guide trim notes."""
     segments_dir = config.output_dir / "segments"
-    trimmed = []
+    result = ProductionResult()
+
+    if state:
+        state.phase = "trimming"
+        state.save(config.state_path)
 
     for note in project.trim_notes:
         # Resolve glob pattern to actual file
         pattern = str(config.footage_dir / note.source_file.replace("footage/", ""))
         matches = globmod.glob(pattern)
         if not matches:
+            result.failed.append(FailedItem(path=note.source_file, error="No matching source file found"))
             continue
         source = matches[0]
 
         for j, t in enumerate(note.trims):
             slug = _slugify(t.label)[:40]
             out = segments_dir / f"trim-{slug}-{j:02d}.mp4"
-            if not out.exists():
+            if out.exists():
+                result.skipped.append(str(out))
+            else:
                 try:
                     trim(source, out, start=t.start, end=t.duration)
-                    trimmed.append(out)
-                except FFmpegError:
-                    pass  # Skip trims that fail (missing footage etc.)
+                    result.succeeded.append(out)
+                except Exception as e:
+                    result.failed.append(FailedItem(path=str(out), error=str(e)))
 
-    return trimmed
+    return result
 
 
-def normalize_all_segments(config: ProductionConfig) -> list[Path]:
+def normalize_all_segments(
+    config: ProductionConfig,
+    state: ProductionState | None = None,
+) -> ProductionResult:
     """Normalize all segments to consistent format."""
     segments_dir = config.output_dir / "segments"
     normalized_dir = config.output_dir / "normalized"
-    normalized = []
+    result = ProductionResult()
+
+    if state:
+        state.phase = "normalizing"
+        state.save(config.state_path)
 
     for seg_file in sorted(segments_dir.glob("*.mp4")):
         out = normalized_dir / seg_file.name
-        if not out.exists():
+        if out.exists():
+            result.skipped.append(str(out))
+        else:
             try:
                 normalize_format(seg_file, out, config.width, config.height, config.fps)
-                normalized.append(out)
-            except FFmpegError:
-                pass
+                result.succeeded.append(out)
+            except Exception as e:
+                result.failed.append(FailedItem(path=str(out), error=str(e)))
 
-    return normalized
+    return result
 
 
 def assemble_final(
