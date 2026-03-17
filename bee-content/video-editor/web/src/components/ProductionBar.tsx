@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { api } from '../api/client';
+import { useProjectStore } from '../stores/project';
 
 type Status = 'idle' | 'running' | 'done' | 'error';
 
@@ -7,6 +8,8 @@ export function ProductionBar() {
   const [status, setStatus] = useState<Record<string, Status>>({});
   const [message, setMessage] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const undoStack = useProjectStore(s => s.undoStack);
+  const redoStack = useProjectStore(s => s.redoStack);
 
   const runAction = async (key: string, action: () => Promise<any>) => {
     setStatus(s => ({ ...s, [key]: 'running' }));
@@ -74,6 +77,24 @@ export function ProductionBar() {
   return (
     <div className="px-4 py-2 flex items-center gap-3">
       <span className="text-[10px] uppercase tracking-wider text-gray-500 mr-1">Production</span>
+
+      <button
+        className="px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 bg-editor-hover text-gray-300 hover:bg-editor-border"
+        disabled={undoStack.length === 0}
+        onClick={() => useProjectStore.getState().undo()}
+        title="Undo (Ctrl+Z / Cmd+Z)"
+      >
+        Undo ({undoStack.length})
+      </button>
+
+      <button
+        className="px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 bg-editor-hover text-gray-300 hover:bg-editor-border"
+        disabled={redoStack.length === 0}
+        onClick={() => useProjectStore.getState().redo()}
+        title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)"
+      >
+        Redo ({redoStack.length})
+      </button>
 
       <button
         className={buttonClass('init')}
