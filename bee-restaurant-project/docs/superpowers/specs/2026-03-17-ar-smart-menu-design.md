@@ -69,6 +69,7 @@ Physical Menu (QR code)
 
 **AR Engine Layer**
 - MindAR.js v1.2.5 — image tracking with compiled `.mind` target files
+- Three.js version must be verified compatible with MindAR 1.2.5 (docs recommend v0.160.0, pin exact version)
 - TensorFlow.js (MindAR dependency) — GPU-accelerated feature detection
 - Only loaded when Layer 3 is activated (code-split)
 
@@ -131,8 +132,8 @@ STICKY      → Layer 3: target lost, model holds last position
       "description": "Fresh mozzarella, San Marzano tomatoes, basil",
       "category": "pizza",
       "models": {
-        "glb": "cdn/models/margherita.glb",
-        "usdz": "cdn/models/margherita.usdz"
+        "glb": "models/margherita.glb",
+        "usdz": "models/margherita.usdz"
       },
       "transform": {
         "scale": [0.3, 0.3, 0.3],
@@ -197,6 +198,7 @@ bee-restaurant-project/
 - Source: Sketchfab (CC-licensed food models)
 - 5-8 items across categories (pizzas, appetizers, desserts)
 - Optimize with glTF-Transform before serving
+- USDZ files: source pre-made from Sketchfab where available, or manually convert GLB → USDZ via Apple's Reality Converter (macOS) for Layer 2 iOS support
 
 ### Production Phase (Future)
 - AI-generated from video (Luma AI / Meshy) or photo (Tripo / Rodin)
@@ -226,7 +228,7 @@ bee-restaurant-project/
 - **Models < 2MB:** Draco compression + WebP textures + 512px cap + polygon simplification
 - **Lazy loading:** Only load the current item's model. Preload next/prev in carousel.
 - **Budget phone target:** Test on Samsung A series / Redmi Note. Cap pixel ratio at 2x. Use `MeshStandardMaterial` not `MeshPhysicalMaterial`.
-- **Battery aware:** Auto-pause MindAR tracking after 10s of target lost.
+- **Battery aware:** Auto-pause MindAR tracking after 10s of target lost. Show "Point at menu to continue" prompt. Tap to re-activate tracking.
 - **Slow 4G:** Show loading progress with restaurant branding. Skeleton placeholders for models.
 - **In-app browser detection:** Detect FBAN/Instagram/Twitter/TikTok user agents. Show "Open in Safari/Chrome" instructions.
 
