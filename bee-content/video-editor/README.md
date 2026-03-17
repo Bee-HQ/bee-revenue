@@ -176,6 +176,48 @@ uv run bee-video rough-cut storyboard.md -p ./my-project
 
 No color grading, no transitions — just 720p normalize + concat. Output at `output/rough/rough_cut.mp4`.
 
+## Stock Footage (Pexels)
+
+Search and download stock footage directly from the CLI:
+
+```bash
+# Set your API key (free at pexels.com/api)
+export PEXELS_API_KEY=your-key-here
+
+# Search and download 3 clips (min 5s each)
+uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./my-project
+
+# Landscape only, longer clips
+uv run bee-video fetch-stock "courtroom interior" -n 5 --duration 10 --orientation landscape -p ./my-project
+```
+
+Downloads go to `stock/` with Pexels-attributed filenames.
+
+## AI Video Generation
+
+Generate video clips from text prompts using pluggable AI providers:
+
+```bash
+# Stub provider (for testing — writes metadata JSON)
+uv run bee-video generate-clip "aerial shot of farm at dusk" -p ./my-project
+
+# With a real provider (when installed)
+uv run bee-video generate-clip "dramatic courtroom scene" --provider runway -p ./my-project
+
+# With reference images
+uv run bee-video generate-clip "match this style" --reference photo.jpg --provider kling -p ./my-project
+```
+
+Available providers:
+| Provider | Status | Install |
+|----------|--------|---------|
+| `stub` | Built-in | — (writes placeholder JSON) |
+| `runway` | Planned | `pip install runwayml` |
+| `kling` | Planned | TBD |
+| `luma` | Planned | TBD |
+
+Output goes to `generated/` directory and appears in the media library.
+
 ## Web Editor
 
 ### Helper Scripts

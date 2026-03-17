@@ -768,3 +768,87 @@ class TestRoughCut:
 
         assert r.status_code == 200
         assert "rough_cut" in r.json()["output"]
+
+
+# ─── Stock footage + video generation tests ──────────────────────────────────
+
+
+class TestStockSearch:
+    def test_search_returns_results(self, loaded_project):
+        client, _, _ = loaded_project
+        from bee_video_editor.processors.stock import PexelsResult
+        mock_result = PexelsResult(
+            id=123, url="https://pexels.com/123", duration=10,
+            width=1920, height=1080,
+            hd_url="https://cdn/123.mp4", sd_url=None,
+        )
+
+        with patch("bee_video_editor.processors.stock.search_pexels", return_value=[mock_result]):
+            r = client.post("/api/media/stock/search", json={
+                "query": "aerial farm",
+                "count": 3,
+            })
+
+        assert r.status_code == 200
+        assert r.json()["count"] == 1
+        assert r.json()["results"][0]["id"] == 123
+
+    def test_search_no_api_key_400(self, loaded_project):
+        client, _, _ = loaded_project
+        with patch("bee_video_editor.processors.stock.search_pexels",
+                    side_effect=ValueError("No API key")):
+            r = client.post("/api/media/stock/search", json={"query": "test"})
+
+        assert r.status_code == 400
+
+
+class TestStockDownload:
+    def test_download_clip(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        with patch("bee_video_editor.processors.stock.download_stock_clip") as mock_dl:
+            mock_dl.return_value = proj_dir / "stock" / "clip.mp4"
+            r = client.post("/api/media/stock/download", json={
+                "url": "https://cdn.pexels.com/clip.mp4",
+                "filename": "clip.mp4",
+            })
+
+        assert r.status_code == 200
+        assert r.json()["name"] == "clip.mp4"
+
+    def test_download_traversal_filename_400(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.post("/api/media/stock/download", json={
+            "url": "https://cdn/clip.mp4",
+            "filename": "../../evil.mp4",
+        })
+        assert r.status_code == 400
+
+    def test_download_http_url_400(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.post("/api/media/stock/download", json={
+            "url": "http://internal-server/secret.mp4",
+            "filename": "clip.mp4",
+        })
+        assert r.status_code == 400
+
+
+class TestGenerateClip:
+    def test_generate_with_stub(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        r = client.post("/api/media/generate-clip", json={
+            "prompt": "aerial shot of farm",
+            "provider": "stub",
+            "duration": 3.0,
+        })
+
+        assert r.status_code == 200
+        assert r.json()["status"] == "ok"
+        assert r.json()["provider"] == "stub"
+
+    def test_generate_unknown_provider_400(self, loaded_project):
+        client, _, _ = loaded_project
+        r = client.post("/api/media/generate-clip", json={
+            "prompt": "test",
+            "provider": "nonexistent",
+        })
+        assert r.status_code == 400

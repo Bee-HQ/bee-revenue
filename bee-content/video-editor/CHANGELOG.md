@@ -7,6 +7,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Stock footage API** — `bee-video fetch-stock "aerial farm dusk" -n 3` searches Pexels for stock video, downloads HD clips to project's `stock/` directory. Streaming download (no OOM on large files). API endpoints: `POST /stock/search`, `POST /stock/download` with SSRF protection
+- **AI video generation infra** — pluggable provider interface for text-to-video generation. `bee-video generate-clip --prompt "..." --provider stub`. Ships with stub provider for testing; real providers (Runway, Kling, Luma) registered automatically when their packages are installed. API endpoint: `POST /generate-clip`
+- **"generated" media category** — AI-generated clips in `generated/` directory appear in the media library automatically
+
 ## [0.6.0] - 2026-03-17
 
 ### Added

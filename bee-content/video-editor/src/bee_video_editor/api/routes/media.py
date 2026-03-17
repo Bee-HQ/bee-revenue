@@ -15,8 +15,11 @@ from bee_video_editor.api.schemas import (
     DownloadRequest,
     DownloadScriptInfo,
     DownloadStatusResponse,
+    GenerateClipRequest,
     MediaFileSchema,
     MediaListResponse,
+    StockDownloadRequest,
+    StockSearchRequest,
 )
 from bee_video_editor.api.session import SessionStore, get_session
 
@@ -49,6 +52,7 @@ MEDIA_CATEGORIES = {
     "maps": ["maps"],
     "music": ["music", "audio"],
     "segments": ["output/segments", "segments"],
+    "generated": ["generated"],
 }
 
 MEDIA_EXTENSIONS = {
@@ -344,3 +348,105 @@ def create_media_dirs(session: SessionStore = Depends(get_session)):
             d.mkdir(parents=True, exist_ok=True)
             created.append(str(subdirs[0]))
     return {"status": "ok", "created": created}
+
+
+@router.post("/stock/search")
+def search_stock(req: StockSearchRequest, session: SessionStore = Depends(get_session)):
+    """Search Pexels for stock footage."""
+    from bee_video_editor.processors.stock import search_pexels
+
+    try:
+        results = search_pexels(
+            req.query, per_page=req.count,
+            min_duration=req.min_duration, orientation=req.orientation,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+    return {
+        "results": [
+            {
+                "id": r.id,
+                "url": r.url,
+                "duration": r.duration,
+                "width": r.width,
+                "height": r.height,
+                "hd_url": r.hd_url,
+                "sd_url": r.sd_url,
+            }
+            for r in results
+        ],
+        "count": len(results),
+    }
+
+
+@router.post("/stock/download")
+def download_stock(req: StockDownloadRequest, session: SessionStore = Depends(get_session)):
+    """Download a stock footage clip to the project."""
+    from urllib.parse import urlparse
+
+    from bee_video_editor.processors.stock import download_stock_clip
+
+    _, project_dir = session.require_project()
+
+    # Validate URL (SSRF prevention)
+    parsed = urlparse(req.url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise HTTPException(400, "Only HTTPS URLs are allowed")
+
+    # Validate filename
+    safe_name = Path(req.filename).name
+    if not safe_name or safe_name.startswith(".") or safe_name != req.filename:
+        raise HTTPException(400, "Invalid filename")
+
+    stock_dir = project_dir / "stock"
+    try:
+        result = download_stock_clip(req.url, stock_dir / safe_name)
+        return {"status": "ok", "path": str(result), "name": safe_name}
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+
+@router.post("/generate-clip")
+def generate_video_clip(req: GenerateClipRequest, session: SessionStore = Depends(get_session)):
+    """Generate a video clip from a text prompt."""
+    from bee_video_editor.processors.stock import slugify_query
+    from bee_video_editor.processors.videogen import (
+        GenerationRequest,
+        generate_clip,
+        list_providers,
+    )
+
+    available = list_providers()
+    if req.provider not in available:
+        raise HTTPException(400, f"Unknown provider '{req.provider}'. Available: {', '.join(sorted(available))}")
+
+    _, project_dir = session.require_project()
+    output_dir = project_dir / "generated"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    slug = slugify_query(req.prompt)
+    output_path = output_dir / f"{slug}-{req.provider}.mp4"
+
+    gen_req = GenerationRequest(
+        prompt=req.prompt,
+        duration=req.duration,
+        width=req.width,
+        height=req.height,
+        reference_images=[Path(p) for p in req.reference_images],
+        reference_videos=[Path(p) for p in req.reference_videos],
+        style=req.style,
+    )
+
+    try:
+        result = generate_clip(gen_req, output_path, provider=req.provider)
+        return {
+            "status": "ok" if result.success else "error",
+            "output": str(result.output_path),
+            "provider": result.provider,
+            "error": result.error,
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))

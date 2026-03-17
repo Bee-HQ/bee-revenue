@@ -135,3 +135,26 @@ class PreflightReportSchema(BaseModel):
     generated: int
     needs_check: int
     entries: list[AssetEntrySchema]
+
+
+class StockSearchRequest(BaseModel):
+    query: str
+    count: int = 3
+    min_duration: int = 5
+    orientation: str | None = None
+
+
+class StockDownloadRequest(BaseModel):
+    url: str
+    filename: str
+
+
+class GenerateClipRequest(BaseModel):
+    prompt: str
+    provider: str = "stub"
+    duration: float = 5.0
+    width: int = 1280
+    height: int = 720
+    reference_images: list[str] = []
+    reference_videos: list[str] = []
+    style: str | None = None

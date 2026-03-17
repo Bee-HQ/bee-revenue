@@ -89,7 +89,8 @@ Architectural work that unlocks new capabilities.
 Features needed when producing 2+ videos/month consistently.
 
 ### Pipeline Automation
-- [ ] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" --duration 10` hits Pexels API, downloads, renames per naming convention. Eliminates manual stock footage sourcing
+- [x] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" -n 3` searches Pexels, downloads HD clips to stock/ dir. Needs `PEXELS_API_KEY` env var
+- [x] **AI video generation infra** — `bee-video generate-clip --prompt "..." --provider stub` with pluggable provider interface. Ships with stub provider; real providers (Runway, Kling, Luma) as optional extras
 - [ ] **LLM screenplay → assembly guide** — accept a case-research doc + formula, generate an assembly guide draft. Human review required but saves 2-3 hours per video
 - [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file. Supports lower_third, timeline_marker, quote_card, financial_card, text_overlay, black_frame, mugshot_card, news_montage
 

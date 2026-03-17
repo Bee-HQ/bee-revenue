@@ -811,6 +811,119 @@ def rough_cut(
         console.print("[yellow]No assigned media found. Assign media to segments first.[/yellow]")
 
 
+@app.command()
+def fetch_stock(
+    query: str = typer.Argument(..., help="Search query (e.g. 'aerial farm dusk')"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    count: int = typer.Option(3, "--count", "-n", help="Number of clips to download"),
+    min_duration: int = typer.Option(5, "--duration", "-d", help="Minimum clip duration (seconds)"),
+    orientation: str | None = typer.Option(None, "--orientation", "-o", help="landscape/portrait/square"),
+    api_key: str | None = typer.Option(None, "--api-key", envvar="PEXELS_API_KEY"),
+):
+    """Search and download stock footage from Pexels."""
+    from bee_video_editor.processors.stock import (
+        download_stock_clip,
+        search_pexels,
+        slugify_query,
+    )
+
+    try:
+        results = search_pexels(
+            query, api_key=api_key, per_page=count,
+            min_duration=min_duration, orientation=orientation,
+        )
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+    if not results:
+        console.print("[yellow]No results found.[/yellow]")
+        return
+
+    console.print(f"[bold]Found {len(results)} clips. Downloading...[/bold]")
+    stock_dir = Path(project_dir) / "stock"
+    slug = slugify_query(query)
+
+    for i, clip in enumerate(results[:count]):
+        filename = f"{slug}-{i:02d}-pexels-{clip.id}.mp4"
+        out_path = stock_dir / filename
+
+        try:
+            download_stock_clip(clip.hd_url, out_path)
+            console.print(f"  [green]{filename}[/green] ({clip.duration}s, {clip.width}x{clip.height})")
+        except RuntimeError as e:
+            console.print(f"  [red]{filename}: {e}[/red]")
+
+    console.print(f"[bold green]Done — {stock_dir}[/bold green]")
+
+
+@app.command()
+def generate_clip(
+    prompt: str = typer.Argument(..., help="Text prompt describing the clip to generate"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    provider: str = typer.Option("stub", "--provider", help="Generation provider (stub/runway/kling/luma)"),
+    duration: float = typer.Option(5.0, "--duration", "-d", help="Clip duration (seconds)"),
+    reference: list[str] | None = typer.Option(None, "--reference", "-r", help="Reference image/video path"),
+    width: int = typer.Option(1280, "--width", "-w"),
+    height: int = typer.Option(720, "--height"),
+    style: str | None = typer.Option(None, "--style", "-s", help="Provider-specific style hint"),
+):
+    """Generate a video clip from a text prompt using AI."""
+    from bee_video_editor.processors.stock import slugify_query
+    from bee_video_editor.processors.videogen import (
+        GenerationRequest,
+        generate_clip as gen_clip,
+        list_providers,
+    )
+
+    available = list_providers()
+    if provider not in available:
+        console.print(f"[red]Unknown provider '{provider}'. Available: {', '.join(sorted(available))}[/red]")
+        raise typer.Exit(1)
+
+    ref_images = []
+    ref_videos = []
+    for ref in (reference or []):
+        p = Path(ref)
+        if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}:
+            ref_images.append(p)
+        else:
+            ref_videos.append(p)
+
+    slug = slugify_query(prompt)
+    output_dir = Path(project_dir) / "generated"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{slug}-{provider}.mp4"
+
+    req = GenerationRequest(
+        prompt=prompt,
+        duration=duration,
+        width=width,
+        height=height,
+        reference_images=ref_images,
+        reference_videos=ref_videos,
+        style=style,
+    )
+
+    console.print(f"[bold]Generating clip ({provider})...[/bold]")
+    console.print(f"  Prompt: {prompt}")
+    if ref_images or ref_videos:
+        console.print(f"  References: {len(ref_images)} images, {len(ref_videos)} videos")
+
+    try:
+        result = gen_clip(req, output_path, provider=provider)
+        if result.success:
+            console.print(f"[bold green]Generated: {result.output_path}[/bold green]")
+        else:
+            console.print(f"[red]Generation failed: {result.error}[/red]")
+    except Exception as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)

@@ -96,6 +96,8 @@ uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
 uv run bee-video graphics-batch config.json -p ./proj       # Batch graphics from config
 uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for project
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
+uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
+uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
 
 # Effects (standalone)
 uv run bee-video effects in.mp4 out.mp4 --color noir --speed 1.5 --text "Ch 1"
