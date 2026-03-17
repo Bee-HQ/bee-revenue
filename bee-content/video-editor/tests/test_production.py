@@ -15,6 +15,8 @@ from bee_video_editor.models_storyboard import (
 )
 from bee_video_editor.services.production import (
     FailedItem,
+    PipelineResult,
+    PipelineStep,
     ProductionConfig,
     ProductionResult,
     ProductionState,
@@ -212,6 +214,30 @@ class TestEnsureStoryboard:
         result = _ensure_storyboard(proj)
         assert isinstance(result, Storyboard)
         assert result.title == "Test"
+
+
+class TestPipelineResult:
+    def test_ok_when_all_done(self):
+        result = PipelineResult(steps=[
+            PipelineStep(name="init", status="done"),
+            PipelineStep(name="graphics", status="skipped"),
+        ])
+        assert result.ok is True
+
+    def test_not_ok_when_failed(self):
+        result = PipelineResult(steps=[
+            PipelineStep(name="init", status="done"),
+            PipelineStep(name="graphics", status="failed"),
+        ])
+        assert result.ok is False
+
+    def test_ok_empty_steps(self):
+        result = PipelineResult(steps=[])
+        assert result.ok is True
+
+    def test_output_path_default_none(self):
+        result = PipelineResult(steps=[])
+        assert result.output_path is None
 
 
 class TestTrimWithStoryboard:

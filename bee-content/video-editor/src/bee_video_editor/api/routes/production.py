@@ -312,6 +312,46 @@ def generate_captions(req: CaptionRequest, session: SessionStore = Depends(get_s
     return {"status": "ok", "count": len(segments), "output": str(out)}
 
 
+@router.post("/produce")
+def produce_video(
+    transition: str | None = None,
+    transition_duration: float = 1.0,
+    caption_style: str = "karaoke",
+    skip_graphics: bool = False,
+    skip_narration: bool = False,
+    skip_captions: bool = False,
+    skip_trim: bool = False,
+    session: SessionStore = Depends(get_session),
+):
+    """Run the full production pipeline."""
+    from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
+
+    storyboard, project_dir = session.require_project()
+
+    if not session.storyboard_path:
+        raise HTTPException(400, "No storyboard path available — load project first")
+
+    config = ProductionConfig(project_dir=project_dir)
+
+    result = run_full_pipeline(
+        storyboard_path=session.storyboard_path,
+        config=config,
+        skip_graphics=skip_graphics,
+        skip_captions=skip_captions,
+        skip_narration=skip_narration,
+        skip_trim=skip_trim,
+        caption_style=caption_style,
+        transition=transition,
+        transition_duration=transition_duration,
+    )
+
+    return {
+        "status": "ok" if result.ok else "failed",
+        "steps": [{"name": s.name, "status": s.status, "message": s.message} for s in result.steps],
+        "output": str(result.output_path) if result.output_path else None,
+    }
+
+
 @router.post("/assemble")
 def assemble_video(
     transition: str | None = None,

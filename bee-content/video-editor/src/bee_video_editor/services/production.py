@@ -28,6 +28,25 @@ from bee_video_editor.processors.tts import generate_narration
 
 
 @dataclass
+class PipelineStep:
+    """A single step in the full production pipeline."""
+    name: str
+    status: str = "pending"  # pending, running, done, skipped, failed
+    message: str = ""
+
+
+@dataclass
+class PipelineResult:
+    """Result from run_full_pipeline."""
+    steps: list[PipelineStep] = field(default_factory=list)
+    output_path: Path | None = None
+
+    @property
+    def ok(self) -> bool:
+        return all(s.status in ("done", "skipped") for s in self.steps)
+
+
+@dataclass
 class FailedItem:
     """A single failed processing step."""
     path: str
@@ -423,6 +442,124 @@ def assemble_final(
             pass  # Fall through to return uncaptioned video
 
     return output
+
+
+def run_full_pipeline(
+    storyboard_path: Path,
+    config: ProductionConfig,
+    skip_graphics: bool = False,
+    skip_captions: bool = False,
+    skip_narration: bool = False,
+    skip_trim: bool = False,
+    caption_style: str = "karaoke",
+    transition: str | None = None,
+    transition_duration: float = 1.0,
+    animated: bool = False,
+    on_step: callable | None = None,
+) -> PipelineResult:
+    """Run the full production pipeline: init → graphics → captions → narration → trim → assemble.
+
+    Steps that already have output are skipped automatically (idempotent).
+    Stops on the first failure. Completed steps are not re-run on retry.
+    """
+    result = PipelineResult(steps=[])
+
+    def _step(name, fn):
+        step = PipelineStep(name=name, status="running")
+        result.steps.append(step)
+        if on_step:
+            on_step(name, "running", "")
+        try:
+            msg = fn()
+            step.status = "done"
+            step.message = msg or ""
+            if on_step:
+                on_step(name, "done", step.message)
+        except Exception as e:
+            step.status = "failed"
+            step.message = str(e)[:200]
+            if on_step:
+                on_step(name, "failed", step.message)
+            return False
+        return True
+
+    # Parse storyboard
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    storyboard = parse_storyboard(storyboard_path)
+
+    # Step 1: Init
+    def do_init():
+        for subdir in ["segments", "normalized", "composited", "graphics", "narration", "captions", "final"]:
+            (config.output_dir / subdir).mkdir(parents=True, exist_ok=True)
+        return "directories created"
+
+    if not _step("init", do_init):
+        return result
+
+    # Step 2: Graphics
+    if skip_graphics:
+        result.steps.append(PipelineStep(name="graphics", status="skipped", message="--skip-graphics"))
+    elif list((config.output_dir / "graphics").glob("*.png")):
+        result.steps.append(PipelineStep(name="graphics", status="skipped", message="already exists"))
+    else:
+        def do_graphics():
+            r = generate_graphics_for_project(storyboard, config, animated=animated)
+            return f"{len(r.succeeded)} generated, {len(r.failed)} failed"
+        if not _step("graphics", do_graphics):
+            return result
+
+    # Step 3: Captions
+    if skip_captions:
+        result.steps.append(PipelineStep(name="captions", status="skipped", message="--skip-captions"))
+    elif (config.output_dir / "captions" / "captions.ass").exists():
+        result.steps.append(PipelineStep(name="captions", status="skipped", message="already exists"))
+    else:
+        def do_captions():
+            from bee_video_editor.processors.captions import extract_caption_segments, generate_captions_estimated
+            segments = extract_caption_segments(storyboard)
+            if not segments:
+                return "no captionable segments"
+            out = config.output_dir / "captions" / "captions.ass"
+            generate_captions_estimated(segments, out, style=caption_style)
+            return f"{len(segments)} segments"
+        if not _step("captions", do_captions):
+            return result
+
+    # Step 4: Narration
+    if skip_narration:
+        result.steps.append(PipelineStep(name="narration", status="skipped", message="--skip-narration"))
+    elif list((config.output_dir / "narration").glob("*.mp3")):
+        result.steps.append(PipelineStep(name="narration", status="skipped", message="already exists"))
+    else:
+        def do_narration():
+            r = generate_narration_for_project(storyboard, config)
+            return f"{len(r.succeeded)} clips, {len(r.failed)} failed"
+        if not _step("narration", do_narration):
+            return result
+
+    # Step 5: Trim
+    if skip_trim:
+        result.steps.append(PipelineStep(name="trim", status="skipped", message="--skip-trim"))
+    elif list((config.output_dir / "segments").glob("*.mp4")):
+        result.steps.append(PipelineStep(name="trim", status="skipped", message="already exists"))
+    else:
+        def do_trim():
+            r = trim_source_footage(storyboard, config)
+            return f"{len(r.succeeded)} trimmed"
+        if not _step("trim", do_trim):
+            return result
+
+    # Step 6: Assemble
+    def do_assemble():
+        out = assemble_final(config, transition=transition, transition_duration=transition_duration)
+        if out:
+            result.output_path = out
+            return str(out)
+        return "no segments to assemble"
+    if not _step("assemble", do_assemble):
+        return result
+
+    return result
 
 
 def _extract_narrator_text(audio_field: str) -> str:

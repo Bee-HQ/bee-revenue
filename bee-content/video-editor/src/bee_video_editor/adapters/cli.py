@@ -573,6 +573,70 @@ def serve(
     uvicorn.run(app_instance, host=host, port=port, log_level="info")
 
 
+@app.command()
+def produce(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    tts_engine: str = typer.Option("edge", "--tts", help="TTS engine"),
+    voice: str | None = typer.Option(None, "--voice", "-v"),
+    caption_style: str = typer.Option("karaoke", "--style", "-s", help="Caption style: karaoke or phrase"),
+    transition_name: str | None = typer.Option(None, "--transition", "-t"),
+    transition_duration: float = typer.Option(1.0, "--transition-duration"),
+    skip_graphics: bool = typer.Option(False, "--skip-graphics"),
+    skip_narration: bool = typer.Option(False, "--skip-narration"),
+    skip_captions: bool = typer.Option(False, "--skip-captions"),
+    skip_trim: bool = typer.Option(False, "--skip-trim"),
+    animated: bool = typer.Option(False, "--animated"),
+):
+    """Run the full production pipeline: init → graphics → captions → narration → trim → assemble."""
+    from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
+
+    config = ProductionConfig(
+        project_dir=Path(project_dir),
+        tts_engine=tts_engine,
+        tts_voice=voice,
+    )
+
+    step_icons = {"running": "⏳", "done": "✓", "skipped": "⏭", "failed": "✗"}
+    step_colors = {"running": "yellow", "done": "green", "skipped": "dim", "failed": "red"}
+    total_steps = 6
+    step_nums = {"init": 1, "graphics": 2, "captions": 3, "narration": 4, "trim": 5, "assemble": 6}
+
+    def on_step(name, status, message):
+        icon = step_icons.get(status, "?")
+        color = step_colors.get(status, "white")
+        step_num = step_nums.get(name, 0)
+        msg = f" — {message}" if message else ""
+        console.print(f"[{color}][{step_num}/{total_steps}] {name} {icon}{msg}[/{color}]")
+
+    console.print(f"\n[bold]Producing video from {storyboard_path}[/bold]\n")
+
+    result = run_full_pipeline(
+        storyboard_path=Path(storyboard_path),
+        config=config,
+        skip_graphics=skip_graphics,
+        skip_captions=skip_captions,
+        skip_narration=skip_narration,
+        skip_trim=skip_trim,
+        caption_style=caption_style,
+        transition=transition_name,
+        transition_duration=transition_duration,
+        animated=animated,
+        on_step=on_step,
+    )
+
+    if result.ok:
+        console.print(f"\n[bold green]Done![/bold green]")
+        if result.output_path:
+            console.print(f"Output: {result.output_path}")
+    else:
+        failed = [s for s in result.steps if s.status == "failed"]
+        console.print(f"\n[bold red]Pipeline failed at: {failed[0].name}[/bold red]")
+        console.print(f"Error: {failed[0].message}")
+        console.print("\n[dim]Fix the issue and re-run — completed steps will be skipped.[/dim]")
+        raise typer.Exit(1)
+
+
 def _load_project(assembly_guide: str):
     from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
     return parse_assembly_guide(assembly_guide)
