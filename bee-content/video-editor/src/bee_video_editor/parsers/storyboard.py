@@ -226,8 +226,16 @@ def _parse_layer_row(line: str, segment: StoryboardSegment) -> None:
         content_type = type_match.group(1).strip()
         content = type_match.group(2).strip()
     else:
-        content_type = "UNKNOWN"
-        content = content_raw
+        # Try bible visual code: [CODE] or [CODE: qualifier]
+        bible_match = re.match(r'\[([A-Z][A-Z0-9_-]+)(?::\s*([^\]]*))?\]\s*(.*)', content_raw)
+        if bible_match:
+            content_type = bible_match.group(1)
+            qualifier = bible_match.group(2)
+            rest = bible_match.group(3).strip()
+            content = f"{qualifier.strip()} — {rest}".strip(" —") if qualifier else rest
+        else:
+            content_type = "UNKNOWN"
+            content = content_raw
 
     entry = LayerEntry(
         content=content,
