@@ -91,6 +91,17 @@ Features needed when producing 2+ videos/month consistently.
 ### Pipeline Automation
 - [x] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" -n 3` searches Pexels, downloads HD clips to stock/ dir. Needs `PEXELS_API_KEY` env var
 - [x] **AI video generation infra** — `bee-video generate-clip --prompt "..." --provider stub` with pluggable provider interface. Ships with stub provider; real providers (Runway, Kling, Luma) as optional extras
+
+### Video Generation Providers (planned)
+
+Wire up real AI providers for `generate-clip`. The infra is built — each provider is a single file (`_videogen_<name>.py`) that implements `generate_<name>(request, output_path) -> GenerationResult` and auto-registers on import.
+
+- [ ] **Runway Gen-4** — text-to-video + image-to-video. Supports reference images for style/content guidance. Needs `RUNWAY_API_KEY` env var. Add as `video-gen-runway = ["runwayml"]` extra in pyproject.toml
+- [ ] **Kling** — text-to-video + image-to-video. Strong at realistic motion. Needs API key. Add as `video-gen-kling` extra
+- [ ] **Luma Dream Machine** — text-to-video + image-to-video. Good at cinematic shots. Needs API key. Add as `video-gen-luma` extra
+- [ ] **Stub → FFmpeg placeholder** — upgrade the stub provider to generate an actual playable MP4 (black frame with burned-in prompt text via FFmpeg `drawtext`) instead of JSON metadata. Makes downstream pipeline testing realistic without needing an AI API
+
+### Pipeline Automation (continued)
 - [ ] **LLM screenplay → assembly guide** — accept a case-research doc + formula, generate an assembly guide draft. Human review required but saves 2-3 hours per video
 - [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file. Supports lower_third, timeline_marker, quote_card, financial_card, text_overlay, black_frame, mugshot_card, news_montage
 
