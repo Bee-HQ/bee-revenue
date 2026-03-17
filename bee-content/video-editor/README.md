@@ -153,6 +153,16 @@ uv run bee-video serve
 
 The web UI provides drag-and-drop media assignment, storyboard timeline view, video preview, and one-click asset generation.
 
+### Screenshots
+
+Screenshots are maintained in `docs/screenshots/latest/` and updated each release. See [Screenshot Checklist](docs/SCREENSHOT-CHECKLIST.md) for the capture process.
+
+<!-- When screenshots are captured, uncomment these:
+![Load Project](docs/screenshots/latest/01-load-project.png)
+![Editor Main](docs/screenshots/latest/02-editor-main.png)
+-->
+
+
 ## Python API
 
 All processors are importable for scripting:
@@ -231,4 +241,4 @@ uv run --extra dev pytest tests/test_ffmpeg_effects.py -v
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+See [CHANGELOG.md](CHANGELOG.md) for release history and [ROADMAP.md](ROADMAP.md) for planned improvements.

@@ -16,7 +16,7 @@ def create_app(static_dir: Path | None = None) -> FastAPI:
     app = FastAPI(
         title="Bee Video Editor",
         description="Storyboard-first AI video production",
-        version="0.2.0",
+        version="0.3.0",
     )
 
     app.add_middleware(
