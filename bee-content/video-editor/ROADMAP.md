@@ -64,7 +64,7 @@ Architectural work that unlocks new capabilities.
 ### Production
 - [x] **One-command production** — `bee-video produce` runs init → graphics → captions → narration → trim → assemble with auto-skip and progress
 - [x] **Preview generation** — 360p thumbnails per segment from assigned media, per-segment + batch, cached in `output/previews/`
-- [ ] **Parallel segment processing** — process independent segments concurrently (currently sequential)
+- [x] **Parallel narration processing** — `--workers N` flag for concurrent TTS via ThreadPoolExecutor (default: sequential)
 
 ### Real-time
 - [ ] **WebSocket progress** — real-time progress for TTS, FFmpeg, and assembly (replace polling)
