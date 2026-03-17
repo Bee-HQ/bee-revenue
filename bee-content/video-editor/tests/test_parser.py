@@ -180,6 +180,58 @@ class TestParseAssemblyGuide:
         assert done_count == 1
 
 
+class TestParserResilience:
+    def test_whitespace_in_cells(self):
+        """Table cells with extra whitespace should parse correctly."""
+        # Create a markdown string with extra whitespace in table cells
+        md = """# Assembly Guide: "Test"
+
+**Total Duration:** ~5 minutes
+**Resolution:** 1080p
+**Format:** MP4
+
+## Minute-by-Minute Assembly
+
+### COLD OPEN (0:00 - 0:10)
+
+| Time | Dur | Type | Visual | Audio | Source File / Notes |
+|------|-----|------|--------|-------|-------------------|
+|  0:00-0:10  |  10s  |  NAR  |  Test visual  |  NAR: "Test audio"  |  source.mp4  |
+"""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(md)
+            f.flush()
+            from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
+            project = parse_assembly_guide(f.name)
+            assert len(project.segments) == 1
+            assert "Test visual" in project.segments[0].visual
+
+    def test_missing_pre_production(self):
+        """Assembly guide with no Pre-Production section should not crash."""
+        md = """# Assembly Guide: "Test"
+
+**Total Duration:** ~5 minutes
+**Resolution:** 1080p
+**Format:** MP4
+
+## Minute-by-Minute Assembly
+
+### SECTION (0:00 - 0:10)
+
+| Time | Dur | Type | Visual | Audio | Source File / Notes |
+|------|-----|------|--------|-------|-------------------|
+| 0:00-0:10 | 10s | NAR | Visual | Audio | Notes |
+"""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(md)
+            f.flush()
+            from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
+            project = parse_assembly_guide(f.name)
+            assert project.pre_production == []
+
+
 class TestParseRealAssemblyGuide:
     """Test against the actual Alex Murdaugh assembly guide."""
 

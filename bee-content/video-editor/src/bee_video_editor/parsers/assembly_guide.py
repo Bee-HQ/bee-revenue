@@ -17,6 +17,11 @@ from bee_video_editor.models import (
 )
 
 
+def _normalize_cell(text: str) -> str:
+    """Strip whitespace and stray backticks from table cell content."""
+    return text.strip().strip('`').strip()
+
+
 def parse_assembly_guide(path: str | Path) -> Project:
     """Parse an assembly guide markdown file into a Project."""
     text = Path(path).read_text(encoding="utf-8")
@@ -30,9 +35,18 @@ def parse_assembly_guide(path: str | Path) -> Project:
     )
 
     project.segments = _parse_segments(lines)
-    project.pre_production = _parse_pre_production(lines)
-    project.trim_notes = _parse_trim_notes(lines)
-    project.post_checklist = _parse_post_checklist(lines)
+    try:
+        project.pre_production = _parse_pre_production(lines)
+    except Exception:
+        project.pre_production = []
+    try:
+        project.trim_notes = _parse_trim_notes(lines)
+    except Exception:
+        project.trim_notes = []
+    try:
+        project.post_checklist = _parse_post_checklist(lines)
+    except Exception:
+        project.post_checklist = []
 
     return project
 
@@ -119,7 +133,7 @@ def _is_table_header(line: str) -> bool:
 
 def _parse_table_row(line: str, section: str, subsection: str) -> Segment | None:
     """Parse a single assembly guide table row into a Segment."""
-    cells = [c.strip() for c in line.split("|")]
+    cells = [_normalize_cell(c) for c in line.split("|")]
     # Remove empty first/last from pipe splitting
     cells = [c for c in cells if c or cells.index(c) not in (0, len(cells) - 1)]
     # Filter out truly empty leading/trailing
