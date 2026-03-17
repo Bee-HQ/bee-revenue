@@ -62,7 +62,7 @@ Features that meaningfully change the editing workflow.
 Architectural work that unlocks new capabilities.
 
 ### Production
-- [ ] **One-command production** — `bee-video produce` runs full pipeline (init → graphics → narration → trim → assemble) with progress reporting
+- [x] **One-command production** — `bee-video produce` runs init → graphics → captions → narration → trim → assemble with auto-skip and progress
 - [ ] **Preview generation** — low-res FFmpeg composite per segment, cached in `output/previews/`, "Generate Preview" button per segment card
 - [ ] **Parallel segment processing** — process independent segments concurrently (currently sequential)
 
