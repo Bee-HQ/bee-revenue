@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -28,7 +28,7 @@ class SessionStore:
         return self.storyboard, self.project_dir
 
     def load_project(self, storyboard_path: Path, project_dir: Path) -> Storyboard:
-        """Parse storyboard, restore assignments, set as current session."""
+        """Parse storyboard, restore assignments and segment order, set as current session."""
         if not storyboard_path.exists():
             raise HTTPException(404, f"Storyboard not found: {storyboard_path}")
         if not project_dir.exists():
@@ -43,6 +43,16 @@ class SessionStore:
         for seg in self.storyboard.segments:
             if seg.id in saved:
                 seg.assigned_media = saved[seg.id]
+
+        # Restore custom segment order if present
+        saved_order = self.load_segment_order()
+        if saved_order:
+            seg_map = {s.id: s for s in self.storyboard.segments}
+            reordered = [seg_map[sid] for sid in saved_order if sid in seg_map]
+            # Append any segments not in the saved order (newly added)
+            reordered_ids = {s.id for s in reordered}
+            extras = [s for s in self.storyboard.segments if s.id not in reordered_ids]
+            self.storyboard.segments = reordered + extras
 
         self._save_session()
         return self.storyboard
@@ -69,6 +79,25 @@ class SessionStore:
             "key": key,
             "media_path": media_path,
         }
+
+    def save_segment_order(self, order: list[str]) -> None:
+        """Persist a custom segment ordering to .bee-video/segment-order.json."""
+        _, _ = self.require_project()
+        order_path = self.project_dir / ".bee-video" / "segment-order.json"  # type: ignore[operator]
+        order_path.parent.mkdir(parents=True, exist_ok=True)
+        order_path.write_text(json.dumps(order, indent=2))
+
+    def load_segment_order(self) -> list[str] | None:
+        """Return saved segment order from .bee-video/segment-order.json, or None."""
+        if self.project_dir is None:
+            return None
+        order_path = self.project_dir / ".bee-video" / "segment-order.json"
+        if not order_path.exists():
+            return None
+        try:
+            return json.loads(order_path.read_text())
+        except Exception:
+            return None
 
     def _save_session(self) -> None:
         """Persist session info for auto-reload on restart."""

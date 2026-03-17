@@ -15,24 +15,31 @@ interface ProjectState {
   storyboard: Storyboard | null;
   loading: boolean;
   error: string | null;
-  selectedSegmentId: string | null;
+  selectedSegmentIds: string[];
   mediaFiles: MediaFile[];
   mediaCategories: Record<string, number>;
   draggedMedia: MediaFile | null;
   previewMedia: MediaFile | null;
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
+  segmentOrder: string[] | null;
 
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
+  toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
   loadMedia: () => Promise<void>;
   setDraggedMedia: (file: MediaFile | null) => void;
   setPreviewMedia: (file: MediaFile | null) => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
+  assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
+  reorderSegments: (fromIndex: number, toIndex: number) => void;
+  orderedSegments: () => Segment[];
   undo: () => Promise<void>;
   redo: () => Promise<void>;
 
   selectedSegment: () => Segment | null;
+  /** @deprecated use selectedSegmentIds[0] */
+  selectedSegmentId: string | null;
 }
 
 function applyAssignment(
@@ -58,27 +65,83 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   storyboard: null,
   loading: false,
   error: null,
-  selectedSegmentId: null,
+  selectedSegmentIds: [],
+  selectedSegmentId: null,  // kept in sync for backwards compat
   mediaFiles: [],
   mediaCategories: {},
   draggedMedia: null,
   previewMedia: null,
   undoStack: [],
   redoStack: [],
+  segmentOrder: null,
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });
     try {
       const storyboard = await api.loadProject(storyboardPath, projectDir);
-      set({ storyboard, loading: false, selectedSegmentId: null, undoStack: [], redoStack: [] });
-      // Also load media
+      // Backend restores segment order in its list — we don't need to track clientside order separately
+      // after load; reset to null so orderedSegments() uses the server-returned order.
+      set({
+        storyboard,
+        loading: false,
+        selectedSegmentIds: [],
+        selectedSegmentId: null,
+        undoStack: [],
+        redoStack: [],
+        segmentOrder: null,
+      });
       get().loadMedia();
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  selectSegment: (id) => set({ selectedSegmentId: id, previewMedia: null }),
+  selectSegment: (id) => {
+    const ids = id ? [id] : [];
+    set({ selectedSegmentIds: ids, selectedSegmentId: id, previewMedia: null });
+  },
+
+  toggleSegmentSelection: (id, shiftKey) => {
+    const { selectedSegmentIds } = get();
+    let next: string[];
+    if (shiftKey) {
+      // Toggle this id in/out of the set
+      if (selectedSegmentIds.includes(id)) {
+        next = selectedSegmentIds.filter(s => s !== id);
+      } else {
+        next = [...selectedSegmentIds, id];
+      }
+    } else {
+      // Single-select: replace selection (deselect if already sole selection)
+      next = selectedSegmentIds.length === 1 && selectedSegmentIds[0] === id ? [] : [id];
+    }
+    set({ selectedSegmentIds: next, selectedSegmentId: next[0] ?? null, previewMedia: null });
+  },
+
+  reorderSegments: (fromIndex, toIndex) => {
+    const { storyboard } = get();
+    if (!storyboard) return;
+    const segments = [...storyboard.segments];
+    const [moved] = segments.splice(fromIndex, 1);
+    segments.splice(toIndex, 0, moved);
+    const newOrder = segments.map(s => s.id);
+    set({ storyboard: { ...storyboard, segments }, segmentOrder: newOrder });
+    // Persist to backend (fire-and-forget, non-critical)
+    api.reorderSegments(newOrder).catch(() => {});
+  },
+
+  orderedSegments: () => {
+    const { storyboard } = get();
+    if (!storyboard) return [];
+    return storyboard.segments;
+  },
+
+  assignMediaBatch: async (layer, mediaPath) => {
+    const { selectedSegmentIds } = get();
+    for (const segmentId of selectedSegmentIds) {
+      await get().assignMedia(segmentId, layer, mediaPath);
+    }
+  },
 
   loadMedia: async () => {
     try {
@@ -170,8 +233,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   selectedSegment: () => {
-    const { storyboard, selectedSegmentId } = get();
-    if (!storyboard || !selectedSegmentId) return null;
-    return storyboard.segments.find(s => s.id === selectedSegmentId) ?? null;
+    const { storyboard, selectedSegmentIds } = get();
+    if (!storyboard || selectedSegmentIds.length === 0) return null;
+    return storyboard.segments.find(s => s.id === selectedSegmentIds[0]) ?? null;
   },
 }));

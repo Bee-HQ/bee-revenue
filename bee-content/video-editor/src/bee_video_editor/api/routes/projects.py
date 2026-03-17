@@ -10,6 +10,7 @@ from bee_video_editor.api.schemas import (
     AssignMediaRequest,
     LayerEntrySchema,
     LoadProjectRequest,
+    ReorderSegmentsRequest,
     SegmentSchema,
     StoryboardSchema,
 )
@@ -83,3 +84,10 @@ def get_current_project(session: SessionStore = Depends(get_session)):
 def assign_media(req: AssignMediaRequest, session: SessionStore = Depends(get_session)):
     """Assign a media file to a segment layer."""
     return session.assign_media(req.segment_id, req.layer, req.layer_index, req.media_path)
+
+
+@router.put("/reorder")
+def reorder_segments(req: ReorderSegmentsRequest, session: SessionStore = Depends(get_session)):
+    """Persist a custom segment ordering."""
+    session.save_segment_order(req.segment_order)
+    return {"status": "ok", "count": len(req.segment_order)}

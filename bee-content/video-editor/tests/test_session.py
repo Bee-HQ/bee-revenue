@@ -98,6 +98,103 @@ class TestSessionStore:
             assert exc_info.value.status_code == 404
 
 
+class TestSegmentOrder:
+    def _make_store(self, d: str):
+        """Helper: create a SessionStore with a loaded project in temp dir d."""
+        from unittest.mock import patch
+        from bee_video_editor.models_storyboard import ProductionRules, Storyboard, StoryboardSegment
+
+        store = SessionStore()
+        proj_dir = Path(d) / "project"
+        proj_dir.mkdir()
+        sb_path = Path(d) / "sb.md"
+        sb_path.write_text("# Test\n")
+
+        seg_a = StoryboardSegment(
+            id="seg_a", start="0:00", end="0:05", title="A",
+            section="INTRO", section_time="", subsection="",
+            visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
+            assigned_media={},
+        )
+        seg_b = StoryboardSegment(
+            id="seg_b", start="0:05", end="0:10", title="B",
+            section="INTRO", section_time="", subsection="",
+            visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
+            assigned_media={},
+        )
+
+        with patch("bee_video_editor.api.session.parse_storyboard") as mock_parse:
+            mock_parse.return_value = Storyboard(
+                title="Test", segments=[seg_a, seg_b], stock_footage=[],
+                photos_needed=[], maps_needed=[], production_rules=ProductionRules(),
+            )
+            store.load_project(sb_path, proj_dir)
+        return store, proj_dir
+
+    def test_load_segment_order_returns_none_when_no_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            store, _ = self._make_store(d)
+            assert store.load_segment_order() is None
+
+    def test_save_and_load_segment_order(self):
+        with tempfile.TemporaryDirectory() as d:
+            store, proj_dir = self._make_store(d)
+            store.save_segment_order(["seg_b", "seg_a"])
+            loaded = store.load_segment_order()
+            assert loaded == ["seg_b", "seg_a"]
+            order_file = proj_dir.resolve() / ".bee-video" / "segment-order.json"
+            assert order_file.exists()
+
+    def test_load_project_restores_saved_order(self):
+        """load_project re-orders segments according to saved segment-order.json."""
+        with tempfile.TemporaryDirectory() as d:
+            from unittest.mock import patch
+            from bee_video_editor.models_storyboard import ProductionRules, Storyboard, StoryboardSegment
+
+            store = SessionStore()
+            proj_dir = Path(d) / "project"
+            proj_dir.mkdir()
+            sb_path = Path(d) / "sb.md"
+            sb_path.write_text("# Test\n")
+
+            # Pre-create segment-order.json with reversed order
+            order_path = proj_dir / ".bee-video" / "segment-order.json"
+            order_path.parent.mkdir(parents=True, exist_ok=True)
+            order_path.write_text(json.dumps(["seg_b", "seg_a"]))
+
+            seg_a = StoryboardSegment(
+                id="seg_a", start="0:00", end="0:05", title="A",
+                section="INTRO", section_time="", subsection="",
+                visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
+                assigned_media={},
+            )
+            seg_b = StoryboardSegment(
+                id="seg_b", start="0:05", end="0:10", title="B",
+                section="INTRO", section_time="", subsection="",
+                visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
+                assigned_media={},
+            )
+
+            with patch("bee_video_editor.api.session.parse_storyboard") as mock_parse:
+                mock_parse.return_value = Storyboard(
+                    title="Test", segments=[seg_a, seg_b], stock_footage=[],
+                    photos_needed=[], maps_needed=[], production_rules=ProductionRules(),
+                )
+                sb = store.load_project(sb_path, proj_dir)
+
+            assert [s.id for s in sb.segments] == ["seg_b", "seg_a"]
+
+    def test_save_segment_order_raises_without_project(self):
+        store = SessionStore()
+        with pytest.raises(Exception) as exc_info:
+            store.save_segment_order(["seg_a"])
+        assert exc_info.value.status_code == 404
+
+    def test_load_segment_order_returns_none_without_project(self):
+        store = SessionStore()
+        assert store.load_segment_order() is None
+
+
 class TestSessionPersistence:
     def test_save_session_creates_files(self):
         store = SessionStore()

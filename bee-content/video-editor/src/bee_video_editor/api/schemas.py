@@ -69,6 +69,10 @@ class AssignMediaRequest(BaseModel):
     layer_index: int = 0
 
 
+class ReorderSegmentsRequest(BaseModel):
+    segment_order: list[str]
+
+
 class ProductionStatusSchema(BaseModel):
     phase: str
     segments_total: int

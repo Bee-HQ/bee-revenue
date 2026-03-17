@@ -38,6 +38,13 @@ export const api = {
     });
   },
 
+  reorderSegments(order: string[]) {
+    return request('/projects/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ segment_order: order }),
+    });
+  },
+
   listMedia(): Promise<MediaListResponse> {
     return request('/media');
   },

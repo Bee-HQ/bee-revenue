@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
 
@@ -10,34 +11,88 @@ const VISUAL_TYPE_DOT: Record<string, string> = {
   WAVEFORM: 'bg-emerald-400',
 };
 
-function SegmentRow({ segment }: { segment: Segment }) {
-  const selectedSegmentId = useProjectStore(s => s.selectedSegmentId);
-  const selectSegment = useProjectStore(s => s.selectSegment);
+interface SegmentRowProps {
+  segment: Segment;
+  index: number;
+  onDragStart: (index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent, index: number) => void;
+  onDragEnd: () => void;
+  isDragging: boolean;
+  isDropTarget: boolean;
+}
+
+function SegmentRow({
+  segment,
+  index,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDropTarget,
+}: SegmentRowProps) {
+  const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
+  const toggleSegmentSelection = useProjectStore(s => s.toggleSegmentSelection);
   const draggedMedia = useProjectStore(s => s.draggedMedia);
   const assignMedia = useProjectStore(s => s.assignMedia);
+  const assignMediaBatch = useProjectStore(s => s.assignMediaBatch);
 
-  const isSelected = selectedSegmentId === segment.id;
+  const isSelected = selectedSegmentIds.includes(segment.id);
   const hasAssignments = Object.keys(segment.assigned_media).length > 0;
   const assignmentCount = Object.keys(segment.assigned_media).length;
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
+    toggleSegmentSelection(segment.id, e.shiftKey);
+  };
+
+  const handleMediaDrop = (e: React.DragEvent) => {
+    // Only handle media drops (not segment reorder drops) when draggedMedia is set
+    if (!draggedMedia) return;
     e.preventDefault();
-    if (draggedMedia) {
-      // Auto-assign to first visual layer
+    e.stopPropagation();
+    if (selectedSegmentIds.length > 1 && isSelected) {
+      assignMediaBatch('visual', draggedMedia.path);
+    } else {
       assignMedia(segment.id, 'visual', draggedMedia.path);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedMedia) {
+      // Segment reorder drag
+      onDragOver(e, index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (draggedMedia) {
+      handleMediaDrop(e);
+    } else {
+      onDrop(e, index);
     }
   };
 
   return (
     <div
-      onClick={() => selectSegment(isSelected ? null : segment.id)}
-      onDragOver={e => e.preventDefault()}
+      draggable
+      onDragStart={e => {
+        // Only start segment reorder if no media is being dragged
+        e.dataTransfer.effectAllowed = 'move';
+        onDragStart(index);
+      }}
+      onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className={`px-3 py-2 cursor-pointer border-l-2 transition-colors ${
-        isSelected
+      onDragEnd={onDragEnd}
+      onClick={handleClick}
+      className={`px-3 py-2 cursor-pointer border-l-2 transition-colors select-none ${
+        isDragging
+          ? 'opacity-50'
+          : isSelected
           ? 'bg-editor-accent/10 border-editor-accent'
           : 'border-transparent hover:bg-editor-hover'
-      }`}
+      } ${isDropTarget ? 'border-t-2 border-t-blue-400' : ''}`}
     >
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-mono text-gray-500">
@@ -75,24 +130,65 @@ function SegmentRow({ segment }: { segment: Segment }) {
 
 export function SegmentList() {
   const storyboard = useProjectStore(s => s.storyboard);
+  const reorderSegments = useProjectStore(s => s.reorderSegments);
+  const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
+
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+
   if (!storyboard) return null;
 
-  // Group by section
-  const groups: { section: string; segments: Segment[] }[] = [];
+  const segments = storyboard.segments;
+
+  const handleDragStart = (index: number) => {
+    setDragFromIndex(index);
+    setDropTargetIndex(null);
+  };
+
+  const handleDragOver = (_e: React.DragEvent, index: number) => {
+    if (dragFromIndex === null) return;
+    setDropTargetIndex(index);
+  };
+
+  const handleDrop = (_e: React.DragEvent, toIndex: number) => {
+    if (dragFromIndex === null) return;
+    if (dragFromIndex !== toIndex) {
+      reorderSegments(dragFromIndex, toIndex);
+    }
+    setDragFromIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragFromIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  // Group by section for display
+  const groups: { section: string; segments: { seg: Segment; globalIndex: number }[] }[] = [];
   let currentSection = '';
-  for (const seg of storyboard.segments) {
+  segments.forEach((seg, globalIndex) => {
     if (seg.section !== currentSection) {
       currentSection = seg.section;
       groups.push({ section: currentSection, segments: [] });
     }
-    groups[groups.length - 1].segments.push(seg);
-  }
+    groups[groups.length - 1].segments.push({ seg, globalIndex });
+  });
+
+  const selectionCount = selectedSegmentIds.length;
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 py-2 border-b border-editor-border flex items-center justify-between shrink-0">
         <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Segments</h3>
-        <span className="text-[10px] text-gray-600">{storyboard.total_segments}</span>
+        <div className="flex items-center gap-2">
+          {selectionCount > 1 && (
+            <span className="text-[10px] bg-editor-accent/20 text-blue-400 px-1.5 rounded">
+              {selectionCount} selected
+            </span>
+          )}
+          <span className="text-[10px] text-gray-600">{storyboard.total_segments}</span>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {groups.map(group => (
@@ -103,8 +199,18 @@ export function SegmentList() {
               </div>
               <div className="text-[10px] text-gray-600">{group.segments.length} segments</div>
             </div>
-            {group.segments.map(seg => (
-              <SegmentRow key={seg.id} segment={seg} />
+            {group.segments.map(({ seg, globalIndex }) => (
+              <SegmentRow
+                key={seg.id}
+                segment={seg}
+                index={globalIndex}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onDragEnd={handleDragEnd}
+                isDragging={dragFromIndex === globalIndex}
+                isDropTarget={dropTargetIndex === globalIndex && dragFromIndex !== globalIndex}
+              />
             ))}
           </div>
         ))}
