@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra web --extra otio --extra animation --extra maps
       - run: uv run pytest tests/ -v
 
   test-restaurant:
