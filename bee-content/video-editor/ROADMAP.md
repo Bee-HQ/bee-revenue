@@ -77,7 +77,7 @@ Architectural work that unlocks new capabilities.
 - [x] **OTIO timeline export** — `bee-video export` compiles storyboard to OTIO with visual code metadata, section markers, media references. NLE interchange for Resolve/Premiere.
 
 ### Maps
-- [ ] **Map generation** — integrate MapLibre or static maps API to generate `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from coordinates. Currently requires manual Google Earth Studio export. High effort but eliminates the most manual step in asset creation
+- [x] **Map generation** — `bee-video map` generates `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from lat/lng via py-staticmaps + dark grade + vignette post-processing
 
 ### Security
 - [ ] **Auth option** — optional `--auth` flag with token-based auth for non-local deployments
