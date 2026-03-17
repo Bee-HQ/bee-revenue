@@ -20,6 +20,8 @@ COLORS = {
     "bar_bg": (0, 0, 0, 180),  # semi-transparent
     "green_wave": (0, 255, 136),
     "blue_wave": (68, 136, 255),
+    "teal": (0, 212, 170),      # #00D4AA — information, context
+    "gold": (212, 168, 67),     # #D4A843 — victim, family
 }
 
 WIDTH = 1920
@@ -107,6 +109,7 @@ def quote_card(
     speaker: str,
     output_path: str | Path,
     context: str = "",
+    accent: str = "red",  # "red" (threats), "teal" (info), "gold" (victim)
 ) -> Path:
     """Generate a key quote card."""
     output_path = Path(output_path)
@@ -115,9 +118,11 @@ def quote_card(
     img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_darker"])
     d = ImageDraw.Draw(img)
 
-    # Big red quote mark
+    accent_color = COLORS.get(accent, COLORS["red"])
+
+    # Big quote mark in accent color
     quote_mark_font = _get_font(120, bold=True)
-    d.text((200, 300), "\u201c", fill=COLORS["red"], font=quote_mark_font)
+    d.text((200, 300), "\u201c", fill=accent_color, font=quote_mark_font)
 
     # Quote text (word wrap)
     quote_font = _get_font(48)
@@ -204,6 +209,79 @@ def black_frame(output_path: str | Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     img = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
+    img.save(str(output_path))
+    return output_path
+
+
+def mugshot_card(
+    photo_path: str | Path,
+    charges: list[str],
+    sentence: str,
+    output_path: str | Path,
+) -> Path:
+    """Generate a mugshot + charges split card.
+
+    Layout: Photo on right (~40%), charges in red on left (~60%), dark background.
+    Spec: visual-storyboard-bible.md [MUGSHOT-CARD]
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    img = Image.new("RGB", (WIDTH, HEIGHT), COLORS["bg_dark"])
+    d = ImageDraw.Draw(img)
+
+    # Right panel: photo (~40% = 768px wide), vertically centered
+    photo_panel_x = WIDTH - 768
+    photo_loaded = False
+    try:
+        photo = Image.open(str(photo_path)).convert("RGB")
+        # Scale to fit within 768 x HEIGHT, preserving aspect ratio
+        photo.thumbnail((768, HEIGHT), Image.LANCZOS)
+        px = photo_panel_x + (768 - photo.width) // 2
+        py = (HEIGHT - photo.height) // 2
+        img.paste(photo, (px, py))
+        photo_loaded = True
+    except Exception:
+        pass
+
+    if not photo_loaded:
+        # Gray placeholder rectangle
+        d.rectangle(
+            [(photo_panel_x, 0), (WIDTH, HEIGHT)],
+            fill=(80, 80, 80),
+        )
+
+    # Left panel text (~60% = 1152px wide), starting at x=80
+    text_x = 80
+    text_max_width = photo_panel_x - text_x - 40
+
+    header_font = _get_font(42, bold=True)
+    body_font = _get_font(28)
+
+    y = 200
+
+    # "Charges:" header in red
+    d.text((text_x, y), "Charges:", fill=COLORS["red"], font=header_font)
+    y += 60
+
+    # Each charge as a bulleted line in white
+    for charge in charges:
+        lines = _word_wrap(d, f"\u2022 {charge}", body_font, text_max_width)
+        for line in lines:
+            d.text((text_x, y), line, fill=COLORS["white"], font=body_font)
+            y += 40
+    y += 30
+
+    # "Sentence:" header in red
+    d.text((text_x, y), "Sentence:", fill=COLORS["red"], font=header_font)
+    y += 60
+
+    # Sentence text in white
+    sentence_lines = _word_wrap(d, sentence, body_font, text_max_width)
+    for line in sentence_lines:
+        d.text((text_x, y), line, fill=COLORS["white"], font=body_font)
+        y += 40
+
     img.save(str(output_path))
     return output_path
 

@@ -10,6 +10,7 @@ from bee_video_editor.processors.graphics import (
     black_frame,
     financial_card,
     lower_third,
+    mugshot_card,
     quote_card,
     text_overlay,
     timeline_marker,
@@ -105,6 +106,60 @@ class TestTextOverlay:
         for pos in ["center", "top", "bottom"]:
             out = text_overlay("Test", tmp_dir / f"text_{pos}.png", position=pos)
             assert out.exists()
+
+
+class TestMugshotCard:
+    def test_mugshot_card(self, tmp_dir):
+        photo = tmp_dir / "mugshot.png"
+        Image.new("RGB", (400, 500), (128, 128, 128)).save(str(photo))
+
+        out = tmp_dir / "mugshot-card.png"
+        result = mugshot_card(
+            photo_path=photo,
+            charges=["First-degree murder", "Tampering with evidence"],
+            sentence="Life without parole",
+            output_path=out,
+        )
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+    def test_mugshot_card_missing_photo(self, tmp_dir):
+        out = tmp_dir / "mugshot-no-photo.png"
+        result = mugshot_card(
+            photo_path=tmp_dir / "nonexistent.png",
+            charges=["Grand larceny"],
+            sentence="5 years",
+            output_path=out,
+        )
+        assert result.exists()
+        img = Image.open(str(result))
+        assert img.size == (1920, 1080)
+
+
+class TestQuoteCardAccents:
+    def test_quote_card_accents(self, tmp_dir):
+        for accent in ["red", "teal", "gold"]:
+            out = tmp_dir / f"quote-{accent}.png"
+            result = quote_card(
+                quote="Test quote",
+                speaker="Speaker",
+                output_path=out,
+                accent=accent,
+            )
+            assert result.exists()
+            img = Image.open(str(result))
+            assert img.size == (1920, 1080)
+
+    def test_quote_card_default_accent(self, tmp_dir):
+        out = tmp_dir / "quote-default.png"
+        result = quote_card("Test", "Speaker", out)
+        assert result.exists()
+
+    def test_quote_card_unknown_accent_falls_back(self, tmp_dir):
+        out = tmp_dir / "quote-unknown.png"
+        result = quote_card("Test", "Speaker", out, accent="purple")
+        assert result.exists()
 
 
 class TestBlackFrame:
