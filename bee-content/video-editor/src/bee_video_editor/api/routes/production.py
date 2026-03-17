@@ -56,7 +56,8 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
 
     from bee_video_editor.processors import graphics as gfx
 
-    generated = []
+    succeeded = []
+    failed = []
     lower_third_idx = 0
 
     for seg in storyboard.segments:
@@ -75,12 +76,30 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
 
                 slug = name.lower().replace(" ", "-")[:30]
                 out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{slug}.png"
-                if not out.exists():
-                    gfx.lower_third(name, role, out)
-                    generated.append(str(out))
+
+                try:
+                    if not out.exists():
+                        gfx.lower_third(name, role, out)
+                    succeeded.append(str(out))
+                except Exception as exc:
+                    failed.append({"file": str(out), "error": str(exc)})
+
                 lower_third_idx += 1
 
-    return {"status": "ok", "generated": generated, "count": len(generated)}
+    if failed and not succeeded:
+        status = "error"
+    elif failed:
+        status = "partial"
+    else:
+        status = "ok"
+
+    return {
+        "status": status,
+        "succeeded": succeeded,
+        "failed": failed,
+        "skipped": [],
+        "count": len(succeeded),
+    }
 
 
 @router.post("/narration")
@@ -93,7 +112,8 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
 
     from bee_video_editor.processors.tts import generate_narration as tts_generate
 
-    generated = []
+    succeeded = []
+    failed = []
     import re
 
     for i, seg in enumerate(storyboard.segments):
@@ -116,16 +136,32 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
             slug = re.sub(r'[\s_]+', '-', slug).strip('-')[:30]
             out = narration_dir / f"nar-{i:03d}-{slug}.mp3"
 
-            if not out.exists():
-                tts_generate(
-                    text=text,
-                    output_path=out,
-                    engine=req.tts_engine,
-                    voice=req.tts_voice,
-                )
-                generated.append(str(out))
+            try:
+                if not out.exists():
+                    tts_generate(
+                        text=text,
+                        output_path=out,
+                        engine=req.tts_engine,
+                        voice=req.tts_voice,
+                    )
+                succeeded.append(str(out))
+            except Exception as exc:
+                failed.append({"file": str(out), "error": str(exc)})
 
-    return {"status": "ok", "generated": generated, "count": len(generated)}
+    if failed and not succeeded:
+        status = "error"
+    elif failed:
+        status = "partial"
+    else:
+        status = "ok"
+
+    return {
+        "status": status,
+        "succeeded": succeeded,
+        "failed": failed,
+        "skipped": [],
+        "count": len(succeeded),
+    }
 
 
 @router.get("/effects")
