@@ -417,6 +417,40 @@ def list_effects():
 
 
 @app.command()
+def captions(
+    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
+    project_dir: str = typer.Option(".", "--project-dir", "-p"),
+    precise: bool = typer.Option(False, "--precise", help="Use Whisper for word-level timestamps"),
+    caption_style: str = typer.Option("karaoke", "--style", "-s", help="Caption style: karaoke or phrase"),
+):
+    """Generate ASS captions from storyboard narrator text."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.processors.captions import (
+        extract_caption_segments,
+        generate_captions_estimated,
+    )
+
+    sb = parse_storyboard(storyboard_path)
+    segments = extract_caption_segments(sb)
+
+    if not segments:
+        console.print("[yellow]No captionable segments found.[/yellow]")
+        return
+
+    out_dir = Path(project_dir) / "output" / "captions"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "captions.ass"
+
+    console.print(f"[bold]Generating captions ({caption_style}, {len(segments)} segments)...[/bold]")
+
+    if precise:
+        console.print("[yellow]Precise mode not yet implemented — falling back to estimated.[/yellow]")
+
+    generate_captions_estimated(segments, out, style=caption_style)
+    console.print(f"[green]Captions written to {out}[/green]")
+
+
+@app.command()
 def preflight(
     storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),

@@ -100,6 +100,11 @@ class DownloadStatusResponse(BaseModel):
     return_code: int | None = None
 
 
+class CaptionRequest(BaseModel):
+    precise: bool = False
+    style: str = "karaoke"  # "karaoke" or "phrase"
+
+
 class AssetEntrySchema(BaseModel):
     segment_id: str
     layer: str

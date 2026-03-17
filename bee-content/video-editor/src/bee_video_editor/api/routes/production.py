@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from bee_video_editor.api.schemas import GenerateRequest, ProductionStatusSchema
+from bee_video_editor.api.schemas import CaptionRequest, GenerateRequest, ProductionStatusSchema
 from bee_video_editor.api.session import SessionStore, get_session
 
 router = APIRouter()
@@ -287,6 +287,29 @@ def get_preflight(session: SessionStore = Depends(get_session)):
             for e in report.entries
         ],
     }
+
+
+@router.post("/captions")
+def generate_captions(req: CaptionRequest, session: SessionStore = Depends(get_session)):
+    """Generate ASS captions from storyboard."""
+    from bee_video_editor.processors.captions import (
+        extract_caption_segments,
+        generate_captions_estimated,
+    )
+
+    storyboard, project_dir = session.require_project()
+    segments = extract_caption_segments(storyboard)
+
+    if not segments:
+        return {"status": "ok", "count": 0, "message": "No captionable segments found"}
+
+    out_dir = project_dir / "output" / "captions"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "captions.ass"
+
+    generate_captions_estimated(segments, out, style=req.style)
+
+    return {"status": "ok", "count": len(segments), "output": str(out)}
 
 
 @router.post("/assemble")
