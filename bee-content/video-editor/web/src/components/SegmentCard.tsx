@@ -34,17 +34,19 @@ interface Props {
 
 export function SegmentCard({ segment }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const selectedSegmentId = useProjectStore(s => s.selectedSegmentId);
-  const selectSegment = useProjectStore(s => s.selectSegment);
+  const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
+  const toggleSegmentSelection = useProjectStore(s => s.toggleSegmentSelection);
   const draggedMedia = useProjectStore(s => s.draggedMedia);
   const assignMedia = useProjectStore(s => s.assignMedia);
+  const assignMediaBatch = useProjectStore(s => s.assignMediaBatch);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
-  const isSelected = selectedSegmentId === segment.id;
+  const isSelected = selectedSegmentIds.includes(segment.id);
+  const multiSelected = selectedSegmentIds.length > 1 && isSelected;
   const hasAssignments = Object.keys(segment.assigned_media).length > 0;
 
-  const handleClick = () => {
-    selectSegment(isSelected ? null : segment.id);
+  const handleClick = (e: React.MouseEvent) => {
+    toggleSegmentSelection(segment.id, e.shiftKey);
   };
 
   const handleDragOver = (e: React.DragEvent, layer: string) => {
@@ -60,7 +62,11 @@ export function SegmentCard({ segment }: Props) {
     e.preventDefault();
     setDropTarget(null);
     if (draggedMedia) {
-      assignMedia(segment.id, layer, draggedMedia.path);
+      if (multiSelected) {
+        assignMediaBatch(layer, draggedMedia.path);
+      } else {
+        assignMedia(segment.id, layer, draggedMedia.path);
+      }
     }
   };
 
@@ -124,7 +130,7 @@ export function SegmentCard({ segment }: Props) {
           ? 'border-editor-accent ring-1 ring-editor-accent/30'
           : 'border-editor-border hover:border-editor-hover'
       }`}
-      onClick={handleClick}
+      onClick={(e) => handleClick(e)}
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-3 py-2">
@@ -142,6 +148,11 @@ export function SegmentCard({ segment }: Props) {
           )}
         </div>
         <div className="flex items-center gap-2 ml-auto shrink-0">
+          {multiSelected && (
+            <span className="text-[10px] bg-editor-accent/20 text-blue-400 px-1.5 rounded">
+              {selectedSegmentIds.length} selected
+            </span>
+          )}
           <span className="text-[10px] text-gray-600">{segment.duration_seconds}s</span>
           {hasAssignments && (
             <span className="w-1.5 h-1.5 bg-editor-accent rounded-full" title="Has media assigned" />
