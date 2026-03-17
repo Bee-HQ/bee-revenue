@@ -404,6 +404,116 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 ---
 
+### [TEXT-CHAT] Text Message / Chat Recreation
+
+**What:** Styled recreation of text message conversations (iMessage, SMS, Snapchat, etc.) on a dark background.
+
+| Property | Value |
+|----------|-------|
+| Duration | 4-8 seconds per exchange |
+| Style — iMessage | Blue sender bubbles (right), grey receiver bubbles (left), iOS chrome |
+| Style — SMS | Green sender bubbles (right), grey receiver bubbles (left) |
+| Background | Dark blur or phone-frame mockup on near-black |
+| Animation | Messages appear one by one with typing delay (0.3-0.5s per message) |
+| Timestamp | Grey, small, between message groups |
+| Key text | Highlighted with red underline or glow on critical messages |
+| Purpose | Shows text evidence in the format audiences recognize instantly |
+
+**When to use:** When referencing specific text messages, DMs, or chat conversations entered as evidence. More effective than [DOCUMENT-MOCKUP] for conversational text because the bubble format implies back-and-forth.
+
+**Variants:**
+- **Snapchat:** Yellow header bar, ghost icon, recipient name. Messages in chat bubble style
+- **Facebook/Instagram DM:** Platform-specific bubble colors and chrome
+- **Generic:** When platform isn't specified — use simple dark bubbles on dark background
+
+---
+
+### [SOCIAL-POST] Social Media Post Mockup
+
+**What:** Recreation of a social media post (Facebook, Instagram, Snapchat, Twitter/X) with platform-specific styling.
+
+| Property | Value |
+|----------|-------|
+| Duration | 3-5 seconds |
+| Layout | Platform chrome (header, profile pic, timestamp) + post content |
+| Background | Dark blur behind the post card |
+| Highlight | Key text or image in the post highlighted with red circle/underline |
+| Animation | Fade in, hold, optional slow zoom on the key detail |
+| Purpose | Shows social media evidence in authentic-looking format |
+
+**When to use:** When a suspect's social media post, a victim's last post, or any social media evidence is referenced. Snapchat videos/stories, Facebook updates, Instagram posts.
+
+---
+
+### [TIMELINE-SEQUENCE] Animated Timeline
+
+**What:** Horizontal or vertical animated timeline showing progression of events across dates. A cursor or highlight moves along the line hitting dated nodes.
+
+| Property | Value |
+|----------|-------|
+| Duration | 5-10 seconds |
+| Layout | Horizontal line with nodes, dates above, event labels below |
+| Colors | Line: grey. Active/past nodes: red. Current node: white pulsing. Future: dim grey |
+| Background | Near-black (#0A0A0F) |
+| Animation | Cursor sweeps from left to right, nodes illuminate as reached |
+| Purpose | Shows how events relate temporally — essential for cases spanning months/years |
+
+**When to use:** At act transitions to establish the temporal arc. Especially valuable for Archetype B (trial-centric) and D (cold case) where the timeline spans years. Replaces a series of [TIMELINE-MARKER] cards when you need the viewer to see the full picture at once.
+
+---
+
+### [EVIDENCE-BOARD] Connection/Conspiracy Board
+
+**What:** Red-string-on-corkboard style visualization showing connections between suspects, victims, evidence, and events.
+
+| Property | Value |
+|----------|-------|
+| Duration | 5-8 seconds |
+| Layout | Dark corkboard background. Photos/cards pinned. Red string connecting related items |
+| Photos | [PIP-SINGLE] style File Viewer photos for each person |
+| Connections | Red string (#DC3232) with labels on lines (e.g., "married", "employed", "stole from") |
+| Animation | Elements fade in progressively as narrator describes connections. Strings draw between nodes |
+| Purpose | Maps complex relationship webs for cases with many players |
+
+**When to use:** Cases with 5+ connected individuals where the relationships are central to understanding motive/opportunity. Murdaugh-scale cases with family, law firm, victims, co-conspirators. Also useful for financial crime webs.
+
+---
+
+### [FLOW-DIAGRAM] Financial / Process Flow
+
+**What:** Animated diagram showing money movement, evidence chain, or process flow between entities.
+
+| Property | Value |
+|----------|-------|
+| Duration | 6-10 seconds |
+| Layout | Nodes (boxes/circles) connected by animated arrows |
+| Colors | Nodes: dark bg with white text. Arrows: red for money/danger, teal for info |
+| Amounts | Dollar figures in red on arrows or nodes |
+| Animation | Arrows draw in sequence as narrator describes the flow. Amounts appear on draw |
+| Background | Near-black (#0A0A0F) |
+| Purpose | Visualizes money laundering schemes, fraud networks, evidence chains |
+
+**When to use:** Financial crime cases with complex money movement (Forge account scheme, insurance fraud). Also useful for showing chains of custody, drug distribution networks, or evidence processing.
+
+---
+
+### [NEWS-MONTAGE] Headline Crawl
+
+**What:** Stack of newspaper/web headlines appearing one after another, showing how a case played out in media.
+
+| Property | Value |
+|----------|-------|
+| Duration | 4-6 seconds |
+| Layout | Headlines stacked vertically, each slightly overlapping, slight rotation (-2° to +2°) |
+| Style | Newspaper headline font (bold serif) on white/newsprint background cards |
+| Animation | Headlines slide in from alternating sides, each 0.3s apart |
+| Background | Dark with slight paper texture |
+| Purpose | Shows public impact and media coverage in seconds |
+
+**When to use:** High-profile cases where media coverage is part of the story. Transition element between investigation and trial in Archetype B cases. Also useful for cold cases where the reopening was triggered by media attention.
+
+---
+
 ### [CENSOR-BLUR] Content Censoring
 
 **What:** Soft black gaussian blur over sensitive areas.
@@ -437,6 +547,23 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 1. Dark aerial footage (Ken Burns zoom)
 2. Red audio waveform with glow
 3. White animated captions
+
+#### Preventing Waveform Staleness
+
+The waveform-on-aerial composition gets stale by the 3rd phone call. **Vary the background for each call:**
+
+| Call # | Background Variation |
+|--------|---------------------|
+| 1st call | [MAP-FLAT] aerial of property (classic) |
+| 2nd call | [MAP-3D] oblique orbit of town/area |
+| 3rd call | Bodycam B-roll from the scene (dark, slow) |
+| 4th call | [MAP-TACTICAL] with red road outlines |
+| Most important call | **Drop the waveform entirely.** Full-screen [CAPTION-ANIMATED] on near-black. The absence of the expected visual signals "this one matters more." |
+
+Also vary the character elements during calls:
+- Use [PIP-SINGLE] or [PIP-DUAL] over the waveform when both parties are identified
+- Shift waveform position (upper-left, upper-right) to accommodate PIP overlays
+- For calls where the suspect is speaking, add subtle red tint to the background
 
 ---
 
@@ -510,22 +637,37 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 ## 7. Transition Elements
 
 ### [TR-HARD] Hard Cut
-Default. No effect. Used 50% of the time.
+Default. No effect. ~55% of transitions.
 
 ### [TR-GLITCH] Glitch/Distortion
-RGB shift + scan lines + frame displacement. 2-4 frames. Used in trailer and at tension peaks.
+RGB shift + scan lines + frame displacement. 2-4 frames. **Budget: 8% max.** Reserve exclusively for trailer and 3-4 biggest reveals (Level 3 bombshells). Using this on anything less than a genuine power-shift moment dilutes its impact.
 
 ### [TR-FLASH] White Flash Frame
-1-3 frames of pure white. Impact cut. Used in trailer and for major reveals.
+1-3 frames of pure white. **Budget: 5% max.** Trailer + 2-3 shocking reveals only. More than ~15 in a 50-minute video causes physical discomfort.
 
 ### [TR-FADE] Fade to/from Black
-0.5-1 second. Used for time jumps and act transitions.
+0.5-1 second. Used for time jumps, act transitions, and emotional beats. ~12% of transitions.
 
 ### [TR-DISSOLVE] Cross-Dissolve
-Soft blend. Used for photo introductions.
+Soft blend. Used for photo introductions, location establishing, mood shifts (warm → dark). ~8%.
 
 ### [TR-ZOOM] Ken Burns Zoom/Pan
-Applied to all static images. Nothing on screen is ever still.
+Applied to **90% of static images.** Reserve 3-5 moments of intentional stillness (see [STILL] below).
+
+### [TR-SMASH] Smash Cut
+A hard cut with deliberate **tonal whiplash** — calm scene to sudden loud scene, or sponsor → back to murder. Distinct from [TR-HARD] because the contrast is the point. ~3%.
+
+### [TR-LCUT] L-Cut / J-Cut
+Audio from the next scene starts before the visual cuts (L-cut) or audio from the previous scene trails into the next visual (J-cut). Essential documentary editing tool that makes footage feel like a story rather than a slideshow. ~2%.
+
+### [STILL] Intentional Stillness
+**Not a transition — a modifier.** A static image or held frame with NO Ken Burns motion, NO music, minimal or no narration. Used for 3-5 moments of maximum emotional weight per video:
+- Body discovery / crime scene (held frame, censored if needed)
+- Victim memorial photo (warm photo, no motion, 3-4 seconds of silence)
+- Verdict landing ("Guilty" — hold the courtroom frame dead still)
+- Key silence beat (let bodycam audio play alone for 10-15 seconds)
+
+The sudden absence of motion after 45 minutes of constant movement is disorienting and powerful. Use sparingly — the rarity is what makes it work.
 
 ---
 
@@ -604,23 +746,40 @@ DURATION: 8 seconds
 
 ## 10. Color Palette Reference
 
+### Core Palette
+
 | Element | Hex | Usage |
 |---------|-----|-------|
 | Background | `#0A0A0F` | Graphics, cards |
 | Primary text | `#FFFFFF` | All body text |
 | Secondary text | `#B4B4B4` | Roles, descriptions, labels |
-| **Brand red** | `#DC3232` | Danger alerts, charges, disclaimers, map pulses, road outlines, mugshot card |
-| **Accent teal/cyan** | `#00D4AA` / `#2DE2C0` | Quote cards, map labels, info text, brand sting glow, location pins |
 | Lower third bar | `rgba(0,0,0,180)` | Character introductions |
-| Lower third accent | `#C81E1E` | Red line on lower thirds |
 | Caption text | `#FFFFFF` + `#000000` stroke | Animated subtitles |
-| Highlight red | `#FF3333` | Circles, arrows on evidence |
-| Brand sting | `#DC1E1E` or `#00D4AA` + bloom | Channel name — **may alternate per video** |
+
+### Four Semantic Accents
+
+| Color | Hex | Meaning | Used On |
+|-------|-----|---------|---------|
+| **Red** | `#DC3232` | Danger, alert, charges | Disclaimers, map pulses, road outlines, evidence highlights, mugshot charges, financial amounts, [EVIDENCE-BOARD] connections |
+| **Teal** | `#00D4AA` | Information, identity, context | Map labels, location pins, brand sting glow, lower third accents, [FLOW-DIAGRAM] info arrows, [TIMELINE-SEQUENCE] nodes, informational quote cards |
+| **Warm gold** | `#D4A843` | Victim, family, humanity | Victim photo color grade, family moments, memorial sections, victim-voiced quote cards |
+| **Cool blue-grey** | `#7A8FA6` | Procedural, law enforcement | Police procedural sections, interrogation overlays, forensic details, bodycam UI elements |
+
+### Accent Variants
+
+| Element | Hex | Notes |
+|---------|-----|-------|
+| Lower third accent line | `#C81E1E` | Red line on lower thirds |
+| Highlight red (circles/arrows) | `#FF3333` | Brighter red for evidence markup |
+| Brand sting | `#DC1E1E` or `#00D4AA` + bloom | May alternate per video |
 | "Missing/danger" text | `#DC3232` | Key details in Police Database, charges |
 
-> **Dual accent system confirmed from 300-frame storyboard analysis:**
-> - **Red** = danger, alerts, charges, disclaimers, pulse markers, evidence highlights
-> - **Teal/cyan** = information, labels, quote cards, map text, location pins, brand sting
+> **Quote card color follows content, not format:**
+> - Damning/threatening quotes → **red** accent
+> - Informational/contextual quotes → **teal** accent
+> - Victim's own words → **warm gold** accent
+>
+> **Warm gold and cool blue-grey** are used sparingly — primarily in color grading shifts and occasional overlay accents. Red and teal remain the dominant pair. The expanded palette prevents monotony across 50 minutes without breaking the established dark aesthetic.
 
 ---
 
@@ -658,6 +817,12 @@ Before production, gather or generate these assets:
 - [ ] Body diagram illustration → [BODY-DIAGRAM]
 - [ ] Document/phone mockups → [DOCUMENT-MOCKUP]
 - [ ] Split info panels → [SPLIT-INFO]
+- [ ] Text message recreations (if applicable) → [TEXT-CHAT]
+- [ ] Social media post mockups (if applicable) → [SOCIAL-POST]
+- [ ] Connection/evidence board (if 5+ people) → [EVIDENCE-BOARD]
+- [ ] Financial/process flow diagram (if applicable) → [FLOW-DIAGRAM]
+- [ ] Animated timeline (if case spans 6+ months) → [TIMELINE-SEQUENCE]
+- [ ] Headline montage (if high-profile case) → [NEWS-MONTAGE]
 - [ ] Animated captions (ASS/SRT file) → [CAPTION-ANIMATED]
 - [ ] Background music selection
 - [ ] TTS narration audio (ElevenLabs or equivalent)
