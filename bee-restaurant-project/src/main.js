@@ -116,8 +116,113 @@ async function init() {
     controls.update();
   });
 
-  // 10. Store references for later use by Layer 2 and Layer 3
-  window.__arMenu = { config, features, sm, scene, camera, renderer, controls, items, currentIndex, showItem, getItemByIndex };
+  // 10. Layer 2: Native AR button
+  if (features.canNativeAR) {
+    const arBtn = document.createElement('button');
+    arBtn.id = 'ar-button';
+    arBtn.textContent = 'View in AR';
+    arBtn.style.cssText = `
+      position: fixed; bottom: 8rem; right: 1rem; z-index: 100;
+      padding: 0.6rem 1.2rem; border: none; border-radius: 2rem;
+      background: ${restaurant.branding.primaryColor}; color: #fff;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    `;
+    arBtn.addEventListener('click', async () => {
+      const { launchNativeAR } = await import('./native-ar/launcher.js');
+      const item = getItemByIndex(items, currentIndex);
+      sm.send('START_NATIVE');
+      launchNativeAR({
+        glb: item.models.glb,
+        usdz: item.models.usdz,
+        title: item.name,
+        isIOS: features.isIOS,
+      });
+    });
+    app.appendChild(arBtn);
+  }
+
+  // 11. Layer 3: MindAR button (feature-detected)
+  if (features.canMindAR) {
+    const scanBtn = document.createElement('button');
+    scanBtn.id = 'scan-button';
+    scanBtn.textContent = 'Scan Menu';
+    scanBtn.style.cssText = `
+      position: fixed; bottom: 8rem; left: 1rem; z-index: 100;
+      padding: 0.6rem 1.2rem; border: 1px solid #555; border-radius: 2rem;
+      background: rgba(0,0,0,0.6); color: #fff;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      backdrop-filter: blur(4px);
+    `;
+    scanBtn.addEventListener('click', async () => {
+      try {
+        const { createMindARSession } = await import('./ar/mind-ar.js');
+        const { createARHud } = await import('./ar/hud.js');
+        const { createStickyMode } = await import('./ar/sticky-mode.js');
+
+        controls.enabled = false;
+
+        const hud = createARHud(app);
+        hud.show();
+        hud.showScanning();
+
+        const session = await createMindARSession({
+          container: app,
+          targetSrc: config.targetImage,
+          renderer,
+          scene,
+          camera,
+        });
+
+        const sticky = createStickyMode({
+          timeoutMs: 10000,
+          onTimeout: () => {
+            sm.send('TIMEOUT');
+            session.stop();
+            hud.hide();
+            controls.enabled = true;
+          },
+        });
+
+        let arModel = null;
+        session.onTargetFound(() => {
+          sm.send('TARGET_FOUND');
+          sticky.stop();
+          hud.showTracking();
+          if (arModel) session.getAnchorGroup().remove(arModel);
+          const item = getItemByIndex(items, currentIndex);
+          loadModel(item.models.glb).then((model) => {
+            applyTransform(model, item.transform);
+            if (arModel) session.getAnchorGroup().remove(arModel);
+            arModel = model;
+            session.getAnchorGroup().add(model);
+          });
+        });
+
+        session.onTargetLost(() => {
+          sm.send('TARGET_LOST');
+          sticky.start();
+          hud.showSticky();
+        });
+
+        hud.onBack(() => {
+          sm.send('BACK');
+          session.stop();
+          sticky.stop();
+          hud.hide();
+          controls.enabled = true;
+        });
+
+        sm.send('START_AR');
+        await session.start();
+      } catch (err) {
+        console.error('MindAR failed:', err);
+        scanBtn.style.display = 'none';
+        controls.enabled = true;
+      }
+    });
+    app.appendChild(scanBtn);
+  }
 }
 
 init().catch((err) => {
