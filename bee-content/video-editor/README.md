@@ -157,10 +157,8 @@ The web UI provides drag-and-drop media assignment, storyboard timeline view, vi
 
 Screenshots are maintained in `docs/screenshots/latest/` and updated each release. See [Screenshot Checklist](docs/SCREENSHOT-CHECKLIST.md) for the capture process.
 
-<!-- When screenshots are captured, uncomment these:
 ![Load Project](docs/screenshots/latest/01-load-project.png)
 ![Editor Main](docs/screenshots/latest/02-editor-main.png)
--->
 
 
 ## Python API

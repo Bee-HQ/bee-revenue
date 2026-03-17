@@ -2,40 +2,36 @@
 
 Run through this before any release that changes the UI (any `.tsx` file modified since last release).
 
-## Setup
+## Automated (recommended)
 
-1. Start dev server: `./dev.sh`
-2. Open browser at **1440×900** viewport
-3. Load the Murdaugh storyboard (pre-filled default)
+```bash
+# Captures all 7 screenshots, saves to docs/screenshots/vX.Y.Z/ and latest/
+node scripts/capture-screenshots.mjs
+
+# Or specify a version explicitly
+node scripts/capture-screenshots.mjs v0.4.0
+```
+
+The script starts backend + frontend, loads the default storyboard, captures all views at 1440×900, and copies to `latest/`. Requires `playwright` (installed as dev dep).
 
 ## Required Screenshots
 
 | # | File | What to capture |
 |---|------|-----------------|
 | 01 | `01-load-project.png` | Fresh state, no project loaded, form visible |
-| 02 | `02-editor-main.png` | Project loaded, segment selected, media visible — full layout |
-| 03 | `03-segment-list.png` | Left sidebar: multiple sections, one segment highlighted |
-| 04 | `04-video-player.png` | Center: playing or paused with transport controls visible |
-| 05 | `05-media-library.png` | Right sidebar: files listed, category tabs, download panel closed |
-| 06 | `06-production-bar.png` | Bottom bar: at least one action completed (green state) |
-| 07 | `07-storyboard-timeline.png` | Timeline expanded for a segment showing all layers |
+| 02 | `02-editor-main.png` | Project loaded, full layout with all panels |
+| 03 | `03-segment-list.png` | Left sidebar: sections, segment highlighted |
+| 04 | `04-video-player.png` | Center: player with transport controls |
+| 05 | `05-media-library.png` | Right sidebar: file browser and categories |
+| 06 | `06-production-bar.png` | Bottom bar: production controls |
+| 07 | `07-storyboard-timeline.png` | Center column: player + timeline with segment selected |
 
-## Save Process
+## Manual Capture (fallback)
 
-```bash
-# 1. Save screenshots to the new version directory
-cp *.png docs/screenshots/vX.Y.Z/
+If the script doesn't capture what you need:
 
-# 2. Update latest/
-rm docs/screenshots/latest/*.png
-cp docs/screenshots/vX.Y.Z/*.png docs/screenshots/latest/
-
-# 3. Update CHANGELOG.md if new UI features were added
-```
-
-## Tips
-
-- Use browser DevTools device toolbar for consistent 1440×900 viewport
-- Crop to browser content area (no browser chrome)
-- PNG format, no compression artifacts
-- If a screenshot hasn't changed, skip it — only update what's new
+1. Start dev server: `./dev.sh`
+2. Open browser at **1440×900** viewport
+3. Load the Murdaugh storyboard (pre-filled default)
+4. Capture each screenshot
+5. Save to `docs/screenshots/vX.Y.Z/` and copy to `docs/screenshots/latest/`
