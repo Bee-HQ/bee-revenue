@@ -9,7 +9,9 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from bee_video_editor.converters import assembly_guide_to_storyboard
 from bee_video_editor.models import Project, Segment, SegmentType
+from bee_video_editor.models_storyboard import Storyboard
 from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
 from bee_video_editor.processors import graphics as gfx
 from bee_video_editor.processors.ffmpeg import (
@@ -126,6 +128,13 @@ class ProductionState:
             self.save(state_path)
 
 
+def _ensure_storyboard(source: Project | Storyboard) -> Storyboard:
+    """Convert Project to Storyboard if needed."""
+    if isinstance(source, Storyboard):
+        return source
+    return assembly_guide_to_storyboard(source)
+
+
 def init_project(
     assembly_guide_path: str | Path,
     config: ProductionConfig,
@@ -159,143 +168,145 @@ def init_project(
 
 
 def generate_graphics_for_project(
-    project: Project,
+    project: Project | Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
 ) -> ProductionResult:
-    """Generate all graphics assets from project pre-production list."""
-    graphics_dir = config.output_dir / "graphics"
+    """Generate all graphics assets."""
     result = ProductionResult()
+    graphics_dir = config.output_dir / "graphics"
+    sb = _ensure_storyboard(project)
 
     if state:
         state.phase = "graphics"
         state.save(config.state_path)
 
-    # Generate lower thirds from segments that mention "lower third"
     lower_third_idx = 0
-    for seg in project.segments:
-        visual_lower = seg.visual.lower()
-        if "lower third" in visual_lower:
-            # Extract name and role from visual description
-            match = re.search(r'lower third[^"]*"([^"]+)"', seg.visual, re.IGNORECASE)
-            if match:
-                parts = match.group(1).split(" — ")
-                name = parts[0].strip()
-                role = parts[1].strip() if len(parts) > 1 else ""
-            else:
-                # Try to extract from quotes in the visual field
-                name = f"Character {lower_third_idx}"
-                role = ""
+    for seg in sb.segments:
+        for entry in seg.overlay:
+            if entry.content_type == "LOWER-THIRD":
+                match = re.search(r'"([^"]+)"', entry.content)
+                if match:
+                    parts = match.group(1).split(" — ")
+                    name = parts[0].strip()
+                    role = parts[1].strip() if len(parts) > 1 else ""
+                else:
+                    name = f"Character {lower_third_idx}"
+                    role = ""
 
-            out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
-            if out.exists():
-                result.skipped.append(str(out))
-            else:
-                try:
-                    gfx.lower_third(name, role, out)
-                    result.succeeded.append(out)
-                except Exception as e:
-                    result.failed.append(FailedItem(path=str(out), error=str(e)))
-            lower_third_idx += 1
+                out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
+                if out.exists():
+                    result.skipped.append(str(out))
+                else:
+                    try:
+                        gfx.lower_third(name, role, out)
+                        result.succeeded.append(out)
+                    except Exception as e:
+                        result.failed.append(FailedItem(path=str(out), error=str(e)))
+                lower_third_idx += 1
 
-    # Generate timeline markers
+    # Timeline markers
     timeline_idx = 0
-    for seg in project.segments:
-        if seg.segment_type == SegmentType.GEN and "TEXT-TIMELINE" in seg.visual:
-            match = re.search(r'TEXT-TIMELINE[:\s]*"?([^"]+)"?', seg.visual)
-            if match:
-                text = match.group(1).strip()
-                out = graphics_dir / f"timeline-{timeline_idx:02d}-{_slugify(text)[:30]}.png"
-                if out.exists():
-                    result.skipped.append(str(out))
-                else:
-                    try:
-                        gfx.timeline_marker(text, "", out)
-                        result.succeeded.append(out)
-                    except Exception as e:
-                        result.failed.append(FailedItem(path=str(out), error=str(e)))
-                timeline_idx += 1
+    for seg in sb.segments:
+        for entry in seg.visual:
+            if entry.content_type == "TIMELINE-MARKER":
+                text = entry.content.strip().strip('"')
+                if text:
+                    out = graphics_dir / f"timeline-{timeline_idx:02d}-{_slugify(text)[:30]}.png"
+                    if out.exists():
+                        result.skipped.append(str(out))
+                    else:
+                        try:
+                            gfx.timeline_marker(text, "", out)
+                            result.succeeded.append(out)
+                        except Exception as e:
+                            result.failed.append(FailedItem(path=str(out), error=str(e)))
+                    timeline_idx += 1
 
-    # Generate financial cards
+    # Financial cards
     fin_idx = 0
-    for seg in project.segments:
-        if "TEXT-FINANCIAL" in seg.visual:
-            match = re.search(r'TEXT-FINANCIAL\s*"?([^"]+)"?', seg.visual)
-            if match:
-                amount = match.group(1).strip()
-                desc = ""
-                out = graphics_dir / f"financial-{fin_idx:02d}-{_slugify(amount)[:20]}.png"
-                if out.exists():
-                    result.skipped.append(str(out))
-                else:
-                    try:
-                        gfx.financial_card(amount, desc, out)
-                        result.succeeded.append(out)
-                    except Exception as e:
-                        result.failed.append(FailedItem(path=str(out), error=str(e)))
-                fin_idx += 1
+    for seg in sb.segments:
+        for entry in seg.visual:
+            if entry.content_type == "FINANCIAL-CARD":
+                amount = entry.content.strip().strip('"')
+                if amount:
+                    out = graphics_dir / f"financial-{fin_idx:02d}-{_slugify(amount)[:20]}.png"
+                    if out.exists():
+                        result.skipped.append(str(out))
+                    else:
+                        try:
+                            gfx.financial_card(amount, "", out)
+                            result.succeeded.append(out)
+                        except Exception as e:
+                            result.failed.append(FailedItem(path=str(out), error=str(e)))
+                    fin_idx += 1
 
     return result
 
 
 def generate_narration_for_project(
-    project: Project,
+    project: Project | Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
 ) -> ProductionResult:
-    """Generate TTS narration for all NAR and MIX segments."""
-    narration_dir = config.output_dir / "narration"
+    """Generate TTS narration for all NAR segments."""
     result = ProductionResult()
+    narration_dir = config.output_dir / "narration"
+    sb = _ensure_storyboard(project)
 
     if state:
         state.phase = "narration"
         state.save(config.state_path)
 
-    for i, seg in enumerate(project.segments):
-        if seg.segment_type not in (SegmentType.NAR, SegmentType.MIX):
-            continue
+    from bee_video_editor.processors.captions import _clean_text
 
-        # Extract narrator text from audio field
-        nar_text = _extract_narrator_text(seg.audio)
-        if not nar_text:
-            continue
+    for i, seg in enumerate(sb.segments):
+        for entry in seg.audio:
+            if entry.content_type != "NAR":
+                continue
 
-        out = narration_dir / f"nar-{i:03d}-{_slugify(seg.subsection or seg.section)[:30]}.mp3"
-        if out.exists():
-            result.skipped.append(str(out))
-            continue
+            nar_text = _clean_text(entry.content)
+            if not nar_text:
+                continue
 
-        try:
-            if state:
-                with state.track(i, config.state_path):
+            out = narration_dir / f"nar-{i:03d}-{_slugify(seg.subsection or seg.section)[:30]}.mp3"
+            if out.exists():
+                result.skipped.append(f"narration segment {i} already exists")
+                continue
+
+            try:
+                if state:
+                    with state.track(i, config.state_path):
+                        generate_narration(
+                            text=nar_text, output_path=out,
+                            engine=config.tts_engine, voice=config.tts_voice,
+                        )
+                        result.succeeded.append(out)
+                else:
                     generate_narration(
-                        text=nar_text,
-                        output_path=out,
-                        engine=config.tts_engine,
-                        voice=config.tts_voice,
+                        text=nar_text, output_path=out,
+                        engine=config.tts_engine, voice=config.tts_voice,
                     )
-            else:
-                generate_narration(
-                    text=nar_text,
-                    output_path=out,
-                    engine=config.tts_engine,
-                    voice=config.tts_voice,
-                )
-            result.succeeded.append(out)
-        except Exception as e:
-            result.failed.append(FailedItem(path=str(out), error=str(e)))
+                    result.succeeded.append(out)
+            except Exception as e:
+                result.failed.append(FailedItem(path=f"segment-{i}", error=str(e)))
 
     return result
 
 
 def trim_source_footage(
-    project: Project,
+    project: Project | Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
 ) -> ProductionResult:
-    """Trim source footage based on assembly guide trim notes."""
-    segments_dir = config.output_dir / "segments"
+    """Trim source footage. Only works with Project (assembly guide) — Storyboard returns empty result."""
     result = ProductionResult()
+
+    # Storyboard has no trim notes — return empty
+    if isinstance(project, Storyboard):
+        return result
+
+    segments_dir = config.output_dir / "segments"
 
     if state:
         state.phase = "trimming"

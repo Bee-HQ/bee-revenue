@@ -6,14 +6,23 @@ from pathlib import Path
 
 import pytest
 
+from bee_video_editor.converters import assembly_guide_to_storyboard
+from bee_video_editor.models_storyboard import (
+    LayerEntry,
+    ProductionRules,
+    Storyboard,
+    StoryboardSegment,
+)
 from bee_video_editor.services.production import (
     FailedItem,
     ProductionConfig,
     ProductionResult,
     ProductionState,
     SegmentStatus,
+    _ensure_storyboard,
     _extract_narrator_text,
     _slugify,
+    trim_source_footage,
 )
 
 
@@ -190,3 +199,28 @@ class TestSlugify:
 
     def test_multiple_spaces(self):
         assert _slugify("ACT  1:  THE  DYNASTY") == "act-1-the-dynasty"
+
+
+class TestEnsureStoryboard:
+    def test_storyboard_passes_through(self):
+        sb = Storyboard(title="Test", production_rules=ProductionRules())
+        assert _ensure_storyboard(sb) is sb
+
+    def test_project_converts(self):
+        from bee_video_editor.models import Project
+        proj = Project(title="Test", total_duration="10m", resolution="1080p", format="MP4")
+        result = _ensure_storyboard(proj)
+        assert isinstance(result, Storyboard)
+        assert result.title == "Test"
+
+
+class TestTrimWithStoryboard:
+    def test_trim_storyboard_returns_empty(self):
+        sb = Storyboard(title="Test", production_rules=ProductionRules())
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d))
+            (config.output_dir / "segments").mkdir(parents=True)
+            result = trim_source_footage(sb, config)
+            assert isinstance(result, ProductionResult)
+            assert result.ok
+            assert len(result.succeeded) == 0
