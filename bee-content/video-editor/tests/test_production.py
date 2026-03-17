@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 
 from bee_video_editor.services.production import (
+    FailedItem,
     ProductionConfig,
+    ProductionResult,
     ProductionState,
     SegmentStatus,
     _extract_narrator_text,
@@ -49,6 +51,31 @@ class TestProductionState:
             assert "assembly_guide_path" in data
             assert "phase" in data
             assert "segment_statuses" in data
+
+
+class TestProductionResult:
+    def test_empty_result_is_ok(self):
+        result = ProductionResult()
+        assert result.ok is True
+        assert result.succeeded == []
+        assert result.failed == []
+        assert result.skipped == []
+
+    def test_result_with_failures_is_not_ok(self):
+        result = ProductionResult()
+        result.failed.append(FailedItem(path="/bad/file.mp4", error="FFmpeg crashed"))
+        assert result.ok is False
+
+    def test_result_accumulates(self):
+        result = ProductionResult()
+        result.succeeded.append(Path("/out/a.mp4"))
+        result.succeeded.append(Path("/out/b.mp4"))
+        result.failed.append(FailedItem(path="/src/c.mkv", error="codec error"))
+        result.skipped.append("d.mp4 already exists")
+        assert len(result.succeeded) == 2
+        assert len(result.failed) == 1
+        assert len(result.skipped) == 1
+        assert result.ok is False
 
 
 class TestProductionConfig:

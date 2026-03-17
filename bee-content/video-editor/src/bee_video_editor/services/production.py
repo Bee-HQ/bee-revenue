@@ -25,6 +25,25 @@ from bee_video_editor.processors.tts import generate_narration
 
 
 @dataclass
+class FailedItem:
+    """A single failed processing step."""
+    path: str
+    error: str
+
+
+@dataclass
+class ProductionResult:
+    """Structured return from every production function."""
+    succeeded: list[Path] = field(default_factory=list)
+    failed: list[FailedItem] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return len(self.failed) == 0
+
+
+@dataclass
 class ProductionConfig:
     """Configuration for a production run."""
     project_dir: Path                # Root directory for the project
