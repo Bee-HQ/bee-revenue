@@ -79,14 +79,82 @@ The first ~80 seconds functions as a **movie trailer**, not a cold open. This is
 
 **Purpose:** Functions exactly like a movie trailer — shows the most dramatic moments without context, creates maximum open loops, and commits the viewer to watching the full 50 minutes to understand what they just saw.
 
-**Transition OUT of trailer:** After the final flash-forward clip, a fade to black or glitch transition → narrator rewinds to the beginning with "It's a late May evening in Cloudcroft, New Mexico..."
+**Transition OUT of trailer:** After the final flash-forward clip → fade to black → **brand sting** → **disclaimer card** → **establishing sequence** → narrator begins.
+
+### Opening Sequence (Post-Trailer → Act I) — Confirmed from Frames
+
+After the trailer ends, the video enters a **5-part opening sequence** before the main narrative begins:
+
+| Step | Visual | Duration (est.) | Description |
+|------|--------|-----------------|-------------|
+| **1. Brand Sting** | "DR. INSANITY" red text on black | 2-3 sec | Distressed/horror-style serif font with red neon glow/bloom effect. Floating dust particles. Pure black background. This is the channel's brand stamp. |
+| **2. Disclaimer Card** | Text over dark aerial imagery | 3-4 sec | "All footage is real" (RED) + "and obtained from U.S. law enforcement." (WHITE). Overlaid on the same dark-graded satellite imagery used throughout. Establishes credibility and legal protection. |
+| **3. Wide Aerial Establishing** | Pure satellite imagery | 3-5 sec | Google Earth view of Cloudcroft, NM with extreme vignette + desaturation. Edges nearly black. No overlays. Sets the geographic context. Slow Ken Burns zoom in. |
+| **4. Aerial + PIP + Red Pulse** | Satellite + victim photo + animated ping | 5-8 sec | Zoomed-in satellite view. Red radar pulse animates on the property. Craig's photo in File Viewer PIP on left with "CRAIG" label. Establishes: this is the victim, this is where it happened. |
+| **5. Property Aerial + 911 Waveform** | Drone/aerial of house + waveform + captions | Continues into Act I | Close-up aerial/drone shot of the actual property (dark, snow on trees). Red audio waveform overlay across top. White animated captions below ("to have a wellness check"). The 911 call begins playing. |
+
+This sequence flows: **brand → credibility → where → who + where → what happened** — a complete visual funnel from abstract to specific in ~20 seconds.
+
+#### Brand Sting Details (Confirmed from Frame)
+
+```python
+# Pillow: Generate Dr Insanity-style brand sting
+img = Image.new('RGB', (1920, 1080), (0, 0, 0))
+d = ImageDraw.Draw(img)
+
+# Use a distressed/horror font (e.g., "Bleeding Cowboys", "Creepster", "Nosifer")
+# Red text with glow: draw text multiple times at slightly offset positions
+# with decreasing opacity to create bloom effect
+text = "DR. INSANITY"
+font = ImageFont.truetype("creepster.ttf", 96)
+
+# Glow layers (drawn first, underneath)
+for offset in [8, 6, 4, 2]:
+    glow = Image.new('RGBA', (1920, 1080), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.text((960, 540), text, fill=(180, 20, 20, 40), font=font, anchor="mm")
+    glow = glow.filter(ImageFilter.GaussianBlur(offset * 3))
+    img = Image.alpha_composite(img.convert('RGBA'), glow).convert('RGB')
+
+# Sharp text on top
+d = ImageDraw.Draw(img)
+d.text((960, 540), text, fill=(220, 30, 30), font=font, anchor="mm")
+
+# Optional: add dust particles (small white dots at random positions)
+import random
+for _ in range(15):
+    x, y = random.randint(0, 1920), random.randint(0, 1080)
+    d.ellipse([(x-1, y-1), (x+1, y+1)], fill=(150, 150, 150, 80))
+
+img.save("brand-sting.png")
+```
+
+#### Disclaimer Card Details (Confirmed from Frame)
+
+```python
+# Background: dark-graded satellite imagery
+bg = Image.open("satellite-dark.png")  # pre-graded aerial
+
+d = ImageDraw.Draw(bg)
+# "All footage is real" in RED
+d.text((960, 530), "All footage is real", fill=(220, 30, 30),
+       font=get_font(32), anchor="mm")
+# "and obtained from U.S. law enforcement." in WHITE (same line, offset)
+d.text((960, 530), "All footage is real and obtained from U.S. law enforcement.",
+       fill=(255, 255, 255), font=get_font(32), anchor="mm")
+# Note: "All footage is real" portion is red, rest is white
+# Implementation: draw white text first, then overdraw "All footage is real" in red
+
+bg.save("disclaimer-card.png")
+```
 
 ### Act Structure & Timing
 
 | Act | Time Range | Duration | % of Video | Content |
 |-----|-----------|----------|------------|---------|
 | **Trailer** | 0:00 - 1:20 | 80 sec | 3% | Movie-trailer montage — 7 clips with glitch/flash transitions |
-| **Act I: Setup** | 1:30 - 8:00 | 6.5 min | 13% | Scene-setting, victim intro, first 911 call, first police visit |
+| **Opening Sequence** | 1:20 - 1:50 | 30 sec | 1% | Brand sting → disclaimer → aerial establishing → PIP + pulse |
+| **Act I: Setup** | 1:50 - 8:00 | 6 min | 12% | Property aerial with 911 waveform, first police visit |
 | **Act II: Investigation** | 8:00 - 26:30 | 18.5 min | 37% | Second call, neighbor canvass, Dena's call back, ex-husbands, daughter, financials |
 | **Sponsor** | 26:30 - 28:00 | 90 sec | 3% | Chime banking app |
 | **Act III: Confrontation** | 28:00 - 40:00 | 12 min | 24% | Roger face-to-face with Dena (twice), neighbor reveals |
@@ -256,60 +324,109 @@ ffmpeg -y -i input.mp4 \
 
 This is a critical visual technique that isn't obvious from the transcript alone. Dr Insanity builds **composited screen mockups** and **picture-in-picture layouts** that make the video feel like you're watching a detective's investigation unfold on their own screen.
 
-#### 5.2a "Detective's Computer" Screen Mockups (Confirmed from Frames)
+#### 5.2a "Detective's Computer" Screen Mockups (Confirmed from Multiple Frames)
 
-During investigation/research sections, the video shows a **fake Windows desktop** composited to look like a detective's computer screen. Key details confirmed from actual video frames:
+During investigation/research sections, the video shows **fake computer applications** composited on a Windows desktop. There are at least two distinct types:
 
-- **Background:** Windows desktop with a **red/warm-tinted wallpaper** — NOT the default blue Windows wallpaper. The warm red tint matches the crime/danger theme. Has **lens flare / light streak effects** on the right side adding depth and cinematic polish.
-- **"Photo Viewer" windows:** Multiple Photo Viewer windows with standard Windows chrome (File, Edit, Image, View, Help menu bar), slightly overlapping, containing:
-  - **B&W victim photo** (Craig holding a puppy — warm, humanizing)
-  - **"MISSING PERSON ALERT" flyer** — a full mock-up or sourced flyer with Craig's photo, physical description, last known location details, and a red "PLEASE HELP US FIND CRAIG!" banner
-- **Dark "REPORTS" data panel (left side):** Custom overlay with labeled fields:
-  - `Name: Craig Thetford`
-  - `Age: 60 Years Old`
-  - `Address: 97 Heatherwood...`
-  - `Demo: [highlighted in red]`
-- **Effect:** Viewer feels like they're looking over the detective's shoulder. Bridges the gap when no real footage exists for database/research scenes.
-- **Multiple variants:** Different desktop mockups are used at different investigation stages — sometimes with just photos, sometimes with the missing person flyer, sometimes with data panels.
+**Type 1: Photo Viewer Desktop (Research Phase)**
 
-**How to build:**
+- **Background:** Windows desktop with a **red/warm-tinted wallpaper** (or standard blue — both variants used). Has **lens flare / light streak effects** adding depth.
+- **"Photo Viewer" windows:** Multiple Photo Viewer windows with standard Windows chrome (File, Edit, Image, View, Help), slightly overlapping, containing:
+  - B&W victim photo (Craig holding puppy — warm, humanizing)
+  - "MISSING PERSON ALERT" flyer with Craig's photo, details, and red "PLEASE HELP US FIND CRAIG!" banner
+- **Used when:** Showing what detectives are looking at during research, or when introducing missing person context
+
+**Type 2: "Police Database" Application (Investigation Phase) — KEY VISUAL**
+
+A **full custom-built fake application** that looks like a real law enforcement database. This is the most sophisticated visual mockup in the video:
+
+- **Window title:** "Police Database" (with person icon in title bar)
+- **Standard window chrome:** File, Edit, Search, View, Help menus + minimize/maximize/close buttons
+- **Navigation tabs:** `DASHBOARD` | `RECORDS` | `CASES` | `REPORTS` — styled as clickable tab buttons
+- **Search bar:** "Search This Database" — top-right corner
+- **Content area (dark background):** "SEARCH RESULTS:" header, then:
+  - **Photo (left):** Craig's color photo (~300px wide)
+  - **Fields (right):** Structured data with italic gray labels + white values:
+    - *Name:* Craig Thetford
+    - *Age:* 60 Years Old
+    - *Address:* 97 Heatherway, Cloudcroft NM
+    - *Details:* **"Missing for"** (RED) **"2 months"**
+- **Background:** Blue Windows desktop visible behind the app window
+- **Key detail:** The "Missing for" text is in RED — drawing the eye to the critical fact
+
+**Effect:** Viewer feels like they're watching the detective run a database search. Legitimizes the investigation and makes abstract "looking into background" narration visually concrete.
+
+**How to build the Police Database mockup:**
 ```python
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
-# 1. Start with a RED-TINTED Windows desktop (1920x1080)
-# Use a Windows 10/11 wallpaper, shift hue to warm red
-bg = Image.open("windows-desktop-bg.png")
-# Apply red tint: reduce blue/green channels, boost red
-r, g, b = bg.split()
-bg = Image.merge('RGB', (r, g.point(lambda x: int(x * 0.6)), b.point(lambda x: int(x * 0.5))))
+def create_police_database_screen(photo_path, name, age, address, detail_key, detail_val):
+    """Generate a fake Police Database application window."""
+    # Blue Windows desktop background
+    bg = Image.open("windows-desktop-blue.png").resize((1920, 1080))
 
-# 2. Add lens flare / light streak on right side
-# Overlay a pre-made lens flare PNG with alpha blending
-flare = Image.open("lens-flare.png").resize((600, 800))
-bg.paste(flare, (1400, 100), flare)
+    # Application window (centered, ~900x500)
+    app_w, app_h = 900, 500
+    app_x, app_y = (1920-app_w)//2, (1080-app_h)//2
+    app = Image.new('RGBA', (app_w, app_h), (40, 40, 45, 255))
+    d = ImageDraw.Draw(app)
 
-# 3. Create "Photo Viewer" window with victim B&W photo
-# Build window chrome (title bar, menu bar, close/min/max buttons)
-photo = Image.open("craig-puppy.jpg").convert('L')  # Convert to B&W
-window = create_photo_viewer_window(photo, title="Photo Viewer")
-bg.paste(window, (50, 80))
+    # Title bar
+    d.rectangle([(0, 0), (app_w, 50)], fill=(55, 55, 60))
+    d.text((40, 12), "Police Database", fill=(255,255,255), font=get_font(18))
+    # Window controls (min, max, close)
+    d.text((app_w-80, 12), "— □ ×", fill=(180,180,180), font=get_font(18))
+    # Menu bar
+    d.text((20, 55), "File  Edit  Search  View  Help", fill=(180,180,180), font=get_font(14))
 
-# 4. Create "Photo Viewer" window with Missing Person flyer
-flyer = Image.open("missing-person-flyer.png")
-window2 = create_photo_viewer_window(flyer, title="Photo Viewer")
-bg.paste(window2, (400, 40))
+    # Navigation tabs
+    tabs = ["DASHBOARD", "RECORDS", "CASES", "REPORTS"]
+    tx = 30
+    for tab in tabs:
+        tw = len(tab) * 12 + 30
+        d.rounded_rectangle([(tx, 90), (tx+tw, 118)], radius=3, outline=(100,100,105))
+        d.text((tx+15, 95), tab, fill=(200,200,200), font=get_font(14))
+        tx += tw + 10
 
-# 5. Optional: Add dark REPORTS data panel
-panel = Image.new('RGBA', (350, 400), (15, 15, 20, 230))
-d = ImageDraw.Draw(panel)
-d.text((20, 20), "REPORTS", fill=(255,255,255), font=get_font(24))
-d.text((20, 70), "Name:", fill=(180,180,180), font=get_font(16))
-d.text((100, 70), "Craig Thetford", fill=(255,255,255), font=get_font(16))
-d.text((20, 100), "Age:", fill=(180,180,180), font=get_font(16))
-d.text((100, 100), "60 Years Old", fill=(255,255,255), font=get_font(16))
-bg.paste(panel, (30, 300), panel)
+    # Search bar (right side)
+    d.rounded_rectangle([(app_w-250, 90), (app_w-30, 118)], radius=3, outline=(80,80,85))
+    d.text((app_w-240, 95), "Search This Database", fill=(120,120,125), font=get_font(13))
 
-bg.save("detective-screen.png")
+    # Search results header
+    d.text((30, 145), "SEARCH RESULTS:", fill=(255,255,255), font=get_font_bold(22))
+
+    # Photo area
+    photo = Image.open(photo_path).resize((220, 260))
+    app.paste(photo, (30, 185))
+
+    # Data fields (right of photo)
+    fields_x = 280
+    field_font = get_font_italic(18)
+    value_font = get_font(18)
+
+    d.text((fields_x, 195), "Name:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+70, 195), name, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 230), "Age:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+70, 230), age, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 265), "Address:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+95, 265), address, fill=(255,255,255), font=value_font)
+
+    d.text((fields_x, 300), "Details:", fill=(160,160,160), font=field_font)
+    d.text((fields_x+85, 300), detail_key, fill=(220, 40, 40), font=value_font)  # RED
+    d.text((fields_x+85+len(detail_key)*10, 300), detail_val, fill=(255,255,255), font=value_font)
+
+    bg.paste(app, (app_x, app_y))
+    bg.save("police-database.png")
+
+# Usage:
+create_police_database_screen(
+    "craig-photo.jpg",
+    "Craig Thetford", "60 Years Old",
+    "97 Heatherway, Cloudcroft NM",
+    "Missing for ", "2 months"
+)
 ```
 
 #### 5.2b "File Viewer" PIP Photo Overlays (Confirmed from Frames)
@@ -327,6 +444,9 @@ When a person is being discussed, their photo appears as a PIP overlay — but N
 - **Night bodycam (carport search):** Craig's warm puppy photo in File Viewer PIP on left, while flashlight-lit bodycam shows the tractor/equipment in the carport where his body was hidden. The emotional contrast is devastating — warm victim photo vs. dark crime scene.
 - **Aerial/satellite view:** Craig's outdoor photo in File Viewer PIP on left, while satellite imagery with red pulse shows the property location.
 - **Detective desk scene:** Dena's photo in File Viewer PIP center, while bodycam shows detective writing notes.
+- **Dual PIP on 3D Google Earth (911 call):** TWO File Viewer photos side by side — "LARRY SCOTT" (the caller) on the left, "CRAIG THETFORD" (the victim) on the right — over a **3D Google Earth Studio oblique view** of the town. This establishes the relationship between caller and subject during the welfare check call.
+
+**Dual PIP pattern:** When a phone call involves two identified parties (caller + subject), both photos appear simultaneously side by side. Single PIP is used when only one person is being discussed.
 
 **Multiple photos for same person:** Craig has at least two different photos used in PIP:
 1. **Warm/personal:** B&W, holding puppy, wearing cap — used for emotional moments
@@ -424,14 +544,93 @@ d.text((80, 640), "if convicted for second-degree murder", fill=(255,255,255), f
 img.save("charges-card.png")
 ```
 
-#### 5.2e Aerial Map with Animated Red Pulse (Confirmed from Frame)
+#### 5.2e Aerial Maps & Location Shots (Confirmed from Multiple Frames)
 
-Location establishing shots use **satellite imagery with an animated red pulse/radar ping**:
+Location shots use **three distinct visual styles**, all confirmed from frames:
 
-- **Background:** Google Earth satellite view of the neighborhood, **dark-graded** (desaturated, contrast boosted, darkened — NOT natural satellite colors)
-- **Red pulse effect:** Glowing red concentric circles radiating outward from the target property, like a radar ping or heartbeat monitor. Creates an animated "this is the spot" effect.
-- **File Viewer PIP:** Victim's photo in the standard File Viewer window overlay, positioned left side
-- **Overall effect:** Cinematic surveillance feel — like tracking a target from a command center
+**Style 1: Flat Satellite + Red Pulse**
+- Dark-graded Google Earth top-down view with extreme vignette
+- Red radar pulse (concentric glowing circles) on the target property
+- File Viewer PIP of victim on left side
+- Used for: pinpointing the exact property
+
+**Style 2: 3D Google Earth Studio Oblique View**
+- **NOT flat satellite** — this is a 3D rendered oblique/angled view from Google Earth Studio showing buildings in 3D perspective
+- Dark/desaturated color grade (almost black and white)
+- Used as background for dual PIP phone call scenes (e.g., Larry Scott + Craig Thetford side by side)
+- Camera slowly pans/orbits during the shot (Google Earth Studio camera animation)
+- Used for: establishing city/town context during phone calls
+
+**Style 3: Dark Map with Red Glowing Road Outlines**
+- Extremely dark satellite imagery — nearly all black
+- **Roads traced with red glowing lines** — neon-red outlines following the road network, with glow/bloom effect
+- White text labels ("WILDERNESS AREA") for geographic context
+- Very heavy vignette
+- Used for: showing the remote, isolated context of the location
+
+**The red road outlines are a standout technique.** They make the map look like a tactical/surveillance display — like something from a command center or a crime thriller movie. The roads glow like circuits on a dark grid.
+
+```python
+# Approach: Use MapLibre/Mapbox with custom dark style + red road layers
+# OR: Download OSM road data and trace with Pillow
+
+# Pillow approach (manual but precise):
+from PIL import Image, ImageDraw, ImageFilter
+
+# 1. Start with dark satellite image
+bg = Image.open("satellite.png")
+# Darken heavily
+bg = bg.point(lambda x: int(x * 0.2))  # 20% brightness
+
+# 2. Load road overlay (white roads on transparent bg from OSM/MapLibre export)
+roads = Image.open("roads-white-on-transparent.png")
+
+# 3. Tint roads red
+r, g, b, a = roads.split()
+red_roads = Image.merge('RGBA', (r, Image.new('L', r.size, 0), Image.new('L', r.size, 0), a))
+
+# 4. Create glow: blur the red roads and composite underneath
+glow = red_roads.filter(ImageFilter.GaussianBlur(8))
+bg.paste(glow, (0, 0), glow)  # Glow layer
+bg.paste(red_roads, (0, 0), red_roads)  # Sharp roads on top
+
+# 5. Add vignette
+# ... (see vignette code above)
+
+# 6. Add text label
+d = ImageDraw.Draw(bg)
+d.text((960, 540), "WILDERNESS AREA", fill=(255,255,255), font=get_font(36), anchor="mm")
+
+bg.save("tactical-map.png")
+```
+
+```javascript
+// MapLibre GL JS approach (web-based, higher quality):
+// Use a dark basemap style with custom road layer coloring
+map.addLayer({
+  'id': 'roads-glow',
+  'type': 'line',
+  'source': 'openmaptiles',
+  'source-layer': 'transportation',
+  'paint': {
+    'line-color': '#dc3232',
+    'line-width': 3,
+    'line-blur': 8,
+    'line-opacity': 0.6
+  }
+});
+map.addLayer({
+  'id': 'roads-sharp',
+  'type': 'line',
+  'source': 'openmaptiles',
+  'source-layer': 'transportation',
+  'paint': {
+    'line-color': '#dc3232',
+    'line-width': 1.5,
+    'line-opacity': 0.9
+  }
+});
+```
 
 ```bash
 # FFmpeg: Create animated red pulse on satellite image
@@ -537,7 +736,7 @@ Beyond static text overlays, the video includes animated motion graphics:
 |---------|------------|----------|
 | **Animated lower thirds** | Slide-in from left with red accent line drawing in, text fading in sequentially (name, then role) | Character introductions |
 | **Animated map pins** | Pin drop animation on location maps (drops from above, bounces) | New location establishment |
-| **Animated waveform** | Real-time audio waveform synced to 911/phone call audio | During all phone/911 audio |
+| **Red audio waveform** | Jagged red waveform with red glow, overlaid on aerial footage (NOT on black bg) | During 911/phone call audio |
 | **Animated quote reveal** | Quote text types in or fades word-by-word | Key damning statements |
 | **Transition graphics** | Glitch frames, white flashes (see Section 4) | Between dramatic clips |
 | **Progress/timeline line** | Animated line connecting events chronologically | During investigation timeline sections |
@@ -566,7 +765,47 @@ ffmpeg -y -loop 1 -i "photo.jpg" \
   output.mp4
 ```
 
-### 5.7 Color Palette
+### 5.7 911 / Phone Call Visual Treatment (Corrected — Confirmed from Frame)
+
+**Previous assumption (WRONG):** Dark/black background with green waveform animation.
+
+**Actual treatment (CONFIRMED):** Aerial/drone footage of the property as background, with red waveform and animated captions overlaid.
+
+**Layered composition (bottom to top):**
+
+1. **Background layer:** Dark aerial/drone shot of the actual property involved in the case. Night-time or heavily dark-graded. Shows the house, trees, surrounding terrain. Slow Ken Burns zoom applied. In this video: the Thetford property with snow on surrounding trees.
+
+2. **Red audio waveform layer:** Jagged red waveform line across the upper-center of the frame, synced to the 911 call audio. Has a **red glow/bloom** behind the waveform, creating a neon-in-darkness effect. The waveform animates in real-time with the audio peaks.
+
+3. **White caption layer:** Bold white text (animated subtitles) positioned center-bottom, below the waveform. Shows what's being said in the call: "to have a wellness check". Words appear phrase-by-phrase synced to audio.
+
+**Why this works better than black + waveform:**
+- The property footage keeps the viewer grounded in the location
+- The red waveform + dark footage creates an ominous "surveillance monitoring" feel
+- Animated captions ensure comprehension even with poor call audio quality
+- The composition is layered and cinematic, not flat
+
+```bash
+# FFmpeg: Create 911 call visualization with waveform over aerial footage
+# Step 1: Generate waveform from audio
+ffmpeg -y -i "911-call-audio.wav" \
+  -filter_complex "[0:a]showwaves=s=1920x200:mode=cline:rate=30:colors=0xdc3232[waves];color=black:s=1920x1080:r=30[bg];[bg][waves]overlay=0:300[out]" \
+  -map "[out]" -c:v libx264 -preset fast -crf 23 -t 60 \
+  waveform-only.mp4
+
+# Step 2: Overlay waveform (with alpha/glow) on aerial footage
+ffmpeg -y -i "aerial-property-dark.mp4" -i "waveform-only.mp4" \
+  -filter_complex "[1:v]colorkey=0x000000:0.3:0.2[wf];[0:v][wf]overlay=0:0[out]" \
+  -map "[out]" -map 1:a -c:v libx264 -crf 23 -c:a aac \
+  911-visualization.mp4
+
+# Step 3: Burn in animated captions
+ffmpeg -y -i "911-visualization.mp4" -vf "ass=911-captions.ass" \
+  -c:v libx264 -crf 23 -c:a copy \
+  911-final.mp4
+```
+
+### 5.8 Color Palette
 
 | Element | Color | Hex |
 |---------|-------|-----|
@@ -579,6 +818,10 @@ ffmpeg -y -loop 1 -i "photo.jpg" \
 | Caption text | White with dark outline | `#FFFFFF` + `#000000` stroke |
 | Red highlight circles/arrows | Bright red | `#FF3333` |
 | Vignette | Black gradient (edge → transparent) | `#000000` → transparent |
+| Waveform (911/calls) | Red with glow | `#DC3232` + bloom |
+| Brand sting text | Red with neon glow | `#DC1E1E` + bloom |
+| Disclaimer "real" text | Red | `#DC3232` |
+| Desktop mockup wallpaper | Red/warm-tinted | Windows wallpaper hue-shifted warm |
 
 ---
 
@@ -952,3 +1195,160 @@ To make a video that matches this production quality:
 - [ ] No tags (zero — consistent with channel)
 - [ ] Category: News & Politics
 - [ ] Upload on Thursday (best performing day)
+
+---
+
+## 14. Frame-by-Frame Visual Timeline (Storyboard Analysis)
+
+> 300 frames extracted at 10-second intervals from YouTube storyboard sprites. Frames are 320x180 (upscaled 4x from 80x45 originals). This timeline documents every visual technique observed across the full 50-minute video.
+
+### Methodology
+
+Frames were extracted from YouTube's auto-generated storyboard sprite sheets (Level 1: 80x45px, 10×10 grid, 10-second intervals). These are the same frames used for the seek-bar preview on YouTube. While low resolution, they are sufficient to identify visual composition, overlay types, color grades, and scene transitions.
+
+### ACT 1: THE HOOK (0:00 - 4:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 0:00 | Bodycam — nighttime exterior | [TRAILER] begins | Property visible, dark, officer approaching. Night-vision color grade |
+| 0:10 | Bodycam — interior, yellow tones | [TRAILER] clip 2 | Vertical framing — cluttered interior, items stacked |
+| 0:20 | Bodycam — night exterior, trees | [TRAILER] clip 3 | Dark blue grade, figure barely visible through trees |
+| 0:30 | Bodycam — interior, bright spot | [TRAILER] clip 4 | White flash transition between this and previous — confirmed [TR-FLASH] |
+| 0:40 | Bodycam — daytime exterior | [TRAILER] clip 5 | Dena outside, bright daylight, green foliage. Sharp contrast from dark clips |
+| 0:50 | Bodycam — daytime, Dena | [TRAILER] clip 6 | Close-up, Dena standing outside house, unaware |
+| 1:00 | House exterior — porch/columns | [TRAILER] clip 7 | Large property, green-graded, vignette heavy. Ken Burns zoom |
+| 1:10 | Dark interior — crime tape? | [TRAILER] final | Dark bodycam interior, possible crime scene tape yellow strip visible |
+| 1:20 | Bodycam close-up + text | [BRAND-STING] transition | Text overlay visible at bottom — trailer ending, lower third fades |
+| 1:30 | Dark aerial/satellite | [BRAND-STING] or [DISCLAIMER] | Very dark, satellite/aerial texture. **NOTE: glow appears teal/cyan, not red** — needs verification |
+| 1:40 | PIP over aerial | [PIP-SINGLE] + [MAP-FLAT] | Person photo in File Viewer window floating over property aerial view |
+| 1:50 | Dark blue dramatic shot | B-roll / stock footage | Heavily color-graded blue, atmospheric. Possibly underwater/dramatic stock |
+| 2:00 | Body outline on floor | Crime scene photo / reconstruction | **KEY FRAME** — body silhouette on hard floor. Dark, dramatic. This appears early in the setup |
+| 2:10 | Glowing text on dark bg | [BRAND-STING] confirmed | Text with **teal/cyan glow** on dark background — **CORRECTION: brand sting may use teal, not red** |
+| 2:20 | Red text on dark aerial | [DISCLAIMER] line 1 | "All footage is real" in RED confirmed. Dark satellite bg |
+| 2:30 | Red text continued | [DISCLAIMER] line 2 | Continued red + white text on dark aerial |
+| 2:40 | Two photos on dark bg | [PIP-DUAL] | Two File Viewer windows over dark satellite — Craig + Larry/Dena |
+| 2:50 | PIP-DUAL + caption | [PIP-DUAL] + [CAPTION-ANIMATED] | Same dual photos, animated caption text visible at bottom |
+| 3:00 | Night bodycam — driving | Bodycam — officer in vehicle | Headlights visible, approaching property at night. 911 call audio playing |
+| 3:10 | Night bodycam — arriving | Bodycam — trees, building | Officer arriving at property exterior, nighttime |
+| 3:20 | Night bodycam — property | Bodycam — walking grounds | Trees, structures visible, flashlight/headlamp illumination |
+| 3:30 | Night bodycam — door area | Bodycam — at entrance | Officer at property entrance/doorway |
+| 3:40 | Dark text screen | [POLICE-DB] or text card | Dark background with text — possibly timestamp or location card |
+| 3:50 | Bodycam + caption | Bodycam — exterior walk | Animated caption visible at bottom, daytime exterior now |
+
+### ACT 2: THE INVESTIGATION (4:00 - 26:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 4:00 | Stairs exterior | Bodycam — property stairs | Nighttime, blue color grade. Officer walking up to elevated property |
+| 4:20 | Road at night | Bodycam — driving/road | Night driving shot, animated caption visible |
+| 4:40 | Dark interior, warm light | Bodycam — inside property | Warm light source in background. First interior exploration |
+| 5:00 | Officer walking exterior | Bodycam — night, figure | Officer walking around property at night. The "smell" moment is near here |
+| 5:30 | Satellite + red markers | **[MAP-TACTICAL]** confirmed | Dark satellite imagery with RED road/property highlights. Location markers visible |
+| 6:00 | Satellite + PIP overlay | [MAP-TACTICAL] + [PIP-SINGLE] | Red tactical overlays on satellite, person photo visible. Combining map + character intro |
+| 6:30 | Dark info screen + photo | **[POLICE-DB]** confirmed | Dark interface: person photo (left), text fields (right): name, age, address. Blue/dark theme |
+| 7:00 | Satellite + teal markers | [MAP-FLAT] with **teal/cyan pins** | Satellite view showing road network. Pin/marker in teal/cyan — **CORRECTION: maps use both red AND teal markers** |
+| 7:30 | Daytime bodycam, red truck | Bodycam — rural property | Red pickup truck, trees, rural setting. Animated caption visible. Second visit begins |
+| 8:00 | Exterior + text | Bodycam + [CAPTION-ANIMATED] | Officer at property, text overlay at bottom of frame |
+| 8:30 | Interior porch, person sitting | Bodycam — neighbor interview | Person sitting on porch/deck. Blue color grade. [LOWER-THIRD] visible |
+| 9:00 | Porch conversation continued | Bodycam — neighbor | Same location, continued conversation |
+| 9:30 | Close-up of person | Bodycam — face close-up | Neighbor interview close-up, animated caption |
+| 10:00 | Person next to SUV | Bodycam + [PIP-SINGLE] | Person standing by vehicle. PIP photo overlay — **PIP composited over bodycam footage** (not just aerials) |
+| 10:30 | Detective at desk + monitors | Bodycam — office interior | Multiple monitors visible, detective working. Animated caption. This is the detective's office |
+| 11:00 | Windows desktop + 2 photos | **[DESKTOP-PHOTOS]** confirmed | Windows desktop with TWO Photo Viewer windows open. Craig (left, blurred) + Dena (right, hat). Windows logo backdrop visible |
+| 11:30 | Large single photo, dark bg | [PIP-SINGLE] — large format | Photo dominates center of frame. Blue/dark background. Name label below |
+| 12:00 | Photo Viewer on desktop | [DESKTOP-PHOTOS] variant | Single Photo Viewer window, positioned left, with text panel alongside. Windows desktop background |
+| 13:00 | Photo over bodycam bg | [PIP-SINGLE] over bodycam | Person photo floating over real interior bodycam footage — **PIP used on bodycam, not just maps** |
+| 14:00 | Photo + waveform | [WAVEFORM-AERIAL] — **GREEN waveform?** | Person photo with audio waveform visualization below. The waveform color appears GREEN here, not red. **Needs verification — may vary by call type** |
+| 15:00 | Photo on blue desktop | [PIP-SINGLE] on Windows bg | Person photo on Windows-style blue background |
+| 16:00 | Detective writing close-up | Bodycam — hands + pen | Close-up of detective's hands writing on paper at desk. Caption visible |
+| 17:00 | Detective at computer | Bodycam — office | Detective at workstation, interior office |
+| 18:00 | Phone/document on dark bg | **[DOCUMENT-MOCKUP]** — NEW | Mobile phone screen or document displayed on dark green background. Text list visible with red highlighted items. **New visual element** |
+| 18:20 | PIP over house exterior | [PIP-SINGLE] + property bg | Person photo overlay (left side) over actual house exterior footage. Compositing bodycam + PIP |
+| 19:00 | Satellite + teal pin | [MAP-FLAT] + teal marker | Satellite view, property pin in teal/cyan on road network. Zoom into location |
+| 20:00 | Interior search | Bodycam — cluttered room | Officer/detective searching through items in cluttered interior room |
+| 21:00 | Dena on couch | Bodycam — Dena interview | Dena in striped shirt sitting on couch. Interior of house. Roger's visit |
+| 22:00 | Dena + lower third | Bodycam + [LOWER-THIRD] | Same scene, white text overlay visible — name/title identification |
+| 23:00 | Hands + cash/documents | Bodycam — evidence | Close-up of hands holding cash or documents. [LOWER-THIRD] text visible. Financial evidence shown directly |
+| 24:00 | Dena on couch, different angle | Bodycam — continued | Roger's visit continues, different bodycam angle |
+| 25:00 | Dena standing, close-up | Bodycam — Dena | Dena standing, striped shirt, close-up. Confrontation escalating |
+| 26:00 | Dena sitting + PIP | Bodycam + [PIP-SINGLE] | Dena sitting, PIP photo overlay floating on right side over bodycam footage |
+
+### ACT 3: THE CONFRONTATION (26:00 - 40:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 27:00 | Quote card + bodycam bg | **[QUOTE-CARD]** confirmed | Text quote displayed prominently over bodycam background. **Teal/blue styling** — text with glow effect. This is the homicide detective reveal |
+| 28:00 | Cabin exterior, truck | Bodycam — arrival | Daytime, cabin-style house, vehicle parked outside. Roger arriving for second visit |
+| 29:00 | Exterior, trees, caption | Bodycam — walking property | Trees, rural property. Animated caption visible. Walking the grounds |
+| 30:00 | Interior, Dena sitting | Bodycam — dark interior | Dena visible, text overlay in RED — possible quote or key statement highlighted |
+| 31:00 | Dark interior close-up | Bodycam — inside | Close-up, dark/moody, tense conversation |
+| 32:00 | Bleach bottle prominent | Bodycam — **evidence in situ** | Large white jug (bleach) clearly visible in frame. **Evidence shown through bodycam naturally** — no overlay needed |
+| 33:00 | Dark silhouettes | Bodycam — interior | Silhouettes against window light. Moody, cinematic framing |
+| 34:00 | Map + teal text | [MAP-TACTICAL] + **teal label** | Satellite imagery with location/address text in **teal/green glow**. Property label card on map |
+| 35:00 | Satellite + RED marker | [MAP-PULSE] confirmed | Satellite view with **RED highlight/marker** on property. Red for the alert/danger ping |
+| 35:30 | Satellite, neighborhood | [MAP-TACTICAL] — zoomed out | Wider satellite view showing neighborhood grid layout. Multiple colored markers |
+| 36:00 | Interior, ceiling | Bodycam — inside room | Looking up at ceiling, dimly lit. Searching the property |
+| 37:00 | Split: info + footage | **[SPLIT-INFO]** — NEW | Left: text card with data on dark bg. Right: bodycam/exterior footage. **Split-screen info panel** |
+| 38:00 | Exterior + PIP left | Bodycam + [PIP-SINGLE] | Person (Dena?) walking exterior. Small PIP photo overlay on left with lower third text |
+| 39:00 | Interior hallway | Bodycam — hallway/door | Dim interior, door/hallway area |
+| 40:00 | Interior, person on bed | Bodycam — bedroom | Person lying/sitting in bedroom area. Searching continues |
+
+### ACT 4: THE CLIMAX (40:00 - 50:00)
+
+| Time | Frame | Visual Element | Notes |
+|------|-------|---------------|-------|
+| 40:30 | Evidence items on bokeh bg | **[EVIDENCE-DISPLAY]** — NEW | Bleach jug, pink spray bottle, power drill arranged on **blurred/bokeh background**. NOT bodycam — this is a **composed evidence presentation shot** with soft lighting. Animated caption at bottom |
+| 41:00 | Dark interior + teal text | Bodycam — search continues | Interior property search. Teal text overlay visible — location or evidence label |
+| 42:00 | Interior, red elements | Bodycam — evidence markers | Red items visible in frame (evidence markers? highlighted items). Storage/containers visible |
+| 43:00 | Dark interior, officer | Bodycam — searching | Officer in dark interior, blue/green color grade. Active search |
+| 44:00 | Dark screen + person photo | [POLICE-DB] confirmed | Dark interface: text fields (left), person photo (right). Suspect information display. White text on dark blue/black |
+| 45:00 | Hands holding phone | Bodycam — phone evidence | Close-up of hands holding a phone showing blue screen. Evidence being examined. Caption at bottom |
+| 46:00 | Detective at workspace | Bodycam — detective | Interior office/workspace, detective reviewing information. Caption visible |
+| 47:00 | Anatomical line drawing | **[BODY-DIAGRAM]** — NEW | Hand-drawn/sketch style diagram of human body. Line drawing with annotations. **Forensic/medical diagram** showing cause of death or injuries. Light/white background |
+| 48:00 | Person's face close-up | Photo — Craig | Close-up of person's face, textured/grainy. Personal photo of victim |
+| 48:30 | Interrogation room | **[INTERROGATION]** — NEW | Dena seated in grey interrogation room at table. [LOWER-THIRD] text overlay with name and context. Classic police interrogation footage |
+| 49:00 | Overhead custody shot | Surveillance/bodycam | Overhead angle, person in custody. Different camera perspective from main bodycam |
+| 49:30 | Judge at bench | **[COURTROOM]** — NEW | Courtroom with judge at bench, American flag visible. Real courtroom footage from proceedings |
+| 49:50 | Mugshot + charges | **[MUGSHOT-CARD]** confirmed | Split layout: Dena's mugshot (left), charges in **RED text** (right), case details in white. Dark background. Final resolution card |
+
+### New Visual Elements Discovered (Not in Original Analysis)
+
+| Code | Element | Description | First Seen |
+|------|---------|------------|------------|
+| **[EVIDENCE-DISPLAY]** | Composed evidence shot | Physical evidence items arranged on blurred/bokeh background with soft lighting. NOT bodycam — this is staged/composed. Used for impactful evidence reveals | 40:30 |
+| **[BODY-DIAGRAM]** | Forensic diagram | Hand-drawn line illustration of human body showing injuries/cause of death. Clean white background, sketch style | 47:00 |
+| **[INTERROGATION]** | Interrogation footage | Real police interrogation room footage — grey walls, table, suspect seated. With lower third | 48:30 |
+| **[COURTROOM]** | Courtroom footage | Real courtroom footage from legal proceedings — judge, flag, bench | 49:30 |
+| **[DOCUMENT-MOCKUP]** | Phone/document display | Mobile phone screen or legal document displayed on dark background. Text with red highlights | 18:00 |
+| **[SPLIT-INFO]** | Split-screen info panel | Screen split: text/data card on one side, footage on the other. Used for key reveals | 37:00 |
+
+### Color Palette Corrections (from Frame Analysis)
+
+| Element | Previously Assumed | Actually Observed | Notes |
+|---------|-------------------|-------------------|-------|
+| Brand sting glow | Red (#DC1E1E) | **Teal/cyan** at 2:10 | May alternate between red and teal across videos, or this video uses teal |
+| Map markers | Red only | **Red AND teal/cyan** | Red for danger/alert pins, teal for informational/location pins |
+| Quote cards | Red text assumed | **Teal/blue glow** at 27:00 | Quote text uses teal glow effect, not red |
+| Map labels | Red text | **Teal/green glow** at 34:00 | Location labels on maps use teal, not red |
+| Waveform (calls) | Red only | **May include green** at 14:00 | Low resolution makes this uncertain — could be compression artifact |
+| Overall accent palette | Red-dominant | **Red + teal dual accent** | Red = danger/alert/charges. Teal = information/labels/quotes |
+
+### Visual Composition Patterns (from 300 Frames)
+
+**1. Bodycam dominance:** ~55% of frames are direct bodycam footage. This is higher than the 45% estimated earlier. Bodycam IS the video.
+
+**2. PIP compositing on bodycam:** Person photos (File Viewer style) are overlaid directly on bodycam footage, not just on aerials/maps. This creates a layered look where information overlays enhance real footage.
+
+**3. Dual accent colors:** The video uses BOTH red and teal/cyan as accent colors:
+- **Red** → danger, charges, alerts, disclaimers, map pulses, mugshot card charges
+- **Teal/cyan** → information, names, labels, quote cards, map text, brand sting(?)
+
+**4. Evidence display technique:** At 40:30, evidence items are shown in a composed/staged shot against a blurred background — NOT in situ on bodycam. This is a cinematic technique borrowed from product photography, making evidence items look dramatic and significant.
+
+**5. Progressive visual escalation:** The video starts with bodycam + simple overlays, and introduces increasingly complex visual elements as tension builds:
+- Early (0-10min): Bodycam + basic PIP + maps
+- Middle (10-26min): Desktop mockups + Police DB + dual PIP
+- Confrontation (26-40min): Quote cards + split info + tactical maps
+- Climax (40-50min): Evidence display + body diagram + interrogation + courtroom + mugshot card
+
+**6. Night-to-day progression:** The bodycam footage shifts from nighttime (dark, blue-graded, flashlight-lit) in the early investigation to daytime (bright, natural) during the confrontation. This mirrors the narrative progression from mystery → clarity.

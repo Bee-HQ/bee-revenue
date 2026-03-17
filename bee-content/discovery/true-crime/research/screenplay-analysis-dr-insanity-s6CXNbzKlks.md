@@ -35,11 +35,19 @@
 
 ---
 
-## Act-by-Act Breakdown
+## Act-by-Act Breakdown (with Visual Storyboard Codes)
+
+> Visual codes reference the [Visual Storyboard Bible](visual-storyboard-bible.md). Each scene is tagged with the exact visual elements needed.
 
 ### ACT 1: THE HOOK (0:00 - 4:00)
 
-**Cold Open (0:00-1:30) — The Sensory Hook**
+**Cold Open / Trailer (0:00-1:20) — The Sensory Hook**
+
+```
+VISUAL: [TRAILER] — 7 flash-forward clips with [TR-GLITCH] and [TR-FLASH]
+AUDIO:  Bodycam clips + narrator dramatic irony + phone call clips
+MUSIC:  Percussion-driven, louder than rest of video
+```
 
 Opens with raw bodycam audio:
 > "Doesn't look like anyone's been here."
@@ -61,7 +69,24 @@ Followed by a **foreshadowing montage** — rapid audio clips from key moments l
 Then a brief narrator summary establishing the mystery:
 > "Whoever killed Craig covered their tracks meticulously — using chemicals to mask the odor, disabling security cameras, and hiding in plain sight."
 
-**Setup (1:30-4:00) — Establishing the World**
+**Opening Sequence (1:20-1:50)**
+
+```
+VISUAL: [BRAND-STING] → [TR-FADE] → [DISCLAIMER] over dark aerial
+        → [TR-FADE] → [MAP-FLAT] wide Cloudcroft establishing
+AUDIO:  Low bass drone / silence
+```
+
+**Setup (1:50-4:00) — Establishing the World**
+
+```
+VISUAL: [MAP-FLAT] → slow zoom → [MAP-TACTICAL] red road outlines + "WILDERNESS AREA"
+        → [MAP-PULSE] red ping on Thetford property
+        → [PIP-SINGLE] Craig photo + "CRAIG" label
+        → [WAVEFORM-AERIAL] property aerial as 911 call begins
+AUDIO:  Narrator establishing → first 911 call recording
+OVERLAY: [CAPTION-ANIMATED] throughout, [LOWER-THIRD] "Craig Thetford, 60 — Missing Person"
+```
 
 - Location: Cloudcroft, New Mexico, mountain terrain
 - Characters: Craig Thatford (60), wife Dena, roofing business
@@ -70,11 +95,25 @@ Then a brief narrator summary establishing the mystery:
 
 **Key narrative move:** The narrator notes that Larry says nobody has heard from Craig for "nearly two months" — but later this stretches to 4 months. The timeline discrepancy is planted early.
 
+```
+VISUAL: [PIP-DUAL] Larry Scott + Craig Thetford over [MAP-3D] town oblique view
+AUDIO:  911 call: "Who would I talk to to have a wellness check done?"
+OVERLAY: [LOWER-THIRD] "Larry Scott — Friend of Craig"
+```
+
 ---
 
 ### ACT 2: THE INVESTIGATION (4:00 - 26:00)
 
 **First Visit — The Missed Clues (4:00-8:00)**
+
+```
+VISUAL: Bodycam footage — officers arriving, walking property
+        → [LOWER-THIRD] "Deputy — Otero County Sheriff's Office"
+        → Bodycam of officer at carport (THE SMELL moment)
+AUDIO:  Bodycam audio + narrator bridges
+OVERLAY: [CAPTION-ANIMATED], [VIGNETTE], [LETTERBOX]
+```
 
 Officers visit the property. Details established:
 - Large property with multiple outbuildings
@@ -88,6 +127,14 @@ Officers visit the property. Details established:
 
 **Second Call — The Grandson (8:00-10:00)**
 
+```
+VISUAL: [WAVEFORM-AERIAL] property aerial bg + red waveform
+        → [PIP-SINGLE] "CODY GIBSON" (grandson)
+        → [TIMELINE-MARKER] "4 Months Missing" (escalation from 2)
+AUDIO:  911 call recording from Cody
+OVERLAY: [CAPTION-ANIMATED]
+```
+
 Craig's grandson Cody calls. New info:
 - Craig hasn't been seen for **4 months** (not 2 as Larry said)
 - Dena told everyone Craig went to Mexico with another woman after filing for divorce
@@ -97,6 +144,15 @@ Craig's grandson Cody calls. New info:
 
 **Neighbor Canvass (10:00-14:00)**
 
+```
+VISUAL: Bodycam — Deputy talking to firefighter friend
+        → [LOWER-THIRD] "Thomas — Neighbor / Firefighter"
+        → Bodycam — Deputy talking to Heidi
+        → [LOWER-THIRD] "Heidi — Neighbor"
+AUDIO:  Bodycam audio
+TRANSITION: [TR-FADE] between neighbor conversations (different locations)
+```
+
 Deputies talk to neighbors. Each one adds a piece:
 - Firefighter friend: "No contact since January"
 - Neighbor Heidi: Says Craig is "at his mom's in Breen Ridge" — contradicts Dena's Mexico story
@@ -105,6 +161,14 @@ Deputies talk to neighbors. Each one adds a piece:
 **Technique: Contradictory Witnesses.** Each person has a slightly different version of Dena's story. The viewer starts tracking the lies.
 
 **Dena Calls Back (14:00-18:00)**
+
+```
+VISUAL: [WAVEFORM-AERIAL] property bg + [PIP-SINGLE] "DEANA THETFORD"
+        → [POLICE-DB] search results: "Craig Thetford, 60, Missing for 2 months" (RED)
+        → [DESKTOP-PHOTOS] missing person flyer in Photo Viewer window
+AUDIO:  Phone call recording — Dena to deputy
+OVERLAY: [CAPTION-ANIMATED]
+```
 
 First time hearing from the suspected killer directly:
 - Claims Craig is in Mexico with another woman
@@ -116,6 +180,19 @@ First time hearing from the suspected killer directly:
 
 **The Ex-Husbands — History of Violence (18:00-24:00)**
 
+```
+VISUAL: [DOCUMENT-MOCKUP] — phone/document on dark bg, red highlights on key items
+        → [PIP-SINGLE] over property exterior (composited on real house footage)
+        → [PIP-DUAL] Detective Curtis + Ex-husband over [MAP-3D]
+        → [LOWER-THIRD] "Scott — Dena's Ex-Husband"
+        → [QUOTE-CARD] "If I could kill Craig and get away with it, I'd do it."
+        → [PIP-DUAL] Detective + Daughter Leslie
+        → [LOWER-THIRD] "Leslie — Dena's Daughter"
+        → [QUOTE-CARD] "My mom is crazy. She's tried to kill me before."
+AUDIO:  Phone call recordings — detective to ex-husbands, then daughter
+TRANSITION: [TR-GLITCH] before each quote card (tension spike)
+```
+
 Detective Curtis discovers Dena is on her **4th husband**. Calls the exes:
 
 Ex #2: "I called her demon possessed... alcohol turns her evil"
@@ -126,6 +203,14 @@ Daughter Leslie: "My mom is crazy. She's tried to kill me before. She stabbed on
 
 **Financial Investigation (24:00-26:00)**
 
+```
+VISUAL: [POLICE-DB] updated: "Details: Spending anomaly — $XXX,XXX in 4 months" (RED)
+        → [FINANCIAL-CARD] dollar amounts in red
+        → [DESKTOP-PHOTOS] property records, car purchase docs
+AUDIO:  Narrator describing financial trail
+OVERLAY: [CAPTION-ANIMATED]
+```
+
 In 4 months, Dena allegedly spent hundreds of thousands — new house, new car, funded her son's business.
 
 **Technique: Motive Reveal.** Money + violent history = clear motive. But still no body.
@@ -135,6 +220,19 @@ In 4 months, Dena allegedly spent hundreds of thousands — new house, new car, 
 ### ACT 3: THE CONFRONTATION (26:00 - 40:00)
 
 **Deputy Roger Visits Dena (28:00-34:00)**
+
+```
+VISUAL: Bodycam — Roger arriving at property, walking to door
+        → [LOWER-THIRD] "Deputy Roger — Retired Homicide Detective"
+        → Bodycam — Dena at door, invites Roger inside
+        → [PIP-SINGLE] handwritten "note from Craig" — [EVIDENCE-CLOSEUP] red highlight on key phrases
+        → Bodycam — walking through house, Dena mentions $1.5M safe
+        → [FINANCIAL-CARD] "$1,500,000 SAFE" in red
+        → Bodycam — going downstairs to safe room
+AUDIO:  Bodycam audio throughout — Dena talking freely
+OVERLAY: [CAPTION-ANIMATED], [VIGNETTE], [LETTERBOX]
+TRANSITION: [TR-FADE] between rooms within the house
+```
 
 This is the centerpiece of the video. Roger (retired homicide detective) goes face-to-face with Dena.
 
@@ -147,15 +245,41 @@ Key moments:
 
 > "I'm actually a retired police officer... the vast majority of my career, I worked in investigation, homicide unit in Albuquerque."
 
+```
+VISUAL: Bodycam — Roger delivers reveal, Dena's face changes
+        → [QUOTE-CARD] "I worked in investigation, homicide unit"
+AUDIO:  Bodycam audio — tension shift audible in Dena's voice
+TRANSITION: [TR-GLITCH] on the reveal moment (tension spike)
+```
+
 **Technique: The Reveal Moment.** Roger has been playing along the entire time, letting Dena talk. Then drops the homicide bomb. Her face changes. The power dynamic shifts instantly.
 
 **Sponsor Break (34:00-35:30)**
+
+```
+VISUAL: Sponsor card / Chime ad integration
+AUDIO:  Narrator transitions to sponsor read
+NOTE:   Placed at peak tension — right after homicide reveal
+```
 
 Placed at the peak tension moment — right after the confrontation. Viewer is too invested to leave.
 
 **Technique: Strategic Ad Placement.** The open loop ("what happens next?") guarantees the viewer stays through the ad.
 
 **Second Visit — The Hole (35:30-40:00)**
+
+```
+VISUAL: Bodycam — Roger returns, driving up to property
+        → [SPLIT-INFO] left: case summary text, right: bodycam approach
+        → Bodycam — spots Dena outside near a hole in the ground
+        → [EVIDENCE-CLOSEUP] the hole with red highlight
+        → Bodycam — Dena explaining the hole
+        → [QUOTE-CARD] "If I had just left when he told me to, none of this would have happened"
+        → [MAP-PULSE] red ping on property (re-establishing where body is)
+AUDIO:  Bodycam audio
+OVERLAY: [CAPTION-ANIMATED], [VIGNETTE], [LETTERBOX]
+TRANSITION: [TR-GLITCH] before the self-incrimination quote
+```
 
 Roger returns 5 days later. Spots Dena digging a hole outside.
 > "What are you putting in the ground?"
@@ -172,6 +296,18 @@ Then Dena's accidental confession:
 
 **Dena Vanishes + Confession Tip (40:00-44:00)**
 
+```
+VISUAL: [WAVEFORM-AERIAL] property bg — phone ringing, no answer
+        → [TIMELINE-MARKER] "Dena Goes Silent"
+        → [MAP-TACTICAL] Jamaica route or Texas location in red
+        → [PIP-SINGLE] "ANDREW" (co-worker)
+        → [WAVEFORM-AERIAL] Andrew's call to detective
+        → [QUOTE-CARD] "She said she shot him"
+AUDIO:  Narrator describing escalation → phone call recording from Andrew
+OVERLAY: [CAPTION-ANIMATED]
+TRANSITION: [TR-GLITCH] before "she said she shot him" (the bombshell)
+```
+
 - Dena stops answering calls
 - Rumors of fleeing to Jamaica or suicide attempt
 - Old co-worker Andrew calls: "She said she shot him"
@@ -181,6 +317,21 @@ Then Dena's accidental confession:
 
 **The Search (44:00-48:00)**
 
+```
+VISUAL: Bodycam — officers executing search warrant at property
+        → [EVIDENCE-DISPLAY] bleach jug + spray bottle + drill on bokeh bg
+        → [EVIDENCE-CLOSEUP] disabled surveillance cameras
+        → [EVIDENCE-CLOSEUP] signs of cleanup
+        → [FINANCIAL-CARD] "$84,200 of $1,500,000" — safe contents
+        → Bodycam — carport area, cardboard and plastic
+        → [CENSOR-BLUR] body discovery (soft black blur)
+        → [MAP-PULSE] red ping on carport location
+        → [BODY-DIAGRAM] forensic sketch — cause of death injuries
+AUDIO:  Bodycam audio + narrator bridges
+OVERLAY: [CAPTION-ANIMATED], [VIGNETTE], [LETTERBOX]
+TRANSITION: [TR-FADE] between evidence discoveries
+```
+
 Search warrant executed. Clues found:
 - Multiple bleach bottles
 - Disabled surveillance cameras
@@ -188,12 +339,33 @@ Search warrant executed. Clues found:
 - Safe opened: only $84,200 of the supposed $1.5M — most of the money is gone
 - **Body found** in carport under cardboard and plastic
 
+```
+VISUAL: [WAVEFORM-AERIAL] property bg — Leslie's phone call
+        → [PIP-SINGLE] "LESLIE" (daughter)
+        → [QUOTE-CARD] "She shot him and he fell into the pool room"
+AUDIO:  Phone call recording — Leslie to detective
+OVERLAY: [CAPTION-ANIMATED]
+```
+
 Then the daughter Leslie's call — she reveals her siblings knew and her mother confessed:
 > "She shot him and he fell into the pool room. She left him laying there on the floor for like a day, two days... wrapped him up... moved him with the tractor to the carport."
 
 **Technique: Convergent Revelation.** Physical evidence (body found) and testimonial evidence (daughter's confession) arrive simultaneously, creating a satisfying climax.
 
 **Resolution (48:00-50:00)**
+
+```
+VISUAL: [MAP-TACTICAL] Texas hospital location in red
+        → [PIP-SINGLE] Dena mugshot
+        → [INTERROGATION] — Dena in grey room, seated at table, [LOWER-THIRD]
+        → [QUOTE-CARD] "I want a lawyer" (brief)
+        → [COURTROOM] — judge at bench, American flag, arraignment
+        → [MUGSHOT-CARD] mugshot left, charges right in RED: "1st Degree Murder + Tampering"
+        → [TIMELINE-MARKER] "Pre-Trial — March 2026"
+AUDIO:  Brief interrogation audio → narrator wrap-up
+OVERLAY: [CAPTION-ANIMATED]
+TRANSITION: [TR-FADE] to final cards
+```
 
 - Dena found at hospital in Texas, arrested
 - Brief interrogation — immediately lawyers up
@@ -278,55 +450,96 @@ Breakdown:
 
 ### Script Structure Template (for ~45-50 min video)
 
+> Tag every scene with codes from the [Visual Storyboard Bible](visual-storyboard-bible.md).
+
 ```
 COLD OPEN (1-2 min)
-- Start with the most visceral/shocking piece of real footage
-- Narrator reveals dramatic irony ("they don't know...")
-- Quick montage of 4-5 audio clips from later in the video
+  VISUAL: [TRAILER] — 5-7 flash-forward clips with [TR-GLITCH] + [TR-FLASH]
+  - Start with the most visceral/shocking piece of real footage
+  - Narrator reveals dramatic irony ("they don't know...")
+  - Quick montage of 4-5 audio clips from later in the video
+
+OPENING SEQUENCE (~30s)
+  VISUAL: [BRAND-STING] → [TR-FADE] → [DISCLAIMER] over dark aerial
 
 SETUP (2-3 min)
-- Establish location, characters, lifestyle
-- First call/report that something is wrong
+  VISUAL: [MAP-FLAT] → [MAP-TACTICAL] → [MAP-PULSE] on target location
+          → [PIP-SINGLE] victim intro + [LOWER-THIRD]
+          → [WAVEFORM-AERIAL] for first 911 call
+  - Establish location, characters, lifestyle
+  - First call/report that something is wrong
 
 INVESTIGATION PT 1 (8-10 min)
-- First visit — clues missed
-- Second report — stakes raised
-- Neighbor/family interviews — each adds one new detail
+  VISUAL: Bodycam + [LOWER-THIRD] for officers
+          → [WAVEFORM-AERIAL] + [PIP-SINGLE] for follow-up calls
+          → [TIMELINE-MARKER] for time jumps
+          → Bodycam + [LOWER-THIRD] for neighbor interviews
+  - First visit — clues missed
+  - Second report — stakes raised
+  - Neighbor/family interviews — each adds one new detail
 
 THE SUSPECT (4-5 min)
-- First time hearing from the suspect directly
-- They sound reasonable — but narrator has seeded doubt
+  VISUAL: [WAVEFORM-AERIAL] + [PIP-SINGLE] suspect intro
+          → [POLICE-DB] suspect search screen
+          → [DESKTOP-PHOTOS] case documents in Photo Viewer
+  - First time hearing from the suspect directly
+  - They sound reasonable — but narrator has seeded doubt
 
 BACKGROUND DIG (6-8 min)
-- Criminal/relationship history
-- Prior violence allegations
-- Financial investigation
-- Each witness testimony is worse than the last
+  VISUAL: [PIP-DUAL] detective + witness over [MAP-3D]
+          → [QUOTE-CARD] for damning statements (preceded by [TR-GLITCH])
+          → [FINANCIAL-CARD] for money reveals
+          → [POLICE-DB] updated with new details
+  - Criminal/relationship history
+  - Prior violence allegations
+  - Financial investigation
+  - Each witness testimony is worse than the last
 
 CONFRONTATION (8-10 min) ← CENTERPIECE
-- Investigator goes face-to-face with suspect
-- Suspect tries to control the narrative
-- Investigator drops a bombshell reveal
-- Power dynamic shifts
+  VISUAL: Bodycam throughout + [LOWER-THIRD] for investigator
+          → [EVIDENCE-CLOSEUP] for physical evidence shown
+          → [FINANCIAL-CARD] for money references
+          → [QUOTE-CARD] for the bombshell reveal + [TR-GLITCH]
+  - Investigator goes face-to-face with suspect
+  - Suspect tries to control the narrative
+  - Investigator drops a bombshell reveal
+  - Power dynamic shifts
 
 [SPONSOR BREAK — place at peak tension]
 
 ESCALATION (4-6 min)
-- Suspect's behavior changes (flees, attempts self-harm, etc.)
-- Ticking clock — investigators must act fast
-- Key tip or confession comes in
+  VISUAL: [TIMELINE-MARKER] "Suspect Goes Silent"
+          → [MAP-TACTICAL] flight locations in red
+          → [WAVEFORM-AERIAL] + [PIP-SINGLE] tipster
+          → [QUOTE-CARD] confession tip + [TR-GLITCH]
+  - Suspect's behavior changes (flees, attempts self-harm, etc.)
+  - Ticking clock — investigators must act fast
+  - Key tip or confession comes in
 
 CLIMAX (4-6 min)
-- Search warrant executed
-- Physical evidence found
-- Body discovered
-- Testimonial confession converges with physical evidence
+  VISUAL: Bodycam — warrant execution
+          → [EVIDENCE-CLOSEUP] evidence items with red highlight
+          → [FINANCIAL-CARD] money discrepancies
+          → [CENSOR-BLUR] body discovery
+          → [MAP-PULSE] body location
+          → [WAVEFORM-AERIAL] + [QUOTE-CARD] for confession call
+  - Search warrant executed
+  - Physical evidence found
+  - Body discovered
+  - Testimonial confession converges with physical evidence
 
 RESOLUTION (2-3 min)
-- Arrest
-- Brief interrogation (suspect typically lawyers up)
-- Charges filed
-- Current case status (trial pending)
+  VISUAL: [MAP-TACTICAL] arrest location
+          → [PIP-SINGLE] suspect mugshot
+          → Interrogation footage
+          → [MUGSHOT-CARD] charges + sentence
+          → [TIMELINE-MARKER] case status
+  - Arrest
+  - Brief interrogation (suspect typically lawyers up)
+  - Charges filed
+  - Current case status (trial pending)
+
+PERSISTENT (all scenes): [CAPTION-ANIMATED], [VIGNETTE], [COLOR-GRADE], [LETTERBOX]
 ```
 
 ### Narration Style Rules
@@ -353,13 +566,20 @@ RESOLUTION (2-3 min)
 
 ### Visual Assembly
 
-- Bodycam footage for police visits
-- Google Earth/Maps for location establishing shots
-- Courtroom sketches or mugshots for suspect
-- Crime scene photos (if available from court records)
-- B-roll: police cars, courthouses, interrogation rooms (stock footage)
-- Text overlays for names, dates, locations on first mention
-- Occasional zooms on key evidence (notes, safe, etc.)
+> Full visual element specifications, Pillow/FFmpeg recipes, and asset checklists are in the [Visual Storyboard Bible](visual-storyboard-bible.md).
+
+**Per-video asset checklist:**
+
+| Category | Assets Needed | Bible Code |
+|----------|--------------|------------|
+| Maps | Dark satellite flat view, 3D oblique (Google Earth Studio), tactical with red roads, radar pulse | [MAP-FLAT], [MAP-3D], [MAP-TACTICAL], [MAP-PULSE] |
+| People | Photo for every named person, formatted as File Viewer PIP | [PIP-SINGLE], [PIP-DUAL] |
+| Evidence | Key items (notes, bottles, safe) with red highlights | [EVIDENCE-CLOSEUP] |
+| Graphics | Police Database screens, Desktop Photos mockups, financial cards | [POLICE-DB], [DESKTOP-PHOTOS], [FINANCIAL-CARD] |
+| Text | Lower thirds for all characters, quote cards for key statements, timeline markers | [LOWER-THIRD], [QUOTE-CARD], [TIMELINE-MARKER] |
+| Audio viz | Red waveform overlay on aerial footage for every phone/911 call | [WAVEFORM-AERIAL] |
+| End cards | Mugshot + charges split screen | [MUGSHOT-CARD] |
+| Persistent | Animated captions, vignette, color grade, letterbox bars | [CAPTION-ANIMATED], [VIGNETTE], [COLOR-GRADE], [LETTERBOX] |
 
 ---
 
