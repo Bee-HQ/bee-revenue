@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from bee_video_editor.api.routes import media, production, projects
@@ -33,6 +34,15 @@ def create_app(static_dir: Path | None = None) -> FastAPI:
 
     # Serve built frontend if available
     if static_dir and static_dir.exists():
+        index_html = static_dir / "index.html"
+
+        @app.get("/", response_class=FileResponse)
+        async def serve_index():
+            return FileResponse(
+                index_html,
+                headers={"Cache-Control": "no-store"},
+            )
+
         app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
 
     return app

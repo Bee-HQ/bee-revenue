@@ -30,14 +30,12 @@ kill_previous() {
 echo "Killing previous instances..."
 kill_previous
 
-# Build frontend if needed
-if [ ! -d "web/dist" ] || [ "${BUILD:-0}" = "1" ]; then
-    echo "Building frontend..."
-    cd web
-    npm install --include=dev
-    npm run build
-    cd ..
-fi
+# Build frontend
+echo "Building frontend..."
+cd web
+npm install --include=dev
+npm run build
+cd ..
 
 PORT=$(find_open_port "$PORT")
 
