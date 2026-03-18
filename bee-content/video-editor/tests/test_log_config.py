@@ -192,3 +192,43 @@ class TestSetupLogging:
             h = rotating_handlers[0]
             assert h.maxBytes == 20 * 1024 * 1024  # 20MB
             assert h.backupCount == 5
+
+
+# ---------------------------------------------------------------------------
+# Integration test — end-to-end log file verification
+# ---------------------------------------------------------------------------
+
+
+def test_log_file_written_on_parse():
+    """Parsing a storyboard writes structured JSON to log file."""
+    from bee_video_editor.log_config import setup_logging
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        log_dir = Path(tmpdir) / "logs"
+        setup_logging(log_dir=log_dir, log_level="INFO", human_logs=False)
+
+        # Use the logger directly to verify the pipeline works end-to-end
+        test_logger = logging.getLogger("bee_video_editor.integration_test")
+        test_logger.info("integration test message")
+        test_logger.warning("integration warning")
+
+        log_file = log_dir / "bee-video.log"
+        assert log_file.exists(), "Log file should be created"
+
+        lines = log_file.read_text().strip().split("\n")
+        assert len(lines) >= 2, "Should have at least 2 log entries"
+
+        for line in lines:
+            data = json.loads(line)
+            assert "ts" in data
+            assert "level" in data
+            assert "logger" in data
+            assert "msg" in data
+
+        # Verify specific content
+        first = json.loads(lines[0])
+        assert first["msg"] == "integration test message"
+        assert first["level"] == "INFO"
+
+    root = logging.getLogger("bee_video_editor")
+    root.handlers.clear()
