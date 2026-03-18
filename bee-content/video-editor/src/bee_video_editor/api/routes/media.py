@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import logging
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,6 +19,8 @@ from bee_video_editor.api.schemas import (
     MediaFileSchema,
     MediaListResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -119,6 +123,61 @@ async def upload_media(file: UploadFile, category: str = "footage"):
     }
 
 
+def _probe_container(path: Path) -> str | None:
+    """Return the container format name via ffprobe, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=format_name",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            capture_output=True, text=True, timeout=10,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+
+# Containers that browsers can't play natively
+_NON_BROWSER_CONTAINERS = {"mpegts", "matroska", "avi", "asf"}
+
+
+def _ensure_browser_playable(p: Path) -> Path:
+    """If a video file isn't in a browser-playable container, remux to cached MP4."""
+    if p.suffix.lower() not in {".mp4", ".mkv", ".avi", ".ts", ".mts"}:
+        return p
+
+    fmt = _probe_container(p)
+    if not fmt or not any(bad in fmt for bad in _NON_BROWSER_CONTAINERS):
+        return p
+
+    # Remux to cache dir
+    project_dir = _get_project_dir()
+    cache_dir = project_dir / ".bee-video" / "remux-cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    path_hash = hashlib.md5(str(p).encode()).hexdigest()[:12]
+    cached = cache_dir / f"{p.stem}-{path_hash}.mp4"
+
+    if cached.exists() and cached.stat().st_mtime >= p.stat().st_mtime:
+        return cached
+
+    logger.info("Remuxing %s → %s (container: %s)", p.name, cached.name, fmt)
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-i", str(p), "-c", "copy", "-movflags", "+faststart",
+             str(cached)],
+            capture_output=True, timeout=120,
+        )
+        if result.returncode != 0:
+            logger.warning("Remux failed for %s: %s", p.name,
+                           result.stderr[:500] if result.stderr else "unknown error")
+            cached.unlink(missing_ok=True)
+            return p
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return p  # ffmpeg not available or timed out, serve original
+
+    return cached if cached.exists() else p
+
+
 @router.get("/file")
 def serve_media_file(path: str):
     """Serve a media file for preview."""
@@ -133,6 +192,7 @@ def serve_media_file(path: str):
     except ValueError:
         raise HTTPException(403, "Access denied: file outside project directory")
 
+    p = _ensure_browser_playable(p)
     return FileResponse(p)
 
 
@@ -262,6 +322,7 @@ async def download_with_ytdlp(url: str, category: str = "footage", filename: str
             proc = await asyncio.create_subprocess_exec(
                 "yt-dlp",
                 "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]",
+                "--remux-video", "mp4",
                 "--no-playlist",
                 "-o", output_template,
                 url,
