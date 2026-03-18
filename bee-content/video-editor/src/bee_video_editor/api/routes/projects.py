@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+
+logger = logging.getLogger(__name__)
 
 from bee_video_editor.api.schemas import (
     AssignMediaRequest,
@@ -99,6 +102,7 @@ def load_project(req: LoadProjectRequest):
     _assignments_path = _current_project_dir / ".bee-video" / "assignments.json"
 
     _current_storyboard = parse_storyboard(sb_path)
+    logger.info("Loaded storyboard: %d segments from %s", len(_current_storyboard.segments), sb_path.name)
 
     # Apply saved assignments
     saved = _load_assignments(_assignments_path)

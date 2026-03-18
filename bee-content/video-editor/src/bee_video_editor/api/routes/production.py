@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+
+logger = logging.getLogger(__name__)
 
 from bee_video_editor.api.schemas import GenerateRequest, ProductionStatusSchema
 
@@ -193,6 +196,7 @@ def assemble_video(
                         concat_segments(files, output_path, reencode=True)
                     return {"status": "ok", "output": str(output_path)}
                 except FFmpegError as e:
+                    logger.exception("Production failed: %s", e)
                     raise HTTPException(500, f"Assembly failed: {e}")
 
     raise HTTPException(400, "No segments found to assemble. Generate assets first.")

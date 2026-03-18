@@ -193,6 +193,7 @@ def serve_media_file(path: str):
         raise HTTPException(403, "Access denied: file outside project directory")
 
     p = _ensure_browser_playable(p)
+    logger.debug("Serving media file: %s", p.name)
     return FileResponse(p)
 
 
@@ -287,6 +288,12 @@ async def run_download_script(req: DownloadRequest):
                         _download_tasks[task_id]["output_lines"][-200:]
             await proc.wait()
             _download_tasks[task_id]["return_code"] = proc.returncode
+            if proc.returncode == 0:
+                logger.info("Download completed: %s", task_id)
+            else:
+                logger.error("Download failed: %s (exit=%d) last output: %s",
+                            task_id, proc.returncode,
+                            "\n".join(_download_tasks[task_id]["output_lines"][-10:]))
         except Exception as e:
             _download_tasks[task_id]["output_lines"].append(f"ERROR: {e}")
             _download_tasks[task_id]["return_code"] = -1
@@ -341,6 +348,12 @@ async def download_with_ytdlp(url: str, category: str = "footage", filename: str
                         _download_tasks[task_id]["output_lines"][-200:]
             await proc.wait()
             _download_tasks[task_id]["return_code"] = proc.returncode
+            if proc.returncode == 0:
+                logger.info("Download completed: %s", task_id)
+            else:
+                logger.error("Download failed: %s (exit=%d) last output: %s",
+                            task_id, proc.returncode,
+                            "\n".join(_download_tasks[task_id]["output_lines"][-10:]))
         except Exception as e:
             _download_tasks[task_id]["output_lines"].append(f"ERROR: {e}")
             _download_tasks[task_id]["return_code"] = -1

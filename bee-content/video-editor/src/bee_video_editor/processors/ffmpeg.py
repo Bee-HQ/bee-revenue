@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class FFmpegError(Exception):
@@ -47,9 +50,14 @@ COLOR_GRADE_PRESETS = {
 def run_ffmpeg(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
     """Run an ffmpeg command and return the result."""
     cmd = ["ffmpeg", "-y"] + args
+    logger.debug("ffmpeg cmd: %s", cmd)
     result = subprocess.run(cmd, capture_output=True, text=True)
-    if check and result.returncode != 0:
-        raise FFmpegError(f"ffmpeg failed: {result.stderr[:500]}")
+    if result.returncode != 0:
+        logger.error("ffmpeg failed (exit=%d): %s", result.returncode, result.stderr[:1000])
+        if check:
+            raise FFmpegError(f"ffmpeg failed: {result.stderr[:500]}")
+    else:
+        logger.debug("ffmpeg completed (exit=0)")
     return result
 
 
@@ -61,8 +69,10 @@ def probe(input_path: str | Path) -> dict:
         "-show_format", "-show_streams",
         str(input_path),
     ]
+    logger.debug("ffprobe cmd: %s", cmd)
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
+        logger.error("ffprobe failed (exit=%d): %s", result.returncode, result.stderr[:1000])
         raise FFmpegError(f"ffprobe failed: {result.stderr[:500]}")
     return json.loads(result.stdout)
 

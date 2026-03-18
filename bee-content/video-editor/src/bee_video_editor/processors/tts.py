@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def generate_narration(
@@ -34,7 +37,12 @@ def generate_narration(
     if engine not in engines:
         raise ValueError(f"Unknown TTS engine: {engine}. Available: {list(engines.keys())}")
 
-    return engines[engine](text, output_path, voice=voice, speed=speed)
+    logger.debug("Generating narration: engine=%s output=%s", engine, output_path.name)
+    try:
+        return engines[engine](text, output_path, voice=voice, speed=speed)
+    except Exception:
+        logger.exception("TTS failed for %s (engine=%s)", output_path.name, engine)
+        raise
 
 
 def _generate_edge(

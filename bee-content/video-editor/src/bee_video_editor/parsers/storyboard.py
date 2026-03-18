@@ -23,8 +23,11 @@ Layers can have time-ranged variants:
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from bee_video_editor.models_storyboard import (
     LayerEntry,
@@ -49,6 +52,7 @@ def parse_storyboard(path: str | Path) -> Storyboard:
     storyboard.maps_needed = _parse_maps(lines)
     storyboard.production_rules = _parse_production_rules(lines)
 
+    logger.info("Parsed storyboard %s: %d sections, %d segments", Path(path).name, len(storyboard.sections), len(storyboard.segments))
     return storyboard
 
 
@@ -274,6 +278,7 @@ def _parse_stock_footage(lines: list[str]) -> list[StockFootageNeeded]:
         try:
             idx = int(cells[0])
         except ValueError:
+            logger.warning("Skipping row with non-integer index %r at table parsing", cells[0])
             continue
 
         items.append(StockFootageNeeded(
@@ -317,6 +322,7 @@ def _parse_photos(lines: list[str]) -> list[PhotoNeeded]:
         try:
             idx = int(cells[0])
         except ValueError:
+            logger.warning("Skipping row with non-integer index %r at table parsing", cells[0])
             continue
 
         items.append(PhotoNeeded(
@@ -360,6 +366,7 @@ def _parse_maps(lines: list[str]) -> list[MapNeeded]:
         try:
             idx = int(cells[0])
         except ValueError:
+            logger.warning("Skipping row with non-integer index %r at table parsing", cells[0])
             continue
 
         items.append(MapNeeded(

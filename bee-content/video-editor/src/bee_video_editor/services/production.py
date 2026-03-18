@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import glob as globmod
 import json
+import logging
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from bee_video_editor.models import Project, Segment, SegmentType
 from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
@@ -228,7 +231,7 @@ def trim_source_footage(
                     trim(source, out, start=t.start, end=t.duration)
                     trimmed.append(out)
                 except FFmpegError:
-                    pass  # Skip trims that fail (missing footage etc.)
+                    logger.warning("Trim failed for segment %r (source=%s, start=%s, end=%s)", t.label, source, t.start, t.duration)
 
     return trimmed
 
@@ -246,7 +249,7 @@ def normalize_all_segments(config: ProductionConfig) -> list[Path]:
                 normalize_format(seg_file, out, config.width, config.height, config.fps)
                 normalized.append(out)
             except FFmpegError:
-                pass
+                logger.warning("Normalize failed for %s", seg_file.name)
 
     return normalized
 

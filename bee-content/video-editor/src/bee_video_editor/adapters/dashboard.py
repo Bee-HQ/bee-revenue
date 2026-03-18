@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 
 def _cli_defaults() -> tuple[str, str]:
@@ -64,6 +67,7 @@ def main():
     try:
         project = parse_assembly_guide(guide_path)
     except Exception as e:
+        logger.exception("Failed to parse assembly guide: %s", guide_path)
         st.error(f"Failed to parse assembly guide: {e}")
         return
 

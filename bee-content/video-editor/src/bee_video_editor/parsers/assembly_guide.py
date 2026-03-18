@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from bee_video_editor.models import (
     PostChecklistItem,
@@ -34,6 +37,7 @@ def parse_assembly_guide(path: str | Path) -> Project:
     project.trim_notes = _parse_trim_notes(lines)
     project.post_checklist = _parse_post_checklist(lines)
 
+    logger.info("Parsed %s: %d sections, %d segments", Path(path).name, len(project.sections), len(project.segments))
     return project
 
 
