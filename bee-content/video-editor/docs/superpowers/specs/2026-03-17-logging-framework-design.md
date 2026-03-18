@@ -18,7 +18,7 @@ The codebase has almost no logging. One `logger` instance exists (in `media.py`)
 ### New Module
 
 ```
-src/bee_video_editor/logging.py
+src/bee_video_editor/log_config.py
 ```
 
 Contains:
@@ -51,7 +51,7 @@ bee_video_editor (root logger)
 | `--log-level` / `BEE_VIDEO_LOG_LEVEL` | string | `INFO` | Minimum log level |
 | `BEE_VIDEO_HUMAN_LOGS` | `0`/`1` | `1` | Enable console human-readable handler |
 
-Env vars take precedence over CLI flags. CLI flags take precedence over defaults.
+CLI flags take precedence over env vars. Env vars take precedence over defaults.
 
 When no project is loaded yet (server starting up), log dir falls back to `./logs/` relative to the working directory. Once a project loads, the log dir is resolved relative to the project directory.
 
@@ -76,7 +76,7 @@ Fields:
 - `level` — DEBUG/INFO/WARNING/ERROR/CRITICAL
 - `logger` — full dotted logger name
 - `msg` — log message
-- `extra` — any additional key-value pairs passed via `logger.info("msg", extra={...})`
+- `extra` — any additional key-value pairs passed via `logger.info("msg", extra={...})`. Note: `JSONFormatter` must extract non-standard LogRecord attributes into this field, since stdlib's `extra` merges keys flat into the LogRecord rather than nesting them.
 - `exc` — exception traceback string (only present when `logger.exception()` is used)
 
 ### Initialization Points
@@ -168,7 +168,7 @@ These existing `except` blocks currently swallow errors silently. They will be u
 
 ```
 src/bee_video_editor/
-├── logging.py              # NEW: setup_logging(), JSONFormatter, HumanFormatter
+├── log_config.py              # NEW: setup_logging(), JSONFormatter, HumanFormatter
 ├── models.py               # + logger = logging.getLogger(__name__)
 ├── models_storyboard.py    # + logger
 ├── adapters/
