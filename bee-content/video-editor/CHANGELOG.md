@@ -12,10 +12,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - ROADMAP.md with prioritized improvement plan (v0.3.1 → v0.5.0)
 - Screenshot infrastructure: `docs/screenshots/`, capture checklist, README integration
 - Default storyboard and project directory pre-filled in web editor and API
+- Comprehensive logging framework: structured JSON to file, human-readable to console
+- `--log-dir` and `--log-level` flags on all `bee-video` CLI commands
+- `BEE_VIDEO_LOG_DIR`, `BEE_VIDEO_LOG_LEVEL`, `BEE_VIDEO_HUMAN_LOGS` env vars
+- Logging across all layers: API routes, services, processors, parsers
 
 ### Fixed
 
 - API server version now matches pyproject.toml (was 0.2.0, now 0.3.0)
+- Silent FFmpeg failures in production pipeline now logged as warnings
+- Silent ValueError in storyboard parser now logged as warnings
 
 
 ## [0.3.0] - 2026-03-16

@@ -79,6 +79,30 @@ React + TypeScript + Vite + TailwindCSS + Zustand.
 - **Browser cache**: `index.html` is served with `Cache-Control: no-store` (in `server.py`) so the browser always fetches the latest entry point. Vite's hashed assets cache normally. If you see stale UI, the no-store header should prevent it — but `Cmd+Shift+R` as fallback.
 - **start.sh always rebuilds**: No conditional build check — every `./start.sh` runs `npm install + npm run build`. This is intentional to avoid stale builds during development.
 
+## Logging
+
+Structured JSON logs to `<project_dir>/.bee-video/logs/bee-video.log` (20MB rotation, 5 backups). Human-readable console output on by default.
+
+```bash
+# Override log directory
+BEE_VIDEO_LOG_DIR=/tmp/logs ./start.sh
+
+# Disable human-readable console logs (prod)
+BEE_VIDEO_HUMAN_LOGS=0
+
+# Set log level
+bee-video serve --log-level DEBUG
+```
+
+To read logs:
+```bash
+# Tail structured JSON logs
+tail -f .bee-video/logs/bee-video.log | python -m json.tool
+
+# Search for errors
+grep '"level":"ERROR"' .bee-video/logs/bee-video.log | python -m json.tool
+```
+
 ## Related Docs
 
 - [ROADMAP.md](ROADMAP.md) — prioritized improvements (v0.3.1 → v0.5.0)
