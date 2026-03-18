@@ -10,10 +10,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from bee_video_editor.api.routes import media, production, projects
+from bee_video_editor.log_config import setup_logging
 
 
 def create_app(static_dir: Path | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
+    # Ensure logging is configured (idempotent — no-op if already set up)
+    setup_logging()
     app = FastAPI(
         title="Bee Video Editor",
         description="Storyboard-first AI video production",

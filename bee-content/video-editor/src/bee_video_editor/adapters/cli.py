@@ -2,18 +2,37 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from bee_video_editor.log_config import setup_logging
+
 app = typer.Typer(
     name="bee-video",
-    help="AI-assisted video production from assembly guides.",
     no_args_is_help=True,
 )
 console = Console()
+
+
+@app.callback()
+def main(
+    log_dir: str = typer.Option(None, "--log-dir", help="Log file directory", hidden=True),
+    log_level: str = typer.Option(None, "--log-level", help="Log level (DEBUG, INFO, WARNING, ERROR)", hidden=True),
+):
+    """AI-assisted video production from assembly guides."""
+    resolved_log_dir = log_dir or os.environ.get("BEE_VIDEO_LOG_DIR")
+    resolved_log_level = log_level or os.environ.get("BEE_VIDEO_LOG_LEVEL", "INFO")
+    resolved_human = os.environ.get("BEE_VIDEO_HUMAN_LOGS", "1") != "0"
+
+    setup_logging(
+        log_dir=resolved_log_dir,
+        log_level=resolved_log_level,
+        human_logs=resolved_human,
+    )
 
 
 @app.command()
@@ -431,7 +450,8 @@ def serve(
     else:
         console.print("[dim]No built frontend found. Run 'npm run build' in web/[/dim]")
 
-    uvicorn.run(app_instance, host=host, port=port, log_level="info")
+    log_level_str = os.environ.get("BEE_VIDEO_LOG_LEVEL", "INFO").lower()
+    uvicorn.run(app_instance, host=host, port=port, log_level=log_level_str)
 
 
 def _load_project(assembly_guide: str):
