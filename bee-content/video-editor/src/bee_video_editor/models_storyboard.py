@@ -38,6 +38,14 @@ class LayerEntry:
 
 
 @dataclass
+class ChecklistItem:
+    """A checklist item from pre-production or post-assembly sections."""
+    text: str
+    checked: bool
+    category: str  # "audio", "graphics", "maps", "post"
+
+
+@dataclass
 class StoryboardSegment:
     """A single time-coded segment from a storyboard."""
     id: str  # e.g. "0_00-0_05"
@@ -118,6 +126,11 @@ class ProductionRules:
 class Storyboard:
     """A complete storyboard parsed from markdown."""
     title: str
+    total_duration: str | None = None
+    resolution: str | None = None
+    format: str | None = None
+    pre_production: list[ChecklistItem] = field(default_factory=list)
+    post_checklist: list[ChecklistItem] = field(default_factory=list)
     segments: list[StoryboardSegment] = field(default_factory=list)
     stock_footage: list[StockFootageNeeded] = field(default_factory=list)
     photos_needed: list[PhotoNeeded] = field(default_factory=list)
