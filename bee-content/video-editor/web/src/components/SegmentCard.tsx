@@ -6,6 +6,7 @@ import { TransitionPicker } from './TransitionPicker';
 import { ColorGradePicker } from './ColorGradePicker';
 import { VolumeSlider } from './VolumeSlider';
 import { TrimControls } from './TrimControls';
+import { DownloadButton } from './DownloadButton';
 
 const VISUAL_TYPE_COLORS: Record<string, string> = {
   FOOTAGE: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
@@ -159,6 +160,17 @@ export function SegmentCard({ segment }: Props) {
                 <span className="text-xs text-gray-400 leading-relaxed">
                   {entry.content || entry.raw}
                 </span>
+                {entry.metadata && (entry.metadata.download_url || entry.metadata.pexels_url || entry.metadata.query) && (
+                  <DownloadButton
+                    segmentId={segment.id}
+                    layer={layerName as 'visual' | 'audio'}
+                    index={i}
+                    downloadUrl={entry.metadata.download_url}
+                    pexelsUrl={entry.metadata.pexels_url}
+                    query={entry.metadata.query}
+                    hasSrc={!!entry.content && entry.content !== entry.content_type}
+                  />
+                )}
               </div>
 
               {/* Inline editing controls */}

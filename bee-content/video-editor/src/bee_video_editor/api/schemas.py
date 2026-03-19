@@ -155,6 +155,12 @@ class UpdateSegmentRequest(BaseModel):
     updates: dict  # partial config: transition_in, visual_updates, audio_updates
 
 
+class DownloadEntryRequest(BaseModel):
+    segment_id: str
+    layer: str = "visual"
+    index: int = 0
+
+
 class GenerateClipRequest(BaseModel):
     prompt: str
     provider: str = "stub"

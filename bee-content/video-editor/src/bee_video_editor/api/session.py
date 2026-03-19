@@ -272,6 +272,99 @@ class SessionStore:
             return None
         return vl.model_dump()
 
+    # ── downloads ──────────────────────────────────────────────────────
+
+    def download_entry(self, segment_id: str, layer: str, index: int, project_dir: Path) -> dict:
+        """Download asset for a specific visual/audio entry using its download metadata."""
+        import shutil
+        import subprocess
+
+        parsed, _ = self.require_project()
+        seg = next((s for s in parsed.segments if s.id == segment_id), None)
+        if seg is None:
+            raise HTTPException(404, f"Segment not found: {segment_id}")
+
+        if layer == "visual":
+            if index >= len(seg.config.visual):
+                raise HTTPException(400, f"Visual index {index} out of range")
+            entry = seg.config.visual[index]
+            download_url = entry.download_url
+            pexels_url = entry.pexels_url
+            query = entry.query
+        elif layer == "audio":
+            if index >= len(seg.config.audio):
+                raise HTTPException(400, f"Audio index {index} out of range")
+            entry = seg.config.audio[index]
+            download_url = entry.download_url
+            pexels_url = None
+            query = None
+        else:
+            raise HTTPException(400, f"Unsupported layer: {layer}")
+
+        if not download_url and not pexels_url and not query:
+            raise HTTPException(400, "No download metadata on this entry")
+
+        # Determine output path based on entry type
+        if layer == "visual":
+            category = "stock" if entry.type == "STOCK" else "footage"
+        else:
+            category = "music" if entry.type == "MUSIC" else "audio"
+
+        out_dir = project_dir / category
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        result: dict = {"status": "ok", "segment_id": segment_id, "layer": layer, "index": index}
+
+        if download_url:
+            # Use yt-dlp for YouTube, httpx for direct links
+            if "youtube.com" in download_url or "youtu.be" in download_url:
+                if not shutil.which("yt-dlp"):
+                    raise HTTPException(400, "yt-dlp not installed")
+                slug = segment_id[:30]
+                out_path = out_dir / f"{slug}.mp4"
+                cmd = ["yt-dlp", "-o", str(out_path), "--merge-output-format", "mp4", download_url]
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                if proc.returncode != 0:
+                    raise HTTPException(500, f"yt-dlp failed: {proc.stderr[:200]}")
+                result["path"] = str(out_path.relative_to(project_dir))
+            else:
+                # Direct URL download
+                import httpx
+
+                slug = segment_id[:30]
+                ext = download_url.rsplit(".", 1)[-1][:4] if "." in download_url.split("/")[-1] else "mp4"
+                out_path = out_dir / f"{slug}.{ext}"
+                with httpx.stream("GET", download_url, follow_redirects=True, timeout=60) as resp:
+                    resp.raise_for_status()
+                    with open(out_path, "wb") as f:
+                        for chunk in resp.iter_bytes():
+                            f.write(chunk)
+                result["path"] = str(out_path.relative_to(project_dir))
+        elif pexels_url:
+            # Download from Pexels
+            import httpx
+
+            slug = segment_id[:30]
+            out_path = out_dir / f"{slug}-pexels.mp4"
+            with httpx.stream("GET", pexels_url, follow_redirects=True, timeout=60) as resp:
+                resp.raise_for_status()
+                with open(out_path, "wb") as f:
+                    for chunk in resp.iter_bytes():
+                        f.write(chunk)
+            result["path"] = str(out_path.relative_to(project_dir))
+        elif query:
+            result["status"] = "search_needed"
+            result["query"] = query
+            return result
+
+        # Update src on the entry and autosave
+        if "path" in result:
+            self.update_segment_config(segment_id, {
+                f"{layer}_updates": [{"index": index, "src": result["path"]}]
+            })
+
+        return result
+
     # ── persistence helpers ──────────────────────────────────────────
 
     def _autosave(self) -> None:

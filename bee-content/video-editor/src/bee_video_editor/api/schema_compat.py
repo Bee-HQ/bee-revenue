@@ -33,47 +33,63 @@ def parsed_to_schema(parsed: ParsedStoryboard) -> StoryboardSchema:
 
 
 def _segment_to_schema(seg: ParsedSegment) -> SegmentSchema:
-    visual = [
-        LayerEntrySchema(
+    visual = []
+    for v in seg.config.visual:
+        meta: dict = {
+            "color": v.color,
+            "ken_burns": v.ken_burns,
+            "tc_in": v.tc_in,
+            "out": v.out,
+        }
+        if v.download_url:
+            meta["download_url"] = v.download_url
+        if v.download_trim:
+            meta["download_trim"] = v.download_trim
+        if v.pexels_url:
+            meta["pexels_url"] = v.pexels_url
+        if v.query:
+            meta["query"] = v.query
+        visual.append(LayerEntrySchema(
             content=v.src or v.query or v.prompt or v.type,
             content_type=v.type,
-            metadata={
-                "color": v.color,
-                "ken_burns": v.ken_burns,
-                "tc_in": v.tc_in,
-                "out": v.out,
-            },
-        )
-        for v in seg.config.visual
-    ]
+            metadata=meta,
+        ))
 
-    audio = [
-        LayerEntrySchema(
+    audio = []
+    for a in seg.config.audio:
+        if a.type == "MUSIC":
+            continue
+        a_meta: dict = {
+            "volume": a.volume,
+            "fade_in": a.fade_in,
+            "fade_out": a.fade_out,
+        }
+        if a.download_url:
+            a_meta["download_url"] = a.download_url
+        audio.append(LayerEntrySchema(
             content=a.src or "",
             content_type=a.type,
-            metadata={
-                "volume": a.volume,
-                "fade_in": a.fade_in,
-                "fade_out": a.fade_out,
-            },
-        )
-        for a in seg.config.audio if a.type != "MUSIC"
-    ]
+            metadata=a_meta,
+        ))
     if seg.narration:
         audio.append(LayerEntrySchema(content=seg.narration, content_type="NAR"))
 
-    music = [
-        LayerEntrySchema(
+    music = []
+    for a in seg.config.audio:
+        if a.type != "MUSIC":
+            continue
+        m_meta: dict = {
+            "volume": a.volume,
+            "fade_in": a.fade_in,
+            "fade_out": a.fade_out,
+        }
+        if a.download_url:
+            m_meta["download_url"] = a.download_url
+        music.append(LayerEntrySchema(
             content=a.src or "",
             content_type=a.type,
-            metadata={
-                "volume": a.volume,
-                "fade_in": a.fade_in,
-                "fade_out": a.fade_out,
-            },
-        )
-        for a in seg.config.audio if a.type == "MUSIC"
-    ]
+            metadata=m_meta,
+        ))
 
     overlay = [
         LayerEntrySchema(

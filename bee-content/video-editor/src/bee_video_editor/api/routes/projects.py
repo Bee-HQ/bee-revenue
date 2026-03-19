@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from bee_video_editor.api.schema_compat import parsed_to_schema
 from bee_video_editor.api.schemas import (
     AssignMediaRequest,
+    DownloadEntryRequest,
     LoadProjectRequest,
     ReorderSegmentsRequest,
     StoryboardSchema,
@@ -50,6 +51,13 @@ def reorder_segments(req: ReorderSegmentsRequest, session: SessionStore = Depend
 def update_segment(req: UpdateSegmentRequest, session: SessionStore = Depends(get_session)):
     """Update segment config (transition, color, volume, trim points)."""
     return session.update_segment_config(req.segment_id, req.updates)
+
+
+@router.post("/download-entry")
+def download_entry(req: DownloadEntryRequest, session: SessionStore = Depends(get_session)):
+    """Download asset for a specific segment entry using its download metadata."""
+    _, project_dir = session.require_project()
+    return session.download_entry(req.segment_id, req.layer, req.index, project_dir)
 
 
 @router.get("/export")
