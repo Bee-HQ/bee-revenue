@@ -834,6 +834,9 @@ class TestStockDownload:
 
 class TestGenerateClip:
     def test_generate_with_stub(self, loaded_project):
+        import shutil
+        if not shutil.which("ffmpeg"):
+            pytest.skip("ffmpeg not available")
         client, _, proj_dir = loaded_project
         r = client.post("/api/media/generate-clip", json={
             "prompt": "aerial shot of farm",
