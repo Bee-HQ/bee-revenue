@@ -50,8 +50,8 @@ Services (production.py — orchestration, no business logic)
     │
 ┌───┴───┐
 Parsers    Processors
-├ assembly_guide.py    ├ ffmpeg.py   (17 functions, 657 lines)
-└ storyboard.py        ├ graphics.py (Pillow overlays)
+└ storyboard.py        ├ ffmpeg.py   (17 functions, 657 lines)
+  (canonical)          ├ graphics.py (Pillow overlays)
                        └ tts.py      (edge / kokoro / openai)
 ```
 
@@ -59,22 +59,20 @@ Parsers    Processors
 
 **Services** resolve targets, call processors, manage state. No FFmpeg commands, no Pillow drawing — just orchestration.
 
-**Parsers** convert markdown → dataclasses. Two formats exist (see "Two Parser Problem" below).
+**Parsers** convert markdown → dataclasses. Storyboard is the canonical format.
 
 **Processors** are stateless functions wrapping external tools. All I/O, no orchestration.
 
-## Two Parser Problem
+## Storyboard as Canonical Format
 
-There are two input formats and two data models:
+The storyboard format (shot-by-shot with layers) is the single source of truth for all CLI and web UI workflows:
 
-| Format | Parser | Model | Used By |
-|--------|--------|-------|---------|
-| Assembly guide (flat time-coded table) | `parsers/assembly_guide.py` | `models.Project` | CLI pipeline |
-| Storyboard (shot-by-shot with layers) | `parsers/storyboard.py` | `models_storyboard.Storyboard` | Web UI |
+| Format | Parser | Model | Status |
+|--------|--------|-------|--------|
+| Storyboard (shot-by-shot with layers) | `parsers/storyboard.py` | `models_storyboard.Storyboard` | **Canonical** |
+| Assembly guide (flat time-coded table) | `parsers/assembly_guide.py` | `models.Project` | Deprecated |
 
-The storyboard format is richer (6 layers: visual, audio, overlay, music, source, transition) but the production service still expects the assembly guide's `Project` model. The web UI loads storyboards but calls production endpoints that internally work with different data.
-
-**Planned fix (v0.4.0):** Make `Storyboard` canonical, add `assembly_guide_to_storyboard()` converter, deprecate direct `Project` usage.
+All CLI commands (`parse`, `init`, `segments`, `trim-footage`, `narration`, `graphics`, `assemble`, `rough-cut`, `produce`) accept a storyboard path. The assembly guide parser, `models.Project`, and the converter are deprecated and no longer imported by services.
 
 ## Processor Capabilities
 

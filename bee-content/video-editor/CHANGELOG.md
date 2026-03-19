@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Storyboard is now the single source of truth** — all CLI commands use storyboard format
+- `init_project()` accepts storyboard path instead of assembly guide
+- `trim_source_footage()` reads source layers from storyboard instead of trim notes
+- `ProductionState.assembly_guide_path` renamed to `storyboard_path`
+- CLI argument `assembly_guide` renamed to `storyboard` in all commands
+
+### Deprecated
+
+- Assembly guide parser (`parsers/assembly_guide.py`) — no longer imported
+- Assembly guide model (`models.py` Project/Segment) — no longer imported
+- Converter (`converters.py`) — removed
+- Streamlit dashboard (`adapters/dashboard.py`) — use web editor instead
+
 ### Added
 
 - **Stock footage API** — `bee-video fetch-stock "aerial farm dusk" -n 3` searches Pexels for stock video, downloads HD clips to project's `stock/` directory. Streaming download (no OOM on large files). API endpoints: `POST /stock/search`, `POST /stock/download` with SSRF protection
