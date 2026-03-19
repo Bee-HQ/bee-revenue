@@ -200,6 +200,62 @@ class SessionStore:
         self.parsed.segments = reordered + extras  # type: ignore[union-attr]
         self._autosave()
 
+    def update_segment_config(
+        self, segment_id: str, updates: dict
+    ) -> dict:
+        """Update segment config fields and autosave.
+
+        Updates can include:
+        - transition_in: {"type": "dissolve", "duration": 1.0} or None
+        - visual_updates: [{"index": 0, "color": "noir", "tc_in": "00:01:00.000", "out": "00:02:00.000"}]
+        - audio_updates: [{"index": 0, "volume": 0.5, "fade_in": 2.0}]
+        """
+        parsed, _ = self.require_project()
+        seg = next((s for s in parsed.segments if s.id == segment_id), None)
+        if seg is None:
+            raise HTTPException(404, f"Segment not found: {segment_id}")
+
+        # Update transition
+        if "transition_in" in updates:
+            t = updates["transition_in"]
+            if t is None:
+                seg.config.transition_in = None
+            else:
+                from bee_video_editor.formats.models import TransitionConfig
+
+                seg.config.transition_in = TransitionConfig(**t)
+
+        # Update visual entries
+        for vu in updates.get("visual_updates", []):
+            vu = dict(vu)  # copy so pop doesn't mutate caller
+            idx = vu.pop("index")
+            if 0 <= idx < len(seg.config.visual):
+                update_fields: dict = {}
+                for field, value in vu.items():
+                    if field == "tc_in":
+                        update_fields["tc_in"] = value
+                    elif hasattr(seg.config.visual[idx], field):
+                        update_fields[field] = value
+                seg.config.visual[idx] = seg.config.visual[idx].model_copy(
+                    update=update_fields
+                )
+
+        # Update audio entries
+        for au in updates.get("audio_updates", []):
+            au = dict(au)  # copy so pop doesn't mutate caller
+            idx = au.pop("index")
+            if 0 <= idx < len(seg.config.audio):
+                update_fields_a: dict = {}
+                for field, value in au.items():
+                    if hasattr(seg.config.audio[idx], field):
+                        update_fields_a[field] = value
+                seg.config.audio[idx] = seg.config.audio[idx].model_copy(
+                    update=update_fields_a
+                )
+
+        self._autosave()
+        return {"status": "ok", "segment_id": segment_id}
+
     def save_voice_config(self, engine: str, voice: str | None, speed: float = 0.95) -> None:
         """Set voice_lock on the parsed project and autosave."""
         self.require_project()

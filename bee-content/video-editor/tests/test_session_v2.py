@@ -346,3 +346,76 @@ def test_autosave_writes_otio(tmp_path):
     store._autosave()
     mtime_after = os.path.getmtime(otio_path)
     assert mtime_after >= mtime_before
+
+
+# ---------------------------------------------------------------------------
+# Segment config update tests
+# ---------------------------------------------------------------------------
+
+
+def _load_session(tmp_path: Path):
+    """Create a fresh store loaded with the minimal v2 fixture."""
+    store = _fresh_store()
+    _load_minimal_v2(store, tmp_path)
+    return store
+
+
+def test_update_segment_transition(tmp_path):
+    """Update transition on a segment."""
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[1].id  # second segment has transition
+    session.update_segment_config(seg_id, {
+        "transition_in": {"type": "wipeleft", "duration": 2.0}
+    })
+    assert session.parsed.segments[1].config.transition_in.type == "wipeleft"
+    assert session.parsed.segments[1].config.transition_in.duration == 2.0
+
+
+def test_update_segment_visual_color(tmp_path):
+    """Update color grade on a visual entry."""
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[0].id
+    session.update_segment_config(seg_id, {
+        "visual_updates": [{"index": 0, "color": "noir"}]
+    })
+    assert session.parsed.segments[0].config.visual[0].color == "noir"
+
+
+def test_update_segment_audio_volume(tmp_path):
+    """Update volume on an audio entry."""
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[0].id
+    session.update_segment_config(seg_id, {
+        "audio_updates": [{"index": 0, "volume": 0.3}]
+    })
+    assert session.parsed.segments[0].config.audio[0].volume == 0.3
+
+
+def test_update_segment_trim_points(tmp_path):
+    """Update in/out trim points on a visual entry."""
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[0].id
+    session.update_segment_config(seg_id, {
+        "visual_updates": [{"index": 0, "tc_in": "00:01:00.000", "out": "00:01:30.000"}]
+    })
+    assert session.parsed.segments[0].config.visual[0].tc_in == "00:01:00.000"
+    assert session.parsed.segments[0].config.visual[0].out == "00:01:30.000"
+
+
+def test_update_segment_clear_transition(tmp_path):
+    """Setting transition_in to None clears it."""
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[1].id
+    assert session.parsed.segments[1].config.transition_in is not None
+    session.update_segment_config(seg_id, {"transition_in": None})
+    assert session.parsed.segments[1].config.transition_in is None
+
+
+def test_update_segment_not_found(tmp_path):
+    """Updating a nonexistent segment raises 404."""
+    from fastapi import HTTPException
+
+    session = _load_session(tmp_path)
+    with pytest.raises(HTTPException) as exc_info:
+        session.update_segment_config("nonexistent-id", {"transition_in": None})
+    assert exc_info.value.status_code == 404

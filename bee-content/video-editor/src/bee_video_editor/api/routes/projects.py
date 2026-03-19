@@ -12,6 +12,7 @@ from bee_video_editor.api.schemas import (
     LoadProjectRequest,
     ReorderSegmentsRequest,
     StoryboardSchema,
+    UpdateSegmentRequest,
 )
 from bee_video_editor.api.session import SessionStore, get_session
 
@@ -43,6 +44,12 @@ def reorder_segments(req: ReorderSegmentsRequest, session: SessionStore = Depend
     """Persist a custom segment ordering."""
     session.reorder_segments(req.segment_order)
     return {"status": "ok", "count": len(req.segment_order)}
+
+
+@router.put("/update-segment")
+def update_segment(req: UpdateSegmentRequest, session: SessionStore = Depends(get_session)):
+    """Update segment config (transition, color, volume, trim points)."""
+    return session.update_segment_config(req.segment_id, req.updates)
 
 
 @router.get("/export")

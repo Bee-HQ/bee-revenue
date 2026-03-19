@@ -149,6 +149,11 @@ class StockDownloadRequest(BaseModel):
     filename: str
 
 
+class UpdateSegmentRequest(BaseModel):
+    segment_id: str
+    updates: dict  # partial config: transition_in, visual_updates, audio_updates
+
+
 class GenerateClipRequest(BaseModel):
     prompt: str
     provider: str = "stub"
