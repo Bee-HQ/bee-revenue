@@ -158,6 +158,20 @@ export const api = {
     return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
   },
 
+  searchStock(query: string, count: number = 5): Promise<{ results: Array<{ id: number; url: string; duration: number; width: number; height: number; hd_url: string; sd_url: string }>; count: number }> {
+    return request('/media/stock/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, count }),
+    });
+  },
+
+  downloadStock(url: string, filename: string): Promise<{ status: string; path: string; name: string }> {
+    return request('/media/stock/download', {
+      method: 'POST',
+      body: JSON.stringify({ url, filename }),
+    });
+  },
+
   downloadEntry(segmentId: string, layer: string = 'visual', index: number = 0) {
     return request<{ status: string; path?: string; query?: string }>('/projects/download-entry', {
       method: 'POST',
