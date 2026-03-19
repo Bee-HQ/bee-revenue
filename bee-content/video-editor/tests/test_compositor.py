@@ -1,7 +1,7 @@
 """Tests for compositor service."""
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -36,6 +36,11 @@ def _sb(segments):
     )
 
 
+def _mock_ffmpeg_creates_output(src, dst, *args, **kwargs):
+    """Side effect for mocked FFmpeg processors — creates the output file."""
+    Path(dst).write_bytes(b"fake output")
+
+
 class TestCompositeSegment:
     def test_no_visual_returns_error(self, tmp_path):
         seg = _seg(visual_src=None)
@@ -49,10 +54,9 @@ class TestCompositeSegment:
         assert result.error is not None
         assert "not found" in result.error
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
-    @patch("bee_video_editor.services.compositor.color_grade")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
+    @patch("bee_video_editor.services.compositor.color_grade", side_effect=_mock_ffmpeg_creates_output)
     def test_applies_visual_and_color(self, mock_grade, mock_norm, tmp_path):
-        # Create source file
         footage = tmp_path / "footage"
         footage.mkdir()
         (footage / "clip.mp4").write_bytes(b"fake video")
@@ -62,8 +66,9 @@ class TestCompositeSegment:
 
         assert "visual" in result.layers_applied
         assert any("color:noir" in l for l in result.layers_applied)
+        assert result.output_path is not None
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
     def test_applies_normalize(self, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
@@ -74,9 +79,10 @@ class TestCompositeSegment:
 
         assert "normalize" in result.layers_applied
         mock_norm.assert_called_once()
+        assert result.output_path is not None
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
-    @patch("bee_video_editor.services.compositor.trim")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
+    @patch("bee_video_editor.services.compositor.trim", side_effect=_mock_ffmpeg_creates_output)
     def test_trims_with_in_out(self, mock_trim, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
@@ -91,8 +97,8 @@ class TestCompositeSegment:
         mock_trim.assert_called_once()
         assert any("trim:" in l for l in result.layers_applied)
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
-    @patch("bee_video_editor.services.compositor.image_to_video")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
+    @patch("bee_video_editor.services.compositor.image_to_video", side_effect=_mock_ffmpeg_creates_output)
     def test_image_to_video(self, mock_img, mock_norm, tmp_path):
         photos = tmp_path / "photos"
         photos.mkdir()
@@ -104,22 +110,55 @@ class TestCompositeSegment:
         mock_img.assert_called_once()
         assert "visual:image_to_video" in result.layers_applied
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
     def test_output_path_set(self, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
-        src = footage / "clip.mp4"
-        src.write_bytes(b"fake video")
+        (footage / "clip.mp4").write_bytes(b"fake video")
 
         seg = _seg()
         result = composite_segment(seg, tmp_path, tmp_path / "out")
 
         assert result.output_path is not None
         assert result.output_path.name.startswith("comp-")
+        assert result.output_path.exists()
+
+    def test_failed_trim_recorded(self, tmp_path):
+        """Failed trim is recorded as FAILED, not silently swallowed."""
+        from bee_video_editor.processors.ffmpeg import FFmpegError
+        footage = tmp_path / "footage"
+        footage.mkdir()
+        (footage / "clip.mp4").write_bytes(b"fake video")
+
+        seg = _seg()
+        seg.config.visual[0] = seg.config.visual[0].model_copy(
+            update={"tc_in": "00:01:00.000", "out": "00:02:00.000"}
+        )
+
+        with patch("bee_video_editor.services.compositor.trim", side_effect=FFmpegError("trim failed")), \
+             patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output):
+            result = composite_segment(seg, tmp_path, tmp_path / "out")
+
+        assert "trim:FAILED" in result.layers_applied
+
+    def test_source_file_not_destroyed(self, tmp_path):
+        """Compositing should never modify or remove the original source file."""
+        footage = tmp_path / "footage"
+        footage.mkdir()
+        src = footage / "clip.mp4"
+        src.write_bytes(b"original source content")
+
+        with patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output):
+            seg = _seg()
+            result = composite_segment(seg, tmp_path, tmp_path / "out")
+
+        # Source file must still exist and be unmodified
+        assert src.exists()
+        assert src.read_bytes() == b"original source content"
 
 
 class TestCompositeAll:
-    @patch("bee_video_editor.services.compositor.normalize_format")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
     def test_composites_multiple_segments(self, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
@@ -136,10 +175,11 @@ class TestCompositeAll:
         report = composite_all(sb, tmp_path, tmp_path / "output")
 
         assert report.succeeded == 0
-        assert report.failed == 2  # error, not skipped
+        assert report.failed == 2
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
-    def test_uses_project_color_preset(self, mock_norm, tmp_path):
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
+    @patch("bee_video_editor.services.compositor.color_grade", side_effect=_mock_ffmpeg_creates_output)
+    def test_uses_project_color_preset(self, mock_grade, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
         (footage / "clip.mp4").write_bytes(b"fake")
@@ -147,14 +187,12 @@ class TestCompositeAll:
         sb = _sb([_seg("s1")])
         sb.project.color_preset = "surveillance"
 
-        with patch("bee_video_editor.services.compositor.color_grade") as mock_grade:
-            report = composite_all(sb, tmp_path, tmp_path / "output")
+        report = composite_all(sb, tmp_path, tmp_path / "output")
 
-        # color_grade should have been called with surveillance preset
-        if mock_grade.called:
-            assert "surveillance" in str(mock_grade.call_args)
+        assert mock_grade.called
+        assert "surveillance" in str(mock_grade.call_args)
 
-    @patch("bee_video_editor.services.compositor.normalize_format")
+    @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
     def test_progress_callback(self, mock_norm, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()

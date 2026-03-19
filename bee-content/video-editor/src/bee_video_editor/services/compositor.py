@@ -7,21 +7,21 @@ visual -> trim -> normalize -> color grade -> overlay -> audio mix.
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from bee_video_editor.formats.models import VisualEntry, AudioEntry, OverlayEntry
+from bee_video_editor.formats.models import OverlayEntry
 from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment, segment_duration
 from bee_video_editor.processors.ffmpeg import (
     COLOR_GRADE_PRESETS,
     FFmpegError,
     color_grade,
-    get_duration,
     image_to_video,
     mix_audio,
     normalize_format,
-    normalize_loudness,
     overlay_png,
     trim,
 )
@@ -63,6 +63,7 @@ def composite_segment(
     4. Apply color grade (from visual.color or default_color)
     5. Burn overlay graphics (lower thirds, etc.)
     6. Mix audio (narration + real audio + music at their volumes)
+    7. Mux mixed audio into the video
     """
     result = CompositeResult(segment_id=seg.id)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -83,19 +84,22 @@ def composite_segment(
         result.error = f"Source file not found: {visual.src}"
         return result
 
-    # Handle images -> convert to video
+    # Handle images → convert to video
     if src_path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
         img_video = output_dir / f"{base}-img.mp4"
         try:
             dur = segment_duration(seg) or 5.0
-            image_to_video(src_path, img_video, duration=dur)
+            image_to_video(src_path, img_video, duration=int(dur))
             current = img_video
             result.layers_applied.append("visual:image_to_video")
         except FFmpegError as e:
             result.error = f"Image conversion failed: {e}"
             return result
     else:
-        current = src_path
+        # Copy source into output dir so we never modify the original
+        working_copy = output_dir / f"{base}-src.mp4"
+        shutil.copy2(str(src_path), str(working_copy))
+        current = working_copy
         result.layers_applied.append("visual")
 
     # Step 2: Trim to in/out if specified
@@ -107,7 +111,7 @@ def composite_segment(
             current = trimmed
             result.layers_applied.append(f"trim:{visual.tc_in}-{visual.out}")
         except FFmpegError:
-            pass  # Continue with untrimmed
+            result.layers_applied.append("trim:FAILED")
 
     # Step 3: Normalize
     norm = output_dir / f"{base}-norm.mp4"
@@ -116,7 +120,7 @@ def composite_segment(
         current = norm
         result.layers_applied.append("normalize")
     except FFmpegError:
-        pass  # Continue unnormalized
+        result.layers_applied.append("normalize:FAILED")
 
     # Step 4: Color grade
     grade = visual.color or default_color
@@ -144,8 +148,8 @@ def composite_segment(
                     pass
 
     # Step 6: Audio mix
-    audio_paths = []
-    audio_volumes = []
+    audio_paths: list[Path] = []
+    audio_volumes: list[float] = []
 
     # Narration audio
     narration_dir = output_dir.parent / "narration"
@@ -170,34 +174,59 @@ def composite_segment(
                 audio_paths.append(m_path)
                 audio_volumes.append(a.volume or 0.15)
 
+    mixed_audio: Path | None = None
     if len(audio_paths) >= 2:
-        # Mix multiple audio tracks
-        mixed = output_dir / f"{base}-mixed.mp3"
+        mixed_audio = output_dir / f"{base}-mixed.mp3"
         try:
-            mix_audio(audio_paths[0], audio_paths[1], mixed, music_volume=audio_volumes[1])
-            result.layers_applied.append(f"audio:mix({len(audio_paths)} tracks)")
+            mix_audio(audio_paths[0], audio_paths[1], mixed_audio, music_volume=audio_volumes[1])
+            if len(audio_paths) > 2:
+                result.layers_applied.append(f"audio:mix(2/{len(audio_paths)} tracks, {len(audio_paths)-2} dropped)")
+            else:
+                result.layers_applied.append(f"audio:mix({len(audio_paths)} tracks)")
         except FFmpegError:
-            pass
+            mixed_audio = None
+    elif len(audio_paths) == 1:
+        mixed_audio = audio_paths[0]
+        result.layers_applied.append("audio:single")
+
+    # Step 7: Mux audio into video
+    if mixed_audio and mixed_audio.exists():
+        muxed = output_dir / f"{base}-muxed.mp4"
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(current),
+                "-i", str(mixed_audio),
+                "-c:v", "copy", "-c:a", "aac",
+                "-map", "0:v:0", "-map", "1:a:0",
+                "-shortest",
+                str(muxed),
+            ]
+            subprocess.run(cmd, capture_output=True, check=True, timeout=120)
+            current = muxed
+            result.layers_applied.append("audio:muxed")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            result.layers_applied.append("audio:mux_FAILED")
 
     # Write final output
-    import shutil
-
     final = output_dir / f"{base}.mp4"
     if current != final:
-        if current.exists():
-            if final.exists():
-                final.unlink()
-            shutil.move(str(current), str(final))
-        elif src_path.exists():
-            # Intermediate wasn't created (e.g. processors are mocked/skipped);
-            # copy the original source so we still produce an output file.
-            shutil.copy2(str(src_path), str(final))
+        if final.exists():
+            final.unlink()
+        shutil.move(str(current), str(final))
     result.output_path = final
 
     # Clean intermediates
-    for suffix in ["-img.mp4", "-trim.mp4", "-norm.mp4", "-graded.mp4"]:
+    for suffix in ["-src.mp4", "-img.mp4", "-trim.mp4", "-norm.mp4", "-graded.mp4", "-mixed.mp3", "-muxed.mp4"]:
         tmp = output_dir / f"{base}{suffix}"
         if tmp.exists() and tmp != final:
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+    # Clean overlay intermediates
+    for tmp in output_dir.glob(f"{base}-ov-*.mp4"):
+        if tmp != final:
             try:
                 tmp.unlink()
             except OSError:
@@ -251,7 +280,6 @@ def composite_all(
 
 def _find_overlay_graphic(overlay: OverlayEntry, graphics_dir: Path, segment_id: str) -> Path | None:
     """Find a pre-generated graphic PNG for an overlay entry."""
-    # Match by overlay type and text content
     slug = re.sub(r'[^\w-]', '', (overlay.text or "").lower())[:30]
 
     for png in graphics_dir.glob("*.png"):
@@ -274,7 +302,6 @@ def _find_narration_file(seg: ParsedSegment, narration_dir: Path) -> Path | None
         return None
 
     slug = re.sub(r'[^\w-]', '', seg.id)
-    # Look for narration files matching segment index or id
     for f in sorted(narration_dir.glob("nar-*")):
         if slug in f.stem.lower() or seg.section.lower().replace(" ", "-") in f.stem.lower():
             return f
