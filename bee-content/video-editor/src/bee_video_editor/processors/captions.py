@@ -39,11 +39,11 @@ def _clean_text(raw: str) -> str:
     return text.strip()
 
 
-CAPTION_CONTENT_TYPES = {"NAR", "REAL AUDIO"}
+CAPTION_CONTENT_TYPES = {"NAR", "REAL_AUDIO"}
 
 STYLE_MAP = {
     "NAR": "Narrator",
-    "REAL AUDIO": "RealAudio",
+    "REAL_AUDIO": "RealAudio",
 }
 
 

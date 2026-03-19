@@ -404,7 +404,7 @@ class TestDeriveSegmentType:
         assert _derive_segment_type(seg) == "REAL"
 
     def test_real_audio_only_is_real(self):
-        seg = self._make_seg(audio_types=["REAL AUDIO"])
+        seg = self._make_seg(audio_types=["REAL_AUDIO"])
         assert _derive_segment_type(seg) == "REAL"
 
     def test_nar_only_is_nar(self):
@@ -442,7 +442,7 @@ class TestInitProjectFromStoryboard:
 | Layer | Content |
 |-------|---------|
 | Visual | `WAVEFORM:` Audio waveform |
-| Audio | `REAL AUDIO:` 911 call recording |
+| Audio | `REAL_AUDIO:` 911 call recording |
 """
 
     def test_init_project_from_storyboard(self):

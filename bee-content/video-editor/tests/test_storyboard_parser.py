@@ -25,7 +25,7 @@ SAMPLE_STORYBOARD = textwrap.dedent("""\
     | Layer | Content |
     |-------|---------|
     | Visual | `WAVEFORM:` Green audio waveform on black background |
-    | Audio | `REAL AUDIO:` Alex 911 call — "I need the police!" |
+    | Audio | `REAL_AUDIO:` Alex 911 call — "I need the police!" |
     | Overlay | `GRAPHIC:` Small text at bottom: "911 CALL" |
     | Music | Dark ambient drone fades in |
     | Source | `segments/911-call-full.mp4` trim 0:00-0:05 |
@@ -129,7 +129,7 @@ class TestParseStoryboard:
     def test_first_segment_audio(self, sample_storyboard):
         seg = sample_storyboard.segments[0]
         assert len(seg.audio) == 1
-        assert seg.audio[0].content_type == "REAL AUDIO"
+        assert seg.audio[0].content_type == "REAL_AUDIO"
 
     def test_first_segment_overlay(self, sample_storyboard):
         seg = sample_storyboard.segments[0]

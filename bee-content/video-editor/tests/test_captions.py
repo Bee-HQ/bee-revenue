@@ -55,7 +55,7 @@ class TestExtractCaptionSegments:
     def test_extracts_real_audio(self):
         sb = Storyboard(title="Test", segments=[
             _make_segment("0_10-0_20", "0:10", "0:20", "911", [
-                ("I need help!", "REAL AUDIO", None, None),
+                ("I need help!", "REAL_AUDIO", None, None),
             ]),
         ], production_rules=ProductionRules())
         result = extract_caption_segments(sb)
@@ -65,7 +65,7 @@ class TestExtractCaptionSegments:
     def test_uses_time_range_if_present(self):
         sb = Storyboard(title="Test", segments=[
             _make_segment("0_30-0_40", "0:30", "0:40", "MIX", [
-                ("Deputy speaks here", "REAL AUDIO", "0:30", "0:35"),
+                ("Deputy speaks here", "REAL_AUDIO", "0:30", "0:35"),
                 ("Narrator bridges", "NAR", "0:35", "0:40"),
             ]),
         ], production_rules=ProductionRules())

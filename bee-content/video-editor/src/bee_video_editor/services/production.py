@@ -163,7 +163,7 @@ def _derive_segment_type(seg: StoryboardSegment) -> str:
     """Derive a segment type string from a StoryboardSegment's layers."""
     has_footage = any(e.content_type == "FOOTAGE" for e in seg.visual)
     has_nar = any(e.content_type == "NAR" for e in seg.audio)
-    has_real_audio = any(e.content_type == "REAL AUDIO" for e in seg.audio)
+    has_real_audio = any(e.content_type == "REAL_AUDIO" for e in seg.audio)
     has_gen_visual = any(e.content_type in ("GRAPHIC", "MAP", "STOCK", "WAVEFORM") for e in seg.visual)
     if has_footage and has_nar:
         return "MIX"

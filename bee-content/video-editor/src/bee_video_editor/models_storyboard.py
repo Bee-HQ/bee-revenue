@@ -15,13 +15,14 @@ class VisualType(Enum):
     GRAPHIC = "GRAPHIC"
     WAVEFORM = "WAVEFORM"
     BLACK = "BLACK"
+    GENERATED = "GENERATED"
     UNKNOWN = "UNKNOWN"
 
 
 class AudioType(Enum):
     """Type of audio content in a storyboard layer."""
     NAR = "NAR"
-    REAL_AUDIO = "REAL AUDIO"
+    REAL_AUDIO = "REAL_AUDIO"
     MUSIC = "MUSIC"
     SFX = "SFX"
     UNKNOWN = "UNKNOWN"

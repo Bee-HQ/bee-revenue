@@ -340,8 +340,8 @@ def _parse_layer_row(line: str, segment: StoryboardSegment) -> None:
     time_start = layer_match.group(2)
     time_end = layer_match.group(3)
 
-    # Extract content type from backtick prefix: `FOOTAGE:`, `NAR:`, etc.
-    type_match = re.match(r'`([A-Z][A-Z\s]*?):`\s*(.*)', content_raw)
+    # Extract content type from backtick prefix: `FOOTAGE:`, `NAR:`, `REAL_AUDIO:`, etc.
+    type_match = re.match(r'`([A-Z][A-Z\s_]*?):`\s*(.*)', content_raw)
     if type_match:
         content_type = type_match.group(1).strip()
         content = type_match.group(2).strip()
