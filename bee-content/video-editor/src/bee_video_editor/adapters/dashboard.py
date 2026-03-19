@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from pathlib import Path
+
+warnings.warn(
+    "dashboard.py is deprecated. Use the web editor (bee-video serve) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import streamlit as st
 
