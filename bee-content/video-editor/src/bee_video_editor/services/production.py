@@ -11,7 +11,7 @@ from pathlib import Path
 
 from bee_video_editor.converters import assembly_guide_to_storyboard
 from bee_video_editor.models import Project, Segment, SegmentType
-from bee_video_editor.models_storyboard import Storyboard
+from bee_video_editor.models_storyboard import Storyboard, StoryboardSegment
 from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
 from bee_video_editor.processors import graphics as gfx
 from bee_video_editor.processors.ffmpeg import (
@@ -118,7 +118,7 @@ class SegmentStatus:
 @dataclass
 class ProductionState:
     """Persistent state for a production run."""
-    assembly_guide_path: str = ""
+    storyboard_path: str = ""
     segment_statuses: list[SegmentStatus] = field(default_factory=list)
     phase: str = "init"  # init, parsing, assets, trimming, compositing, assembly, done
 
@@ -132,7 +132,7 @@ class ProductionState:
         with open(path) as f:
             data = json.load(f)
         state = cls(
-            assembly_guide_path=data["assembly_guide_path"],
+            storyboard_path=data.get("storyboard_path", data.get("assembly_guide_path", "")),
             phase=data["phase"],
         )
         state.segment_statuses = [
@@ -169,27 +169,45 @@ def _ensure_storyboard(source: Project | Storyboard) -> Storyboard:
     return assembly_guide_to_storyboard(source)
 
 
-def init_project(
-    assembly_guide_path: str | Path,
-    config: ProductionConfig,
-) -> tuple[Project, ProductionState]:
-    """Initialize a production project from an assembly guide.
+def _derive_segment_type(seg: StoryboardSegment) -> str:
+    """Derive a segment type string from a StoryboardSegment's layers."""
+    has_footage = any(e.content_type == "FOOTAGE" for e in seg.visual)
+    has_nar = any(e.content_type == "NAR" for e in seg.audio)
+    has_real_audio = any(e.content_type == "REAL AUDIO" for e in seg.audio)
+    has_gen_visual = any(e.content_type in ("GRAPHIC", "MAP", "STOCK", "WAVEFORM") for e in seg.visual)
+    if has_footage and has_nar:
+        return "MIX"
+    if has_footage or has_real_audio:
+        return "REAL"
+    if has_nar:
+        return "NAR"
+    if has_gen_visual:
+        return "GEN"
+    return "GEN"
 
-    Returns the parsed Project and a new ProductionState.
+
+def init_project(
+    storyboard_path: str | Path,
+    config: ProductionConfig,
+) -> tuple[Storyboard, ProductionState]:
+    """Initialize a production project from a storyboard.
+
+    Returns the parsed Storyboard and a new ProductionState.
     """
-    project = parse_assembly_guide(assembly_guide_path)
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    storyboard = parse_storyboard(storyboard_path)
 
     state = ProductionState(
-        assembly_guide_path=str(assembly_guide_path),
+        storyboard_path=str(storyboard_path),
         phase="parsed",
     )
     state.segment_statuses = [
         SegmentStatus(
             index=i,
             time_range=f"{seg.start}-{seg.end}",
-            segment_type=seg.segment_type.value,
+            segment_type=_derive_segment_type(seg),
         )
-        for i, seg in enumerate(project.segments)
+        for i, seg in enumerate(storyboard.segments)
     ]
 
     # Create output directories
@@ -198,7 +216,7 @@ def init_project(
 
     state.save(config.state_path)
 
-    return project, state
+    return storyboard, state
 
 
 def generate_graphics_for_project(

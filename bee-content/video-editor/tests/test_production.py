@@ -22,11 +22,13 @@ from bee_video_editor.services.production import (
     ProductionResult,
     ProductionState,
     SegmentStatus,
+    _derive_segment_type,
     _ensure_storyboard,
     _extract_narrator_text,
     _slugify,
     generate_all_previews,
     generate_preview,
+    init_project,
     trim_source_footage,
 )
 
@@ -35,7 +37,7 @@ class TestProductionState:
     def test_save_and_load(self):
         with tempfile.TemporaryDirectory() as d:
             state = ProductionState(
-                assembly_guide_path="/path/to/guide.md",
+                storyboard_path="/path/to/storyboard.md",
                 phase="parsed",
             )
             state.segment_statuses = [
@@ -47,7 +49,7 @@ class TestProductionState:
             state.save(path)
 
             loaded = ProductionState.load(path)
-            assert loaded.assembly_guide_path == "/path/to/guide.md"
+            assert loaded.storyboard_path == "/path/to/storyboard.md"
             assert loaded.phase == "parsed"
             assert len(loaded.segment_statuses) == 2
             assert loaded.segment_statuses[1].status == "done"
@@ -55,14 +57,14 @@ class TestProductionState:
     def test_state_json_format(self):
         with tempfile.TemporaryDirectory() as d:
             state = ProductionState(
-                assembly_guide_path="/path/to/guide.md",
+                storyboard_path="/path/to/storyboard.md",
                 phase="init",
             )
             path = Path(d) / "state.json"
             state.save(path)
 
             data = json.loads(path.read_text())
-            assert "assembly_guide_path" in data
+            assert "storyboard_path" in data
             assert "phase" in data
             assert "segment_statuses" in data
 
@@ -125,7 +127,7 @@ class TestProductionConfig:
 
 class TestProductionStateTrack:
     def _make_state(self):
-        state = ProductionState(assembly_guide_path="/test.md", phase="parsed")
+        state = ProductionState(storyboard_path="/test.md", phase="parsed")
         state.segment_statuses = [
             SegmentStatus(index=0, time_range="0:00-0:15", segment_type="NAR"),
             SegmentStatus(index=1, time_range="0:15-0:30", segment_type="REAL"),
@@ -395,3 +397,139 @@ class TestParallelNarration:
         sig = inspect.signature(generate_narration_for_project)
         assert "workers" in sig.parameters
         assert sig.parameters["workers"].default == 1
+
+
+class TestDeriveSegmentType:
+    def _make_seg(self, visual_types=(), audio_types=()):
+        seg = StoryboardSegment(
+            id="test-seg",
+            start="0:00",
+            end="0:15",
+            title="Test",
+            section="Act 1",
+            section_time="0:00 - 1:00",
+            subsection="",
+        )
+        seg.visual = [LayerEntry(content="", content_type=t) for t in visual_types]
+        seg.audio = [LayerEntry(content="", content_type=t) for t in audio_types]
+        return seg
+
+    def test_footage_and_nar_is_mix(self):
+        seg = self._make_seg(visual_types=["FOOTAGE"], audio_types=["NAR"])
+        assert _derive_segment_type(seg) == "MIX"
+
+    def test_footage_only_is_real(self):
+        seg = self._make_seg(visual_types=["FOOTAGE"])
+        assert _derive_segment_type(seg) == "REAL"
+
+    def test_real_audio_only_is_real(self):
+        seg = self._make_seg(audio_types=["REAL AUDIO"])
+        assert _derive_segment_type(seg) == "REAL"
+
+    def test_nar_only_is_nar(self):
+        seg = self._make_seg(audio_types=["NAR"])
+        assert _derive_segment_type(seg) == "NAR"
+
+    def test_graphic_only_is_gen(self):
+        seg = self._make_seg(visual_types=["GRAPHIC"])
+        assert _derive_segment_type(seg) == "GEN"
+
+    def test_map_is_gen(self):
+        seg = self._make_seg(visual_types=["MAP"])
+        assert _derive_segment_type(seg) == "GEN"
+
+    def test_empty_is_gen(self):
+        seg = self._make_seg()
+        assert _derive_segment_type(seg) == "GEN"
+
+
+class TestInitProjectFromStoryboard:
+    STORYBOARD_MD = """\
+# Shot-by-Shot Storyboard: "Test Video"
+
+---
+
+## COLD OPEN (0:00 - 1:00)
+
+### 0:00 - 0:15 | THE HOOK
+| Layer | Content |
+|-------|---------|
+| Visual | `FOOTAGE:` Drone shot of estate |
+| Audio | `NAR:` "Welcome to the story." |
+
+### 0:15 - 0:30 | THE CALL
+| Layer | Content |
+|-------|---------|
+| Visual | `WAVEFORM:` Audio waveform |
+| Audio | `REAL AUDIO:` 911 call recording |
+"""
+
+    def test_init_project_from_storyboard(self):
+        """init_project parses storyboard and derives segment types correctly."""
+        import textwrap
+        with tempfile.TemporaryDirectory() as d:
+            sb_path = Path(d) / "storyboard.md"
+            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
+            config = ProductionConfig(project_dir=Path(d))
+
+            storyboard, state = init_project(sb_path, config)
+
+            assert isinstance(storyboard, Storyboard)
+            assert len(state.segment_statuses) == 2
+            assert state.storyboard_path == str(sb_path)
+            assert state.phase == "parsed"
+
+            # FOOTAGE + NAR → MIX
+            assert state.segment_statuses[0].segment_type == "MIX"
+            # REAL AUDIO → REAL
+            assert state.segment_statuses[1].segment_type == "REAL"
+
+    def test_init_project_creates_output_dirs(self):
+        """init_project creates expected output subdirectories."""
+        import textwrap
+        with tempfile.TemporaryDirectory() as d:
+            sb_path = Path(d) / "storyboard.md"
+            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
+            config = ProductionConfig(project_dir=Path(d))
+
+            init_project(sb_path, config)
+
+            for subdir in ["segments", "narration", "graphics", "final"]:
+                assert (config.output_dir / subdir).exists()
+
+    def test_init_project_saves_state(self):
+        """init_project persists state to disk."""
+        import textwrap
+        with tempfile.TemporaryDirectory() as d:
+            sb_path = Path(d) / "storyboard.md"
+            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
+            config = ProductionConfig(project_dir=Path(d))
+
+            _, state = init_project(sb_path, config)
+
+            assert config.state_path.exists()
+            loaded = ProductionState.load(config.state_path)
+            assert loaded.storyboard_path == str(sb_path)
+            assert len(loaded.segment_statuses) == 2
+
+
+class TestProductionStateLoadsOldFormat:
+    def test_production_state_loads_old_format(self):
+        """JSON with assembly_guide_path (old key) populates storyboard_path."""
+        with tempfile.TemporaryDirectory() as d:
+            state_path = Path(d) / "state.json"
+            old_data = {
+                "assembly_guide_path": "/old/path/guide.md",
+                "phase": "parsed",
+                "segment_statuses": [
+                    {"index": 0, "time_range": "0:00-0:15", "segment_type": "REAL",
+                     "status": "done", "output_file": None, "error": None},
+                ],
+            }
+            state_path.write_text(json.dumps(old_data))
+
+            loaded = ProductionState.load(state_path)
+            assert loaded.storyboard_path == "/old/path/guide.md"
+            assert loaded.phase == "parsed"
+            assert len(loaded.segment_statuses) == 1
+            assert loaded.segment_statuses[0].status == "done"
