@@ -10,7 +10,7 @@ from rich.table import Table
 
 app = typer.Typer(
     name="bee-video",
-    help="AI-assisted video production from assembly guides.",
+    help="AI-assisted video production from storyboards.",
     no_args_is_help=True,
 )
 console = Console()
@@ -18,105 +18,100 @@ console = Console()
 
 @app.command()
 def parse(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
 ):
-    """Parse an assembly guide and show project summary."""
-    from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
+    """Parse a storyboard and show project summary."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
 
-    project = parse_assembly_guide(assembly_guide)
-    summary = project.summary()
+    sb = parse_storyboard(storyboard)
+    summary = sb.summary()
 
-    console.print(f"\n[bold]{project.title}[/bold]")
-    console.print(f"Duration: {project.total_duration} | {project.resolution} | {project.format}")
+    console.print(f"\n[bold]{sb.title}[/bold]")
+    if sb.total_duration or sb.resolution or sb.format:
+        parts = [p for p in [sb.total_duration, sb.resolution, sb.format] if p]
+        console.print(" | ".join(parts))
     console.print(f"Total segments: {summary['total_segments']}")
     console.print()
 
-    # Segment type breakdown
-    table = Table(title="Segment Types")
+    # Visual type breakdown
+    table = Table(title="Visual Types")
     table.add_column("Type", style="cyan")
     table.add_column("Count", justify="right")
-    table.add_column("Duration", justify="right")
 
-    for seg_type, count in summary["segment_type_counts"].items():
-        dur = summary["segment_type_durations_seconds"].get(seg_type, 0)
-        mins = dur // 60
-        secs = dur % 60
-        table.add_row(seg_type, str(count), f"{mins}m {secs}s")
+    for vtype, count in summary["visual_type_counts"].items():
+        table.add_row(vtype, str(count))
 
     console.print(table)
 
     # Sections
     console.print("\n[bold]Sections:[/bold]")
     for section in summary["sections"]:
-        seg_count = len(project.segments_in_section(section))
+        seg_count = len(sb.segments_in_section(section))
         console.print(f"  {section} ({seg_count} segments)")
 
-    # Pre-production
-    pp_done = summary["pre_production_done"]
-    pp_total = summary["pre_production_assets"]
-    console.print(f"\n[bold]Pre-production:[/bold] {pp_done}/{pp_total} assets ready")
+    # Asset needs
+    if summary["stock_footage_needed"]:
+        console.print(f"\n[bold]Stock footage needed:[/bold] {summary['stock_footage_needed']}")
+    if summary["photos_needed"]:
+        console.print(f"[bold]Photos needed:[/bold] {summary['photos_needed']}")
+    if summary["maps_needed"]:
+        console.print(f"[bold]Maps needed:[/bold] {summary['maps_needed']}")
 
-    # Trim notes
-    console.print(f"[bold]Trim notes:[/bold] {summary['trim_notes']} source files")
+    # Pre-production status
+    pp_done = sum(1 for item in sb.pre_production if item.checked)
+    pp_total = len(sb.pre_production)
+    if pp_total:
+        console.print(f"\n[bold]Pre-production:[/bold] {pp_done}/{pp_total} assets ready")
 
     # Post checklist
-    pc_done = summary["post_checklist_done"]
-    pc_total = summary["post_checklist_items"]
-    console.print(f"[bold]Post-assembly:[/bold] {pc_done}/{pc_total} checklist items done")
+    pc_done = sum(1 for item in sb.post_checklist if item.checked)
+    pc_total = len(sb.post_checklist)
+    if pc_total:
+        console.print(f"[bold]Post-assembly:[/bold] {pc_done}/{pc_total} checklist items done")
     console.print()
 
 
 @app.command()
 def segments(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     section: str | None = typer.Option(None, "--section", "-s", help="Filter by section name"),
-    segment_type: str | None = typer.Option(None, "--type", "-t", help="Filter by type (NAR/REAL/GEN/MIX)"),
+    content_type: str | None = typer.Option(None, "--type", "-t", help="Filter by visual content type (FOOTAGE/STOCK/GRAPHIC/NAR/etc.)"),
 ):
-    """List all segments from the assembly guide."""
-    from bee_video_editor.models import SegmentType
-    from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
+    """List all segments from the storyboard."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
 
-    project = parse_assembly_guide(assembly_guide)
+    sb = parse_storyboard(storyboard)
 
-    segs = project.segments
+    segs = sb.segments
     if section:
         segs = [s for s in segs if section.lower() in s.section.lower()]
-    if segment_type:
-        try:
-            st = SegmentType(segment_type.upper())
-            segs = [s for s in segs if s.segment_type == st]
-        except ValueError:
-            console.print(f"[red]Unknown type: {segment_type}[/red]")
-            raise typer.Exit(1)
+    if content_type:
+        ct = content_type.upper()
+        segs = [
+            s for s in segs
+            if any(e.content_type == ct for e in (s.visual + s.audio + s.overlay + s.music + s.source))
+        ]
 
     table = Table(title=f"Segments ({len(segs)} total)")
     table.add_column("#", justify="right", style="dim")
     table.add_column("Time", style="cyan")
     table.add_column("Dur", justify="right")
-    table.add_column("Type", style="bold")
     table.add_column("Section")
+    table.add_column("Title")
     table.add_column("Visual", max_width=40, overflow="ellipsis")
     table.add_column("Audio", max_width=40, overflow="ellipsis")
 
-    type_colors = {
-        "NAR": "green",
-        "REAL": "yellow",
-        "GEN": "blue",
-        "MIX": "magenta",
-        "SFX": "red",
-        "SPONSOR": "dim",
-    }
-
     for i, seg in enumerate(segs):
-        color = type_colors.get(seg.segment_type.value, "white")
+        visual_summary = ", ".join(e.content_type for e in seg.visual) or "-"
+        audio_summary = ", ".join(e.content_type for e in seg.audio) or "-"
         table.add_row(
             str(i),
             f"{seg.start}-{seg.end}",
-            seg.duration_str,
-            f"[{color}]{seg.segment_type.value}[/{color}]",
-            seg.subsection or seg.section,
-            seg.visual[:40],
-            seg.audio[:40],
+            str(seg.duration_seconds) + "s",
+            seg.section,
+            (seg.title or seg.subsection or "")[:30],
+            visual_summary[:40],
+            audio_summary[:40],
         )
 
     console.print(table)
@@ -124,43 +119,44 @@ def segments(
 
 @app.command()
 def init(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p", help="Project root directory"),
     tts_engine: str = typer.Option("edge", "--tts", help="TTS engine (edge/kokoro/openai)"),
 ):
-    """Initialize a production project from an assembly guide."""
+    """Initialize a production project from a storyboard."""
     from bee_video_editor.services.production import ProductionConfig, init_project
 
     config = ProductionConfig(
         project_dir=Path(project_dir),
         tts_engine=tts_engine,
     )
-    project, state = init_project(assembly_guide, config)
+    sb, state = init_project(storyboard, config)
 
     console.print(f"\n[bold green]Project initialized![/bold green]")
-    console.print(f"Title: {project.title}")
-    console.print(f"Segments: {project.total_segments}")
+    console.print(f"Title: {sb.title}")
+    console.print(f"Segments: {sb.total_segments}")
     console.print(f"Output: {config.output_dir}")
     console.print(f"State: {config.output_dir / 'production_state.json'}")
     console.print()
     console.print("[dim]Next steps:[/dim]")
-    console.print("  bee-video graphics <assembly-guide>  — Generate graphics assets")
-    console.print("  bee-video narration <assembly-guide>  — Generate TTS narration")
-    console.print("  bee-video trim <assembly-guide>       — Trim source footage")
-    console.print("  bee-video assemble <assembly-guide>   — Final assembly")
+    console.print("  bee-video graphics <storyboard>  — Generate graphics assets")
+    console.print("  bee-video narration <storyboard>  — Generate TTS narration")
+    console.print("  bee-video trim <storyboard>       — Trim source footage")
+    console.print("  bee-video assemble                — Final assembly")
 
 
 @app.command()
 def graphics(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
     animated: bool = typer.Option(False, "--animated", help="Use Lottie animations for lower-thirds (requires lottie + Cairo)"),
 ):
     """Generate all graphics assets (lower thirds, timelines, etc.)."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, generate_graphics_for_project
 
     config = ProductionConfig(project_dir=Path(project_dir))
-    project = _load_project(assembly_guide)
+    project = parse_storyboard(storyboard)
 
     if animated:
         try:
@@ -192,13 +188,14 @@ def graphics(
 
 @app.command()
 def narration(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
     tts_engine: str = typer.Option("edge", "--tts", help="TTS engine (edge/kokoro/openai)"),
     voice: str | None = typer.Option(None, "--voice", "-v", help="Voice ID"),
     workers: int = typer.Option(1, "--workers", "-w", help="Parallel workers for TTS (default: 1)"),
 ):
     """Generate TTS narration for all narrator segments."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, generate_narration_for_project
 
     config = ProductionConfig(
@@ -206,7 +203,7 @@ def narration(
         tts_engine=tts_engine,
         tts_voice=voice,
     )
-    project = _load_project(assembly_guide)
+    project = parse_storyboard(storyboard)
 
     console.print(f"[bold]Generating narration ({tts_engine})...[/bold]")
     result = generate_narration_for_project(project, config, workers=workers)
@@ -224,18 +221,19 @@ def narration(
 
 @app.command()
 def trim_footage(
-    assembly_guide: str = typer.Argument(..., help="Path to assembly guide markdown file"),
+    storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
     footage_dir: str | None = typer.Option(None, "--footage", "-f", help="Footage directory"),
 ):
-    """Trim source footage based on assembly guide trim notes."""
+    """Trim source footage based on storyboard source layers."""
+    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, trim_source_footage
 
     config = ProductionConfig(
         project_dir=Path(project_dir),
         footage_dir=Path(footage_dir) if footage_dir else None,
     )
-    project = _load_project(assembly_guide)
+    project = parse_storyboard(storyboard)
 
     console.print("[bold]Trimming source footage...[/bold]")
     result = trim_source_footage(project, config)
@@ -1010,11 +1008,6 @@ def stock_library_check(
         for m in matches:
             console.print(f"  Pexels {m['pexels_id']} — used {m['usage_count']}x, first in {m['first_used_project']}")
         console.print("[dim]Consider varying your search terms to avoid visual repetition.[/dim]")
-
-
-def _load_project(assembly_guide: str):
-    from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
-    return parse_assembly_guide(assembly_guide)
 
 
 if __name__ == "__main__":
