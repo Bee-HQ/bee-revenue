@@ -158,8 +158,9 @@ class TestCompositeSegment:
 
 
 class TestCompositeAll:
+    @patch("bee_video_editor.services.compositor.color_grade", side_effect=_mock_ffmpeg_creates_output)
     @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
-    def test_composites_multiple_segments(self, mock_norm, tmp_path):
+    def test_composites_multiple_segments(self, mock_norm, mock_grade, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
         (footage / "clip.mp4").write_bytes(b"fake")
@@ -192,8 +193,9 @@ class TestCompositeAll:
         assert mock_grade.called
         assert "surveillance" in str(mock_grade.call_args)
 
+    @patch("bee_video_editor.services.compositor.color_grade", side_effect=_mock_ffmpeg_creates_output)
     @patch("bee_video_editor.services.compositor.normalize_format", side_effect=_mock_ffmpeg_creates_output)
-    def test_progress_callback(self, mock_norm, tmp_path):
+    def test_progress_callback(self, mock_norm, mock_grade, tmp_path):
         footage = tmp_path / "footage"
         footage.mkdir()
         (footage / "clip.mp4").write_bytes(b"fake")
