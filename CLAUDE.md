@@ -135,6 +135,20 @@ Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
 - 391 tests across 20 test files
 - System requirement: FFmpeg must be installed and on PATH
 
+### Content Production Pipeline (Claude Code Skills)
+
+Six skills at `.claude/commands/true-crime/` for end-to-end video production:
+
+| Step | Skill | Output |
+|------|-------|--------|
+| 1. Research | `/true-crime:research-case` | `case-research.md` |
+| 2. Review research | `/true-crime:review-case-research` | Viability check |
+| 3. Screenplay | `/true-crime:generate-screenplay` | `screenplay.md` |
+| 4. Review screenplay | `/true-crime:review-screenplay` | Formula compliance |
+| 5. Storyboard | `/true-crime:generate-storyboard` | `storyboard.md` |
+| 6. Review storyboard | `/true-crime:review-storyboard` | Production readiness |
+| 7. Produce | `bee-video produce storyboard.md` | Final video |
+
 ---
 
 <!-- claudeclaw:managed:start -->

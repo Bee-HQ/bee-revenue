@@ -950,14 +950,26 @@ segments/
 
 ## Phase 7: Production Checklist
 
+> **Claude Code skills** automate steps 1-6. Run `/true-crime:research-case` to start. Each skill reads this formula as context.
+>
+> | Step | Skill | Output |
+> |------|-------|--------|
+> | Research | `/true-crime:research-case` | `case-research.md` |
+> | Review | `/true-crime:review-case-research` | Viability check |
+> | Screenplay | `/true-crime:generate-screenplay` | `screenplay.md` |
+> | Review | `/true-crime:review-screenplay` | Formula compliance |
+> | Storyboard | `/true-crime:generate-storyboard` | `storyboard.md` |
+> | Review | `/true-crime:review-storyboard` | Production readiness |
+> | Produce | `bee-video produce storyboard.md` | Final video |
+
 ### Pre-Production (2-4 weeks)
-- [ ] Select case matching criteria (Section 1)
+- [ ] Select case matching criteria (Section 1) — or run `/true-crime:research-case`
 - [ ] File FOIA requests: bodycam, 911, detective recordings
 - [ ] Gather: victim photo (2 variants), suspect mugshot, property address
-- [ ] Research: court records, news articles, public documents
+- [ ] Research: court records, news articles, public documents — or run `/true-crime:review-case-research`
 - [ ] Verify narrative arc exists before committing
 
-### Screenplay (4-6 hours)
+### Screenplay (4-6 hours) — or run `/true-crime:generate-screenplay`
 - [ ] Write trailer: select 5-7 audio clips
 - [ ] Write Act 1: 911 call + first police visit + wrong conclusion
 - [ ] Write Act 2: 6-8 investigation beats, each escalating
