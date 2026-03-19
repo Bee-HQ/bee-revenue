@@ -37,19 +37,41 @@ def _segment_to_schema(seg: ParsedSegment) -> SegmentSchema:
         LayerEntrySchema(
             content=v.src or v.query or v.prompt or v.type,
             content_type=v.type,
+            metadata={
+                "color": v.color,
+                "ken_burns": v.ken_burns,
+                "tc_in": v.tc_in,
+                "out": v.out,
+            },
         )
         for v in seg.config.visual
     ]
 
     audio = [
-        LayerEntrySchema(content=a.src or "", content_type=a.type)
+        LayerEntrySchema(
+            content=a.src or "",
+            content_type=a.type,
+            metadata={
+                "volume": a.volume,
+                "fade_in": a.fade_in,
+                "fade_out": a.fade_out,
+            },
+        )
         for a in seg.config.audio if a.type != "MUSIC"
     ]
     if seg.narration:
         audio.append(LayerEntrySchema(content=seg.narration, content_type="NAR"))
 
     music = [
-        LayerEntrySchema(content=a.src or "", content_type=a.type)
+        LayerEntrySchema(
+            content=a.src or "",
+            content_type=a.type,
+            metadata={
+                "volume": a.volume,
+                "fade_in": a.fade_in,
+                "fade_out": a.fade_out,
+            },
+        )
         for a in seg.config.audio if a.type == "MUSIC"
     ]
 

@@ -1,9 +1,20 @@
+export interface LayerEntryMetadata {
+  color?: string | null;
+  ken_burns?: string | null;
+  tc_in?: string | null;
+  out?: string | null;
+  volume?: number | null;
+  fade_in?: number | null;
+  fade_out?: number | null;
+}
+
 export interface LayerEntry {
   content: string;
   content_type: string;
   time_start: string | null;
   time_end: string | null;
   raw: string;
+  metadata: LayerEntryMetadata | null;
 }
 
 export interface Segment {
@@ -79,4 +90,10 @@ export interface DownloadStatus {
   running: boolean;
   output_lines: string[];
   return_code: number | null;
+}
+
+export interface Effects {
+  color_presets: string[];
+  transitions: string[];
+  ken_burns: string[];
 }

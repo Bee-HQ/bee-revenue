@@ -16,6 +16,7 @@ class LayerEntrySchema(BaseModel):
     time_start: str | None = None
     time_end: str | None = None
     raw: str = ""
+    metadata: dict | None = None
 
 
 class SegmentSchema(BaseModel):
