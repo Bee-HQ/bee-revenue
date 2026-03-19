@@ -123,6 +123,27 @@ export function ProductionBar() {
       </button>
 
       <button
+        className={buttonClass('autoassign')}
+        disabled={isRunning}
+        onClick={async () => {
+          setStatus(s => ({ ...s, autoassign: 'running' }));
+          try {
+            const r = await api.autoAssign();
+            setStatus(s => ({ ...s, autoassign: 'done' }));
+            toast.success(`Auto-assigned ${r.assigned} segments (${r.unmatched} unmatched)`);
+            // Refresh project to see assignments
+            const storyboard = await api.getCurrentProject();
+            useProjectStore.setState({ storyboard });
+          } catch (e: any) {
+            setStatus(s => ({ ...s, autoassign: 'error' }));
+            toast.error(`Auto-assign failed: ${e.message}`);
+          }
+        }}
+      >
+        Auto-Assign
+      </button>
+
+      <button
         className={buttonClass('init')}
         disabled={isRunning}
         onClick={() => runAction('init', api.initProject)}

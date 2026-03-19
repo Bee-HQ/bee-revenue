@@ -190,6 +190,10 @@ export const api = {
     return request('/production/effects');
   },
 
+  autoAssign(): Promise<{ status: string; assigned: number; unmatched: number; conflicts: string[] }> {
+    return request('/projects/auto-assign', { method: 'POST' });
+  },
+
   exportMarkdown(): Promise<{ format: string; content: string }> {
     return request('/projects/export?format=md');
   },
