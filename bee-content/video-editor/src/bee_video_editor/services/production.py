@@ -9,10 +9,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from bee_video_editor.converters import assembly_guide_to_storyboard
-from bee_video_editor.models import Project, Segment, SegmentType
 from bee_video_editor.models_storyboard import Storyboard, StoryboardSegment
-from bee_video_editor.parsers.assembly_guide import parse_assembly_guide
 from bee_video_editor.processors import graphics as gfx
 from bee_video_editor.processors.ffmpeg import (
     FFmpegError,
@@ -162,13 +159,6 @@ class ProductionState:
             self.save(state_path)
 
 
-def _ensure_storyboard(source: Project | Storyboard) -> Storyboard:
-    """Convert Project to Storyboard if needed."""
-    if isinstance(source, Storyboard):
-        return source
-    return assembly_guide_to_storyboard(source)
-
-
 def _derive_segment_type(seg: StoryboardSegment) -> str:
     """Derive a segment type string from a StoryboardSegment's layers."""
     has_footage = any(e.content_type == "FOOTAGE" for e in seg.visual)
@@ -220,7 +210,7 @@ def init_project(
 
 
 def generate_graphics_for_project(
-    project: Project | Storyboard,
+    project: Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
     animated: bool = False,
@@ -228,7 +218,7 @@ def generate_graphics_for_project(
     """Generate all graphics assets."""
     result = ProductionResult()
     graphics_dir = config.output_dir / "graphics"
-    sb = _ensure_storyboard(project)
+    sb = project
 
     if state:
         state.phase = "graphics"
@@ -314,7 +304,7 @@ def generate_graphics_for_project(
 
 
 def generate_narration_for_project(
-    project: Project | Storyboard,
+    project: Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
     workers: int = 1,
@@ -322,7 +312,7 @@ def generate_narration_for_project(
     """Generate TTS narration for all NAR segments."""
     result = ProductionResult()
     narration_dir = config.output_dir / "narration"
-    sb = _ensure_storyboard(project)
+    sb = project
 
     if state:
         state.phase = "narration"
@@ -720,7 +710,7 @@ def generate_all_previews(
 
 
 def rough_cut_export(
-    project: Project | Storyboard,
+    project: Storyboard,
     config: ProductionConfig,
 ) -> Path | None:
     """Export a fast 720p rough cut — no grading, no transitions.
@@ -728,7 +718,7 @@ def rough_cut_export(
     Collects assigned media (visual:0) from each segment, normalizes to
     720p/30fps, and concatenates. Returns output path or None if no media.
     """
-    sb = _ensure_storyboard(project)
+    sb = project
     rough_dir = config.output_dir / "rough"
     rough_dir.mkdir(parents=True, exist_ok=True)
 
@@ -758,28 +748,6 @@ def rough_cut_export(
     output_path = rough_dir / "rough_cut.mp4"
     concat_segments(normalized, output_path, reencode=True)
     return output_path
-
-
-def _extract_narrator_text(audio_field: str) -> str:
-    """Extract narrator text from an assembly guide audio cell.
-
-    Handles formats like:
-        'NAR: "This is Alex Murdaugh..." + dark ambient music fades in'
-        'NAR: "Something here"'
-    """
-    # Look for NAR: "text" pattern
-    match = re.search(r'NAR:\s*"([^"]*)"', audio_field)
-    if match:
-        return match.group(1)
-
-    # Look for NAR: text (without quotes)
-    match = re.search(r'NAR:\s*(.+?)(?:\s*\+|\s*$)', audio_field)
-    if match:
-        text = match.group(1).strip()
-        text = text.strip('"').strip('"')
-        return text
-
-    return ""
 
 
 def _slugify(text: str) -> str:

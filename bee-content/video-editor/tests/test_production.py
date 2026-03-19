@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bee_video_editor.converters import assembly_guide_to_storyboard
 from bee_video_editor.models_storyboard import (
     LayerEntry,
     ProductionRules,
@@ -23,8 +22,6 @@ from bee_video_editor.services.production import (
     ProductionState,
     SegmentStatus,
     _derive_segment_type,
-    _ensure_storyboard,
-    _extract_narrator_text,
     _parse_trim_from_source,
     _slugify,
     generate_all_previews,
@@ -176,28 +173,6 @@ class TestProductionStateTrack:
                     raise RuntimeError("crash")
 
 
-class TestExtractNarratorText:
-    def test_quoted(self):
-        text = _extract_narrator_text('NAR: "This is Alex Murdaugh..." + dark ambient music')
-        assert text == "This is Alex Murdaugh..."
-
-    def test_unquoted(self):
-        text = _extract_narrator_text('NAR: This is a test line + music')
-        assert text == "This is a test line"
-
-    def test_no_narrator(self):
-        text = _extract_narrator_text('Alex 911 call: "I need help!"')
-        assert text == ""
-
-    def test_empty(self):
-        text = _extract_narrator_text('')
-        assert text == ""
-
-    def test_nar_only(self):
-        text = _extract_narrator_text('NAR: "Welcome to the story"')
-        assert text == "Welcome to the story"
-
-
 class TestSlugify:
     def test_basic(self):
         assert _slugify("Cold Open") == "cold-open"
@@ -207,19 +182,6 @@ class TestSlugify:
 
     def test_multiple_spaces(self):
         assert _slugify("ACT  1:  THE  DYNASTY") == "act-1-the-dynasty"
-
-
-class TestEnsureStoryboard:
-    def test_storyboard_passes_through(self):
-        sb = Storyboard(title="Test", production_rules=ProductionRules())
-        assert _ensure_storyboard(sb) is sb
-
-    def test_project_converts(self):
-        from bee_video_editor.models import Project
-        proj = Project(title="Test", total_duration="10m", resolution="1080p", format="MP4")
-        result = _ensure_storyboard(proj)
-        assert isinstance(result, Storyboard)
-        assert result.title == "Test"
 
 
 class TestPipelineResult:
