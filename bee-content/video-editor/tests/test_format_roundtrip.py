@@ -45,6 +45,50 @@ def _parse_from_string(text: str):
             os.unlink(f.name)
 
 
+def test_otio_roundtrip_minimal():
+    """parse → to_otio → from_otio → write produces identical markdown."""
+    from bee_video_editor.formats.otio_convert import from_otio, to_otio
+    from bee_video_editor.formats.parser import parse_v2
+    from bee_video_editor.formats.writer import write_v2
+
+    parsed1 = parse_v2(FIXTURES / "storyboard_v2_minimal.md")
+    tl = to_otio(parsed1)
+    parsed2 = from_otio(tl)
+    md1 = write_v2(parsed1)
+    md2 = write_v2(parsed2)
+    assert md1 == md2
+
+
+def test_otio_roundtrip_full():
+    """parse → to_otio → from_otio → write produces identical markdown (full fixture)."""
+    from bee_video_editor.formats.otio_convert import from_otio, to_otio
+    from bee_video_editor.formats.parser import parse_v2
+    from bee_video_editor.formats.writer import write_v2
+
+    parsed1 = parse_v2(FIXTURES / "storyboard_v2_full.md")
+    tl = to_otio(parsed1)
+    parsed2 = from_otio(tl)
+    md1 = write_v2(parsed1)
+    md2 = write_v2(parsed2)
+    assert md1 == md2
+
+
+def test_otio_file_roundtrip(tmp_path):
+    """parse → to_otio → write .otio → read .otio → from_otio round-trips."""
+    import opentimelineio as otio
+
+    from bee_video_editor.formats.otio_convert import from_otio, to_otio
+    from bee_video_editor.formats.parser import parse_v2
+
+    parsed1 = parse_v2(FIXTURES / "storyboard_v2_minimal.md")
+    tl = to_otio(parsed1)
+    otio_path = tmp_path / "test.otio"
+    otio.adapters.write_to_file(tl, str(otio_path))
+    tl2 = otio.adapters.read_from_file(str(otio_path))
+    parsed2 = from_otio(tl2)
+    _assert_parsed_equal(parsed1, parsed2)
+
+
 def _assert_parsed_equal(a, b):
     assert a.project.model_dump() == b.project.model_dump()
     assert len(a.sections) == len(b.sections)
