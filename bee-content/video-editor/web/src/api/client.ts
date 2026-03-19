@@ -143,6 +143,13 @@ export const api = {
     return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
   },
 
+  downloadEntry(segmentId: string, layer: string = 'visual', index: number = 0) {
+    return request<{ status: string; path?: string; query?: string }>('/projects/download-entry', {
+      method: 'POST',
+      body: JSON.stringify({ segment_id: segmentId, layer, index }),
+    });
+  },
+
   updateSegment(segmentId: string, updates: Record<string, unknown>) {
     return request<StatusResponse>('/projects/update-segment', {
       method: 'PUT',

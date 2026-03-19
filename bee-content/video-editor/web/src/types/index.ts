@@ -6,6 +6,10 @@ export interface LayerEntryMetadata {
   volume?: number | null;
   fade_in?: number | null;
   fade_out?: number | null;
+  download_url?: string;
+  download_trim?: string;
+  pexels_url?: string;
+  query?: string;
 }
 
 export interface LayerEntry {
