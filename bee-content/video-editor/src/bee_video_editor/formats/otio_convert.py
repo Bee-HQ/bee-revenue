@@ -391,15 +391,6 @@ def from_otio(timeline: otio.schema.Timeline) -> ParsedStoryboard:
     current_section_name: str = ""
     section_start_map: dict[str, str] = {}  # section name → start tc
 
-    for sid, title, start_tc, end_tc, clips, trans in segment_groups:
-        # Check markers on first clip or gap
-        items_to_check = clips[:1] if clips else []
-        # For gaps, we stored markers on the gap itself — but gaps are not in
-        # the clips list. We need to check the original V1 item. However, we
-        # already extracted gap info above. Let's check markers on V1 items
-        # instead by re-scanning.
-        pass
-
     # Re-scan V1 to extract markers and map to segment_ids
     for item in v1:
         if isinstance(item, (otio.schema.Clip, otio.schema.Gap)):

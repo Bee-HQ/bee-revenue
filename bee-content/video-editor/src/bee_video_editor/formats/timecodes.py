@@ -23,7 +23,7 @@ def parse_precise_tc(tc: str) -> float:
 def format_precise_tc(seconds: float) -> str:
     h = int(seconds) // 3600
     m = (int(seconds) % 3600) // 60
-    s = seconds - h * 3600 - m * 60
+    s = round(seconds - h * 3600 - m * 60, 3)
     return f"{h:02d}:{m:02d}:{s:06.3f}"
 
 def tc_to_seconds(tc: str) -> float:

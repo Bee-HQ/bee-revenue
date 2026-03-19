@@ -275,7 +275,7 @@ def parse_v2(path: str | Path, *, lenient: bool = False) -> ParsedStoryboard:
                 i += 1
                 continue
             # Check if it's a continuation of NAR (starts with > but no NAR: prefix)
-            stripped = line.lstrip("> ").strip()
+            stripped = re.sub(r"^>\s*", "", line).strip()
             if in_nar_paragraph and stripped and not stripped.startswith("NAR:"):
                 # Continuation of previous NAR line
                 current_narration_lines.append(stripped)
