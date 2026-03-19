@@ -1,4 +1,4 @@
-import type { DownloadScriptInfo, DownloadStatus, DownloadTools, MediaListResponse, ProductionStatus, Storyboard } from '../types';
+import type { DownloadScriptInfo, DownloadStatus, DownloadTools, Effects, MediaListResponse, ProductionStatus, Storyboard } from '../types';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -141,6 +141,17 @@ export const api = {
 
   createMediaDirs() {
     return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
+  },
+
+  updateSegment(segmentId: string, updates: Record<string, unknown>) {
+    return request<StatusResponse>('/projects/update-segment', {
+      method: 'PUT',
+      body: JSON.stringify({ segment_id: segmentId, updates }),
+    });
+  },
+
+  getEffects(): Promise<Effects> {
+    return request('/production/effects');
   },
 
   exportMarkdown(): Promise<{ format: string; content: string }> {

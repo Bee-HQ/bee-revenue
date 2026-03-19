@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MediaFile, Segment, Storyboard } from '../types';
+import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
 
 const MAX_HISTORY = 50;
@@ -23,15 +23,18 @@ interface ProjectState {
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
   segmentOrder: string[] | null;
+  effects: Effects | null;
 
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
   toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
   loadMedia: () => Promise<void>;
+  loadEffects: () => Promise<void>;
   setDraggedMedia: (file: MediaFile | null) => void;
   setPreviewMedia: (file: MediaFile | null) => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
+  updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
   reorderSegments: (fromIndex: number, toIndex: number) => void;
   orderedSegments: () => Segment[];
   undo: () => Promise<void>;
@@ -71,6 +74,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   segmentOrder: null,
+  effects: null,
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });
@@ -146,6 +150,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     } catch {
       // Media loading is non-critical
     }
+  },
+
+  loadEffects: async () => {
+    if (get().effects) return; // already loaded
+    try {
+      const effects = await api.getEffects();
+      set({ effects });
+    } catch {
+      // Effects loading is non-critical
+    }
+  },
+
+  updateSegmentConfig: async (segmentId, updates) => {
+    await api.updateSegment(segmentId, updates);
+    // Refresh storyboard from server to get updated state
+    const storyboard = await api.getCurrentProject();
+    set({ storyboard });
   },
 
   setDraggedMedia: (file) => set({ draggedMedia: file }),
