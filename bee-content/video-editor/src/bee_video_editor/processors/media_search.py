@@ -310,21 +310,34 @@ def download_media(
     result: SearchResult,
     output_path: Path,
     timeout: int = 120,
-) -> Path:
-    """Download a stock media file. Skips if already exists (idempotent)."""
+) -> Path | None:
+    """Download a stock media file. Skips if already exists (idempotent).
+
+    Returns the output path on success, None on failure.
+    """
+    from bee_video_editor.api.session import _validate_download_url, _stream_download
+
     output_path = Path(output_path)
     if output_path.exists():
         return output_path
 
+    if not result.download_url:
+        return None
+
+    try:
+        _validate_download_url(result.download_url)
+    except Exception:
+        return None
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with httpx.stream("GET", result.download_url, timeout=timeout, follow_redirects=True) as response:
-        response.raise_for_status()
-        with open(output_path, "wb") as f:
-            for chunk in response.iter_bytes(chunk_size=65536):
-                f.write(chunk)
-
-    return output_path
+    try:
+        _stream_download(result.download_url, output_path)
+        return output_path
+    except Exception:
+        if output_path.exists():
+            output_path.unlink()
+        return None
 
 
 # ---------------------------------------------------------------------------

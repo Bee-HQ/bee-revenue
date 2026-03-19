@@ -62,7 +62,12 @@ def generate_clip(
 
 def _generate_stub(prompt: str, out_path: Path, duration: int, width: int, height: int) -> GenerationResult:
     """Generate a black frame with the prompt as overlay text."""
-    safe_text = prompt.replace("'", "\\'").replace(":", "\\:")
+    # Validate parameters
+    duration = max(1, min(duration, 300))
+    width = max(64, min(width, 3840))
+    height = max(64, min(height, 2160))
+    # FFmpeg drawtext escaping: \ first, then special chars
+    safe_text = prompt.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("[", "\\[").replace("]", "\\]").replace(";", "\\;").replace("%", "%%")
     cmd = [
         "ffmpeg", "-y",
         "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:d={duration}",

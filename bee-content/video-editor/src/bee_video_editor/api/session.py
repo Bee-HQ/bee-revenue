@@ -23,14 +23,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-_ALLOWED_DOWNLOAD_DOMAINS = {
-    "pexels.com", "www.pexels.com", "images.pexels.com", "videos.pexels.com",
-    "pixabay.com", "cdn.pixabay.com",
-    "youtube.com", "www.youtube.com", "youtu.be",
-    "i.ytimg.com",
-}
-
-
 def _validate_download_url(url: str) -> None:
     """Validate a download URL — block non-HTTPS, private IPs, internal hosts."""
     import ipaddress

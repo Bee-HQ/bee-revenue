@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -31,13 +33,21 @@ class AcquisitionReport:
     errors: list[str] = field(default_factory=list)
 
 
+def _make_filename(result: SearchResult, query: str) -> str:
+    """Build a safe filename from a search result."""
+    slug = re.sub(r'[^\w\s-]', '', query.lower())
+    slug = re.sub(r'[\s_]+', '-', slug).strip('-')[:40]
+    ext = ".mp4" if result.media_type == "video" else ".jpg"
+    return f"{result.provider}-{result.id}-{slug}{ext}"
+
+
 def acquire_media(
     parsed: ParsedStoryboard,
     project_dir: Path,
     *,
     providers: list[str] | None = None,
     per_query: int = 3,
-    on_progress: callable | None = None,
+    on_progress: Callable[[str, str], None] | None = None,
 ) -> AcquisitionReport:
     """Search and download all stock media needed by the storyboard.
 
@@ -73,8 +83,19 @@ def acquire_media(
         # Download the best result (first one)
         best = results[0]
         out_dir = project_dir / ("stock" if sq.media_type == "video" else "photos")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / _make_filename(best, sq.query)
 
-        downloaded = download_media(best, out_dir)
+        if out_path.exists():
+            report.downloads_skipped += 1
+            report.items.append(AcquisitionItem(
+                query=sq.query, media_type=sq.media_type,
+                provider=best.provider, file_path=out_path,
+                segment_ids=sq.segment_ids,
+            ))
+            continue
+
+        downloaded = download_media(best, out_path)
         if downloaded:
             report.downloads_succeeded += 1
             report.items.append(AcquisitionItem(
