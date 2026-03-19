@@ -1065,5 +1065,37 @@ def stock_library_check(
         console.print("[dim]Consider varying your search terms to avoid visual repetition.[/dim]")
 
 
+@app.command()
+def scenes(
+    video: str = typer.Argument(..., help="Path to video file"),
+    threshold: float = typer.Option(0.3, help="Scene change threshold (0.0-1.0)"),
+    min_duration: float = typer.Option(2.0, help="Minimum scene duration in seconds"),
+):
+    """Detect scene boundaries in a video file."""
+    import shutil
+    if not shutil.which("ffmpeg"):
+        console.print("[red]FFmpeg is required for scene detection[/red]")
+        raise typer.Exit(1)
+
+    from bee_video_editor.processors.scene_detect import detect_scenes
+
+    scenes_list = detect_scenes(video, threshold=threshold, min_scene_duration=min_duration)
+
+    if not scenes_list:
+        console.print("[yellow]No scenes detected[/yellow]")
+        return
+
+    table = Table(title=f"Detected {len(scenes_list)} scenes")
+    table.add_column("#", justify="right")
+    table.add_column("Start")
+    table.add_column("End")
+    table.add_column("Duration", justify="right")
+
+    for s in scenes_list:
+        table.add_row(str(s.index + 1), s.start_timecode, s.end_timecode, f"{s.duration:.1f}s")
+
+    console.print(table)
+
+
 if __name__ == "__main__":
     app()
