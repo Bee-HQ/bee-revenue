@@ -508,6 +508,7 @@ def run_full_pipeline(
     skip_captions: bool = False,
     skip_narration: bool = False,
     skip_trim: bool = False,
+    skip_composite: bool = False,
     caption_style: str = "karaoke",
     transition: str | None = None,
     transition_duration: float = 1.0,
@@ -515,7 +516,7 @@ def run_full_pipeline(
     on_step: callable | None = None,
     workers: int = 1,
 ) -> PipelineResult:
-    """Run the full production pipeline: init -> graphics -> captions -> narration -> trim -> assemble.
+    """Run the full production pipeline: init -> graphics -> captions -> narration -> trim -> composite -> assemble.
 
     Steps that already have output are skipped automatically (idempotent).
     Stops on the first failure. Completed steps are not re-run on retry.
@@ -603,7 +604,24 @@ def run_full_pipeline(
         if not _step("trim", do_trim):
             return result
 
-    # Step 6: Assemble
+    # Step 6: Composite
+    if skip_composite:
+        result.steps.append(PipelineStep(name="composite", status="skipped", message="--skip-composite"))
+    elif list((config.output_dir / "composited").glob("*.mp4")):
+        result.steps.append(PipelineStep(name="composite", status="skipped", message="already exists"))
+    else:
+        def do_composite():
+            from bee_video_editor.services.compositor import composite_all
+            r = composite_all(
+                parsed, config.project_dir, config.output_dir,
+                width=config.width, height=config.height, fps=config.fps,
+                on_progress=lambda phase, msg: on_step(phase, "running", msg) if on_step else None,
+            )
+            return f"{r.succeeded} composited, {r.failed} failed"
+        if not _step("composite", do_composite):
+            return result
+
+    # Step 7: Assemble
     def do_assemble():
         out = assemble_final(config, transition=transition, transition_duration=transition_duration)
         if out:

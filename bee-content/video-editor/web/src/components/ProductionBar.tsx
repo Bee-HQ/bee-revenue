@@ -188,6 +188,14 @@ export function ProductionBar() {
       </button>
 
       <button
+        className={buttonClass('composite')}
+        disabled={isRunning}
+        onClick={() => runAction('composite', api.compositeSegments)}
+      >
+        Composite
+      </button>
+
+      <button
         className={buttonClass('produce')}
         disabled={isRunning}
         onClick={runProduceWs}

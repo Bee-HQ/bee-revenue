@@ -209,6 +209,26 @@ def get_narration_status(session: SessionStore = Depends(get_session)):
     return result
 
 
+@router.post("/composite")
+def composite_segments(session: SessionStore = Depends(get_session)):
+    """Composite all segments (visual + color + overlay + audio)."""
+    from bee_video_editor.services.compositor import composite_all
+    from bee_video_editor.services.production import ProductionConfig
+
+    parsed, project_dir = session.require_project()
+    config = ProductionConfig(project_dir=project_dir)
+
+    report = composite_all(parsed, project_dir, config.output_dir)
+
+    return {
+        "status": "ok" if report.failed == 0 else "partial",
+        "succeeded": report.succeeded,
+        "failed": report.failed,
+        "skipped": report.skipped,
+        "errors": report.errors,
+    }
+
+
 @router.get("/effects")
 def list_effects():
     """List available effects, transitions, and color presets."""
@@ -392,6 +412,7 @@ async def _ws_produce(websocket: WebSocket, session, params: dict):
             skip_captions=params.get("skip_captions", False),
             skip_narration=params.get("skip_narration", False),
             skip_trim=params.get("skip_trim", False),
+            skip_composite=params.get("skip_composite", False),
             caption_style=params.get("caption_style", "karaoke"),
             transition=params.get("transition"),
             transition_duration=params.get("transition_duration", 1.0),
@@ -435,6 +456,7 @@ def produce_video(
     skip_narration: bool = False,
     skip_captions: bool = False,
     skip_trim: bool = False,
+    skip_composite: bool = False,
     session: SessionStore = Depends(get_session),
 ):
     """Run the full production pipeline."""
@@ -462,6 +484,7 @@ def produce_video(
         skip_captions=skip_captions,
         skip_narration=skip_narration,
         skip_trim=skip_trim,
+        skip_composite=skip_composite,
         caption_style=caption_style,
         transition=transition,
         transition_duration=transition_duration,

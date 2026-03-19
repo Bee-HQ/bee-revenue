@@ -120,6 +120,10 @@ export const api = {
     });
   },
 
+  compositeSegments(): Promise<{ status: string; succeeded: number; failed: number; skipped: number; errors: string[] }> {
+    return request('/production/composite', { method: 'POST' });
+  },
+
   roughCut() {
     return request<StatusResponse>('/production/rough-cut', { method: 'POST' });
   },
