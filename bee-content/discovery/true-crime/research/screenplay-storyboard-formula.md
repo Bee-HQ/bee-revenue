@@ -39,6 +39,7 @@
 | 2026-03-16 | **Runtime variants:** Added Section 2.1.1 — short form (30-35 min) and long form (55-70 min) variant templates with per-act compression/expansion guidance. | Critique: no guidance for non-50-min cases |
 | 2026-03-16 | **Screenplay tags aligned to bible codes.** Replaced all ad-hoc tags in screenplay-v2.md with standard bible visual codes. | Code review suggestion: three vocabularies across three documents |
 | 2026-03-16 | **Scalability issues documented.** Added Appendix C with 4 known scale issues (asset gen time, FOIA bottleneck, production velocity, 10-video breakpoints) for future work. | Critique analysis |
+| 2026-03-19 | **Storyboard unification.** Assembly guide eliminated. Storyboard is now the single source of truth for all production — CLI, web editor, and services. Phase 6.5 rewritten from "storyboard-to-assembly pipeline" to "storyboard-to-production pipeline". Preflight checklist updated to use `bee-video preflight`. | Storyboard unification implementation |
 
 ---
 
@@ -875,40 +876,50 @@ A detail planted early (Act 1) that becomes the key to understanding a revelatio
 
 ---
 
-## Phase 6.5: Storyboard-to-Assembly Pipeline
+## Phase 6.5: Storyboard-to-Production Pipeline
 
-> The gap between "what should be on screen" (storyboard) and "which actual file goes on the timeline" (assembly guide) is a full production step that's easy to underestimate. This section defines that step.
+> The gap between "what should be on screen" (storyboard) and "which actual file goes on the timeline" (production) is a full production step. This section defines that step.
 
 ### The Problem
 
-The storyboard says things like: `[BROLL-DARK] Slow aerial of rural Southern estate at dusk (Pexels: "aerial farm dusk southern")`. The assembly guide needs: `segments/stock-broll-001.mp4 trim 0:00-0:10`. Someone has to find, download, verify, name, and trim each asset. For a 50-minute video, that's 50-80 visual segments.
+The storyboard says things like: `[BROLL-DARK] Slow aerial of rural Southern estate at dusk (Pexels: "aerial farm dusk southern")`. Production needs: `segments/stock-broll-001.mp4 trim 0:00-0:10`. Someone has to find, download, verify, name, and trim each asset. For a 50-minute video, that's 50-80 visual segments.
 
-### The Solution: Asset Manifest + Preflight
+### The Solution: Storyboard + Preflight + Web Editor
 
-**Step 1: Generate an asset manifest from the storyboard/assembly guide.**
+**The storyboard is the single source of truth.** There is no separate assembly guide — the storyboard drives everything: CLI commands, web editor, and the production pipeline.
 
-For each segment, list:
-- Segment ID (e.g., `cold-open-03`)
-- Visual code (e.g., `[BROLL-DARK]`)
-- Description (e.g., "slow aerial of rural estate at dusk")
-- Source type: `footage` (from FOIA), `stock` (from Pexels/Pixabay), `generated` (from Pillow/FFmpeg), `photo` (from news)
-- Status: `found`, `missing`, `generated`
-- File path (when found)
-- Trim points (when applicable)
+**Step 1: Write the storyboard with rich layer descriptions.**
 
-**Step 2: Pre-flight check before assembly begins.**
+Each segment has typed layers (Visual, Audio, Overlay, Music, Source, Transition) with content type prefixes (`FOOTAGE:`, `STOCK:`, `NAR:`, `GRAPHIC:`, etc.). The storyboard also contains:
+- Header metadata (duration, resolution, format)
+- Pre-production checklist (audio, graphics, maps tasks)
+- Asset need tables (stock footage, photos, maps)
+- Production rules
+- Post-assembly checklist
 
-Before starting the 6-8 hour assembly session, verify:
-- [ ] All `footage` segments exist at expected file paths
-- [ ] All `stock` clips are downloaded and named consistently
-- [ ] All `generated` graphics (lower thirds, quote cards, maps, etc.) are rendered
-- [ ] All `photo` assets are collected and formatted as [PIP-SINGLE] overlays
-- [ ] Narration audio is generated and segmented per scene
-- [ ] Background music is selected and trimmed
+**Step 2: Use `bee-video preflight` to check readiness.**
 
-**Step 3: If using `bee-video`, the assembly guide IS the storyboard.**
+```bash
+bee-video preflight storyboard.md -p ./project
+```
 
-For projects using the video editor pipeline, skip the storyboard as a separate document. Write the assembly guide directly with rich visual descriptions in the notes column. The assembly guide already has Visual and Audio columns — make them descriptive enough to replace the storyboard. The storyboard is only needed when someone else (an editor, a collaborator) needs a visual plan before the assembly guide exists.
+This scans the storyboard against project files and reports found/missing/needs-check for every asset.
+
+**Step 3: Use the web editor for human-in-the-loop corrections.**
+
+```bash
+./start.sh  # or: bee-video serve
+```
+
+Load the storyboard in the web editor. Review segments, assign media files via drag-and-drop, adjust as needed. The editor reads the storyboard and saves media assignments as sidecar JSON.
+
+**Step 4: Produce.**
+
+```bash
+bee-video produce storyboard.md -p ./project
+```
+
+Or step by step: `init` → `graphics` → `narration` → `trim-footage` → `assemble`. All commands read the storyboard directly.
 
 ### Naming Convention
 
@@ -994,7 +1005,7 @@ segments/
 - [ ] Verify sentence rhythm (medium → SHORT PUNCH → long)
 
 ### Preflight (1 hour)
-- [ ] Generate asset manifest from assembly guide (every segment → file path + status)
+- [ ] Run `bee-video preflight storyboard.md -p ./project` — generates asset manifest from storyboard
 - [ ] Verify all footage segments exist at expected paths
 - [ ] Verify all stock clips downloaded, named per convention, and correct duration
 - [ ] Verify all generated graphics rendered (lower thirds, quote cards, maps, etc.)
