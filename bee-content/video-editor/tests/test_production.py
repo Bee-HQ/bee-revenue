@@ -7,12 +7,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bee_video_editor.models_storyboard import (
-    LayerEntry,
-    ProductionRules,
-    Storyboard,
-    StoryboardSegment,
+from bee_video_editor.formats.models import (
+    AudioEntry,
+    OverlayEntry,
+    ProjectConfig,
+    SegmentConfig,
+    VisualEntry,
 )
+from bee_video_editor.formats.parser import ParsedSection, ParsedSegment, ParsedStoryboard
 from bee_video_editor.services.production import (
     FailedItem,
     PipelineResult,
@@ -22,13 +24,58 @@ from bee_video_editor.services.production import (
     ProductionState,
     SegmentStatus,
     _derive_segment_type,
-    _parse_trim_from_source,
     _slugify,
     generate_all_previews,
     generate_preview,
     init_project,
     trim_source_footage,
 )
+
+
+def _make_segment(
+    seg_id: str = "test-seg",
+    title: str = "Test",
+    start: str = "0:00",
+    end: str = "0:15",
+    section: str = "Act 1",
+    visual_types: tuple = (),
+    audio_types: tuple = (),
+    narration: str = "",
+    visual_entries: list | None = None,
+    overlay_entries: list | None = None,
+) -> ParsedSegment:
+    """Helper to build a ParsedSegment for testing."""
+    if visual_entries is not None:
+        visuals = visual_entries
+    else:
+        visuals = [VisualEntry(type=t) for t in visual_types]
+
+    audios = [AudioEntry(type=t) for t in audio_types]
+    overlays = overlay_entries or []
+
+    config = SegmentConfig(
+        visual=visuals,
+        audio=audios,
+        overlay=overlays,
+    )
+    return ParsedSegment(
+        id=seg_id,
+        title=title,
+        start=start,
+        end=end,
+        section=section,
+        config=config,
+        narration=narration,
+    )
+
+
+def _make_storyboard(segments: list[ParsedSegment] | None = None) -> ParsedStoryboard:
+    """Helper to build a ParsedStoryboard for testing."""
+    return ParsedStoryboard(
+        project=ProjectConfig(title="Test", version=1),
+        sections=[ParsedSection(title="Act 1", start="0:00", end="1:00")],
+        segments=segments or [],
+    )
 
 
 class TestProductionState:
@@ -208,31 +255,13 @@ class TestPipelineResult:
         assert result.output_path is None
 
 
-def test_parse_trim_from_source():
-    from bee_video_editor.services.production import _parse_trim_from_source
-    path, start, end = _parse_trim_from_source("`footage/test.mp4` trim 0:00-0:10")
-    assert path == "footage/test.mp4"
-    assert start == "0:00"
-    assert end == "0:10"
-
-    path, start, end = _parse_trim_from_source("`footage/test.mp4`")
-    assert path == "footage/test.mp4"
-    assert start is None
-    assert end is None
-
-    path, start, end = _parse_trim_from_source("footage/test.mp4 trim 1:30-2:00")
-    assert path == "footage/test.mp4"
-    assert start == "1:30"
-    assert end == "2:00"
-
-
 class TestTrimWithStoryboard:
     def test_trim_storyboard_returns_empty(self):
-        sb = Storyboard(title="Test", production_rules=ProductionRules())
+        parsed = _make_storyboard()
         with tempfile.TemporaryDirectory() as d:
             config = ProductionConfig(project_dir=Path(d))
             (config.output_dir / "segments").mkdir(parents=True)
-            result = trim_source_footage(sb, config)
+            result = trim_source_footage(parsed, config)
             assert isinstance(result, ProductionResult)
             assert result.ok
             assert len(result.succeeded) == 0
@@ -281,19 +310,14 @@ class TestGeneratePreview:
 
 
 class TestGenerateAllPreviews:
-    def _make_storyboard_with_segment(self, seg_id: str) -> Storyboard:
-        seg = StoryboardSegment(
-            id=seg_id,
-            start="0:00",
-            end="0:15",
+    def _make_storyboard_with_segment(self, seg_id: str) -> ParsedStoryboard:
+        seg = _make_segment(
+            seg_id=seg_id,
             title="Test Segment",
             section="Act 1",
-            section_time="0:00 - 1:00",
-            subsection="",
+            visual_entries=[VisualEntry(type="FOOTAGE")],
         )
-        sb = Storyboard(title="Test", production_rules=ProductionRules())
-        sb.segments = [seg]
-        return sb
+        return _make_storyboard(segments=[seg])
 
     def test_no_assignments_skips_all(self):
         """Segments without assignments produce no output."""
@@ -307,18 +331,15 @@ class TestGenerateAllPreviews:
     def test_missing_file_adds_to_failed(self):
         """Assigned media that doesn't exist is recorded as failed."""
         with tempfile.TemporaryDirectory() as d:
-            proj = Path(d)
-            seg_id = "seg-001"
-            sb = self._make_storyboard_with_segment(seg_id)
+            seg = _make_segment(
+                seg_id="seg-001",
+                title="Test Segment",
+                section="Act 1",
+                visual_entries=[VisualEntry(type="FOOTAGE", src="/nonexistent/file.mp4")],
+            )
+            sb = _make_storyboard(segments=[seg])
 
-            assignments_dir = proj / ".bee-video"
-            assignments_dir.mkdir(parents=True)
-            assignments_path = assignments_dir / "assignments.json"
-            assignments_path.write_text(json.dumps({
-                seg_id: {"visual:0": "/nonexistent/file.mp4"}
-            }))
-
-            result = generate_all_previews(sb, proj)
+            result = generate_all_previews(sb, Path(d))
             assert len(result.failed) == 1
             assert "not found" in result.failed[0].error
 
@@ -326,22 +347,21 @@ class TestGenerateAllPreviews:
         """Segments whose preview already exists are skipped."""
         with tempfile.TemporaryDirectory() as d:
             proj = Path(d)
-            seg_id = "seg-001"
-            sb = self._make_storyboard_with_segment(seg_id)
-
             media = proj / "media.mp4"
             media.touch()
 
-            assignments_dir = proj / ".bee-video"
-            assignments_dir.mkdir(parents=True)
-            (assignments_dir / "assignments.json").write_text(json.dumps({
-                seg_id: {"visual:0": str(media)}
-            }))
+            seg = _make_segment(
+                seg_id="seg-001",
+                title="Test Segment",
+                section="Act 1",
+                visual_entries=[VisualEntry(type="FOOTAGE", src=str(media))],
+            )
+            sb = _make_storyboard(segments=[seg])
 
             # Pre-create the preview so it gets skipped
             previews_dir = proj / "output" / "previews"
             previews_dir.mkdir(parents=True)
-            (previews_dir / f"{seg_id}.mp4").touch()
+            (previews_dir / "seg-001.mp4").touch()
 
             result = generate_all_previews(sb, proj)
             assert len(result.skipped) == 1
@@ -351,17 +371,16 @@ class TestGenerateAllPreviews:
         """Full success path with mocked FFmpeg."""
         with tempfile.TemporaryDirectory() as d:
             proj = Path(d)
-            seg_id = "seg-001"
-            sb = self._make_storyboard_with_segment(seg_id)
-
             media = proj / "media.mp4"
             media.touch()
 
-            assignments_dir = proj / ".bee-video"
-            assignments_dir.mkdir(parents=True)
-            (assignments_dir / "assignments.json").write_text(json.dumps({
-                seg_id: {"visual:0": str(media)}
-            }))
+            seg = _make_segment(
+                seg_id="seg-001",
+                title="Test Segment",
+                section="Act 1",
+                visual_entries=[VisualEntry(type="FOOTAGE", src=str(media))],
+            )
+            sb = _make_storyboard(segments=[seg])
 
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(returncode=0)
@@ -381,117 +400,122 @@ class TestParallelNarration:
 
 
 class TestDeriveSegmentType:
-    def _make_seg(self, visual_types=(), audio_types=()):
-        seg = StoryboardSegment(
-            id="test-seg",
-            start="0:00",
-            end="0:15",
-            title="Test",
-            section="Act 1",
-            section_time="0:00 - 1:00",
-            subsection="",
-        )
-        seg.visual = [LayerEntry(content="", content_type=t) for t in visual_types]
-        seg.audio = [LayerEntry(content="", content_type=t) for t in audio_types]
-        return seg
-
     def test_footage_and_nar_is_mix(self):
-        seg = self._make_seg(visual_types=["FOOTAGE"], audio_types=["NAR"])
+        seg = _make_segment(visual_types=("FOOTAGE",), narration="Some narration")
         assert _derive_segment_type(seg) == "MIX"
 
     def test_footage_only_is_real(self):
-        seg = self._make_seg(visual_types=["FOOTAGE"])
+        seg = _make_segment(visual_types=("FOOTAGE",))
         assert _derive_segment_type(seg) == "REAL"
 
     def test_real_audio_only_is_real(self):
-        seg = self._make_seg(audio_types=["REAL_AUDIO"])
+        seg = _make_segment(audio_types=("REAL_AUDIO",))
         assert _derive_segment_type(seg) == "REAL"
 
     def test_nar_only_is_nar(self):
-        seg = self._make_seg(audio_types=["NAR"])
+        seg = _make_segment(narration="Some narration text")
         assert _derive_segment_type(seg) == "NAR"
 
     def test_graphic_only_is_gen(self):
-        seg = self._make_seg(visual_types=["GRAPHIC"])
+        seg = _make_segment(visual_types=("GRAPHIC",))
         assert _derive_segment_type(seg) == "GEN"
 
     def test_map_is_gen(self):
-        seg = self._make_seg(visual_types=["MAP"])
+        seg = _make_segment(visual_types=("MAP",))
         assert _derive_segment_type(seg) == "GEN"
 
     def test_empty_is_gen(self):
-        seg = self._make_seg()
+        seg = _make_segment()
         assert _derive_segment_type(seg) == "GEN"
 
 
-class TestInitProjectFromStoryboard:
-    STORYBOARD_MD = """\
-# Shot-by-Shot Storyboard: "Test Video"
+class TestInitProject:
+    def test_init_project_returns_production_state(self):
+        """init_project accepts ParsedStoryboard, returns ProductionState."""
+        seg1 = _make_segment(
+            seg_id="seg-1",
+            start="0:00",
+            end="0:15",
+            visual_types=("FOOTAGE",),
+            narration="Welcome to the story.",
+        )
+        seg2 = _make_segment(
+            seg_id="seg-2",
+            start="0:15",
+            end="0:30",
+            visual_types=("WAVEFORM",),
+            audio_types=("REAL_AUDIO",),
+        )
+        parsed = _make_storyboard(segments=[seg1, seg2])
 
----
-
-## COLD OPEN (0:00 - 1:00)
-
-### 0:00 - 0:15 | THE HOOK
-| Layer | Content |
-|-------|---------|
-| Visual | `FOOTAGE:` Drone shot of estate |
-| Audio | `NAR:` "Welcome to the story." |
-
-### 0:15 - 0:30 | THE CALL
-| Layer | Content |
-|-------|---------|
-| Visual | `WAVEFORM:` Audio waveform |
-| Audio | `REAL_AUDIO:` 911 call recording |
-"""
-
-    def test_init_project_from_storyboard(self):
-        """init_project parses storyboard and derives segment types correctly."""
-        import textwrap
         with tempfile.TemporaryDirectory() as d:
-            sb_path = Path(d) / "storyboard.md"
-            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
             config = ProductionConfig(project_dir=Path(d))
+            state = init_project(parsed, config)
 
-            storyboard, state = init_project(sb_path, config)
-
-            assert isinstance(storyboard, Storyboard)
+            assert isinstance(state, ProductionState)
             assert len(state.segment_statuses) == 2
-            assert state.storyboard_path == str(sb_path)
             assert state.phase == "parsed"
 
-            # FOOTAGE + NAR → MIX
+            # FOOTAGE + narration -> MIX
             assert state.segment_statuses[0].segment_type == "MIX"
-            # REAL AUDIO → REAL
+            # REAL_AUDIO -> REAL
             assert state.segment_statuses[1].segment_type == "REAL"
 
     def test_init_project_creates_output_dirs(self):
         """init_project creates expected output subdirectories."""
-        import textwrap
+        parsed = _make_storyboard(segments=[
+            _make_segment(seg_id="seg-1"),
+        ])
         with tempfile.TemporaryDirectory() as d:
-            sb_path = Path(d) / "storyboard.md"
-            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
             config = ProductionConfig(project_dir=Path(d))
-
-            init_project(sb_path, config)
+            init_project(parsed, config)
 
             for subdir in ["segments", "narration", "graphics", "final"]:
                 assert (config.output_dir / subdir).exists()
 
     def test_init_project_saves_state(self):
         """init_project persists state to disk."""
-        import textwrap
+        parsed = _make_storyboard(segments=[
+            _make_segment(seg_id="seg-1"),
+            _make_segment(seg_id="seg-2", start="0:15", end="0:30"),
+        ])
         with tempfile.TemporaryDirectory() as d:
-            sb_path = Path(d) / "storyboard.md"
-            sb_path.write_text(textwrap.dedent(self.STORYBOARD_MD))
             config = ProductionConfig(project_dir=Path(d))
-
-            _, state = init_project(sb_path, config)
+            state = init_project(parsed, config)
 
             assert config.state_path.exists()
             loaded = ProductionState.load(config.state_path)
-            assert loaded.storyboard_path == str(sb_path)
             assert len(loaded.segment_statuses) == 2
+
+
+class TestApplyVoiceLock:
+    def test_apply_voice_lock_with_voice_lock(self):
+        """Voice lock updates engine and voice when defaults are set."""
+        from bee_video_editor.formats.models import VoiceLock
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d))
+            vl = VoiceLock(engine="elevenlabs", voice="Daniel")
+            config.apply_voice_lock(vl)
+            assert config.tts_engine == "elevenlabs"
+            assert config.tts_voice == "Daniel"
+
+    def test_apply_voice_lock_none(self):
+        """None voice lock is a no-op."""
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d))
+            config.apply_voice_lock(None)
+            assert config.tts_engine == "edge"
+            assert config.tts_voice is None
+
+    def test_apply_voice_lock_doesnt_override_explicit(self):
+        """Voice lock doesn't override explicitly set engine/voice."""
+        from bee_video_editor.formats.models import VoiceLock
+        with tempfile.TemporaryDirectory() as d:
+            config = ProductionConfig(project_dir=Path(d), tts_engine="openai", tts_voice="alloy")
+            vl = VoiceLock(engine="elevenlabs", voice="Daniel")
+            config.apply_voice_lock(vl)
+            assert config.tts_engine == "openai"
+            assert config.tts_voice == "alloy"
 
 
 class TestProductionStateLoadsOldFormat:
