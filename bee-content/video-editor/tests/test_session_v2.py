@@ -460,3 +460,53 @@ def test_download_entry_stock_query_returns_search_needed(tmp_path):
     result = session.download_entry(seg_id, "visual", 0, tmp_path)
     assert result["status"] == "search_needed"
     assert result["query"] == "aerial farm dusk"
+
+
+def test_download_entry_blocks_http_url(tmp_path):
+    """HTTP URLs (non-HTTPS) are rejected."""
+    from bee_video_editor.api.session import SessionStore
+    from bee_video_editor.formats.parser import parse_v2
+    from bee_video_editor.formats.otio_convert import to_otio
+    import opentimelineio as otio_lib
+    from fastapi import HTTPException
+
+    parsed = parse_v2(FIXTURES / "storyboard_v2_minimal.md")
+    parsed.segments[0].config.visual[0] = parsed.segments[0].config.visual[0].model_copy(
+        update={"download_url": "http://internal-server/secret.mp4"}
+    )
+    tl = to_otio(parsed)
+    otio_path = tmp_path / "test.otio"
+    otio_lib.adapters.write_to_file(tl, str(otio_path))
+
+    session = SessionStore()
+    session.load_project(otio_path, tmp_path)
+    seg_id = session.parsed.segments[0].id
+    with pytest.raises(HTTPException) as exc_info:
+        session.download_entry(seg_id, "visual", 0, tmp_path)
+    assert exc_info.value.status_code == 400
+    assert "HTTPS" in str(exc_info.value.detail)
+
+
+def test_download_entry_blocks_private_ip(tmp_path):
+    """Private IP addresses are blocked."""
+    from bee_video_editor.api.session import SessionStore
+    from bee_video_editor.formats.parser import parse_v2
+    from bee_video_editor.formats.otio_convert import to_otio
+    import opentimelineio as otio_lib
+    from fastapi import HTTPException
+
+    parsed = parse_v2(FIXTURES / "storyboard_v2_minimal.md")
+    parsed.segments[0].config.visual[0] = parsed.segments[0].config.visual[0].model_copy(
+        update={"download_url": "https://169.254.169.254/latest/meta-data/"}
+    )
+    tl = to_otio(parsed)
+    otio_path = tmp_path / "test.otio"
+    otio_lib.adapters.write_to_file(tl, str(otio_path))
+
+    session = SessionStore()
+    session.load_project(otio_path, tmp_path)
+    seg_id = session.parsed.segments[0].id
+    with pytest.raises(HTTPException) as exc_info:
+        session.download_entry(seg_id, "visual", 0, tmp_path)
+    assert exc_info.value.status_code == 400
+    assert "private" in str(exc_info.value.detail).lower()

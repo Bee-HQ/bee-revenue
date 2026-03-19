@@ -18,6 +18,40 @@ from bee_video_editor.formats.models import VoiceLock
 from bee_video_editor.formats.otio_convert import from_otio, to_otio
 from bee_video_editor.formats.parser import ParsedStoryboard, parse_v2
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _validate_download_url(url: str) -> None:
+    """Validate a download URL — block non-HTTPS, private IPs, file:// etc."""
+    from urllib.parse import urlparse
+    import ipaddress
+
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise HTTPException(400, f"Only HTTPS URLs are allowed, got {parsed.scheme}://")
+    if not parsed.hostname:
+        raise HTTPException(400, "Invalid URL: no hostname")
+
+    # Block private/reserved IPs
+    try:
+        ip = ipaddress.ip_address(parsed.hostname)
+        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+            raise HTTPException(400, "Downloads from private/internal addresses are not allowed")
+    except ValueError:
+        pass  # hostname is a domain name, not an IP — that's fine
+
+
+def _stream_download(url: str, out_path: Path) -> None:
+    """Stream-download a URL to a file path."""
+    import httpx
+    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp:
+        resp.raise_for_status()
+        with open(out_path, "wb") as f:
+            for chunk in resp.iter_bytes():
+                f.write(chunk)
+
 
 # Pattern to detect v2 JSON blocks in markdown
 _V2_FENCE_RE = re.compile(r"```json\s+bee-video:")
@@ -121,8 +155,8 @@ class SessionStore:
                                     update={"src": media_path}
                                 )
                 absorbed = True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to absorb sidecar: %s", e)
 
         # segment-order.json → reorder segments
         order_path = bee_dir / "segment-order.json"
@@ -135,8 +169,8 @@ class SessionStore:
                 extras = [s for s in self.parsed.segments if s.id not in reordered_ids]
                 self.parsed.segments = reordered + extras
                 absorbed = True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to absorb sidecar: %s", e)
 
         # voice.json → set voice_lock
         voice_path = bee_dir / "voice.json"
@@ -150,8 +184,8 @@ class SessionStore:
                         engine=engine, voice=voice,
                     )
                     absorbed = True
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to absorb sidecar: %s", e)
 
         return absorbed
 
@@ -328,29 +362,22 @@ class SessionStore:
                     raise HTTPException(500, f"yt-dlp failed: {proc.stderr[:200]}")
                 result["path"] = str(out_path.relative_to(project_dir))
             else:
-                # Direct URL download
-                import httpx
-
+                # Direct URL download — validate URL first
+                _validate_download_url(download_url)
                 slug = segment_id[:30]
-                ext = download_url.rsplit(".", 1)[-1][:4] if "." in download_url.split("/")[-1] else "mp4"
+                allowed_exts = {"mp4", "mkv", "webm", "mov", "mp3", "wav", "m4a", "png", "jpg", "jpeg"}
+                ext = download_url.rsplit(".", 1)[-1][:4].lower() if "." in download_url.split("/")[-1] else "mp4"
+                if ext not in allowed_exts:
+                    ext = "mp4"
                 out_path = out_dir / f"{slug}.{ext}"
-                with httpx.stream("GET", download_url, follow_redirects=True, timeout=60) as resp:
-                    resp.raise_for_status()
-                    with open(out_path, "wb") as f:
-                        for chunk in resp.iter_bytes():
-                            f.write(chunk)
+                _stream_download(download_url, out_path)
                 result["path"] = str(out_path.relative_to(project_dir))
         elif pexels_url:
-            # Download from Pexels
-            import httpx
-
+            # Download from Pexels — validate URL
+            _validate_download_url(pexels_url)
             slug = segment_id[:30]
             out_path = out_dir / f"{slug}-pexels.mp4"
-            with httpx.stream("GET", pexels_url, follow_redirects=True, timeout=60) as resp:
-                resp.raise_for_status()
-                with open(out_path, "wb") as f:
-                    for chunk in resp.iter_bytes():
-                        f.write(chunk)
+            _stream_download(pexels_url, out_path)
             result["path"] = str(out_path.relative_to(project_dir))
         elif query:
             result["status"] = "search_needed"
