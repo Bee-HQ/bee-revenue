@@ -1,142 +1,236 @@
-"""Session management — single-process singleton replacing module globals."""
+"""Session management — OTIO-based singleton (v2).
+
+Holds an OTIO Timeline + ParsedStoryboard instead of the old Storyboard model.
+Autosaves to .otio on every mutation.
+"""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from pathlib import Path
 
+import opentimelineio as otio
 from fastapi import HTTPException
 
-from bee_video_editor.models_storyboard import Storyboard
-from bee_video_editor.parsers.storyboard import parse_storyboard
+from bee_video_editor.formats.models import VoiceLock
+from bee_video_editor.formats.otio_convert import from_otio, to_otio
+from bee_video_editor.formats.parser import ParsedStoryboard, parse_v2
+
+
+# Pattern to detect v2 JSON blocks in markdown
+_V2_FENCE_RE = re.compile(r"```json\s+bee-video:")
 
 
 @dataclass
 class SessionStore:
     """Holds the current project state. One instance per process."""
 
-    storyboard: Storyboard | None = None
+    timeline: otio.schema.Timeline | None = None
+    parsed: ParsedStoryboard | None = None
+    otio_path: Path | None = None
     project_dir: Path | None = None
-    assignments_path: Path | None = None
-    storyboard_path: Path | None = None  # remembered for session persistence
 
-    def require_project(self) -> tuple[Storyboard, Path]:
-        """Return (storyboard, project_dir) or raise 404."""
-        if self.storyboard is None or self.project_dir is None:
+    # ── queries ──────────────────────────────────────────────────────
+
+    def require_project(self) -> tuple[ParsedStoryboard, Path]:
+        """Return (parsed, project_dir) or raise 404."""
+        if self.parsed is None or self.project_dir is None:
             raise HTTPException(404, "No project loaded")
-        return self.storyboard, self.project_dir
+        return self.parsed, self.project_dir
 
-    def load_project(self, storyboard_path: Path, project_dir: Path) -> Storyboard:
-        """Parse storyboard, restore assignments and segment order, set as current session."""
-        if not storyboard_path.exists():
-            raise HTTPException(404, f"Storyboard not found: {storyboard_path}")
+    # ── load ─────────────────────────────────────────────────────────
+
+    def load_project(self, path: Path, project_dir: Path) -> ParsedStoryboard:
+        """Load a project from .otio or .md (v2 or old table format).
+
+        After loading the primary file, absorbs any sidecar files
+        (assignments.json, segment-order.json, voice.json) and autosaves.
+        """
+        if not path.exists():
+            raise HTTPException(404, f"File not found: {path}")
         if not project_dir.exists():
             raise HTTPException(400, f"Project directory not found: {project_dir}")
 
         self.project_dir = project_dir.resolve()
-        self.storyboard_path = storyboard_path.resolve()
-        self.assignments_path = self.project_dir / ".bee-video" / "assignments.json"
-        self.storyboard = parse_storyboard(storyboard_path)
 
-        saved = self._load_assignments()
-        for seg in self.storyboard.segments:
-            if seg.id in saved:
-                seg.assigned_media = saved[seg.id]
+        if path.suffix == ".otio":
+            self._load_otio(path)
+        elif path.suffix == ".md":
+            self._load_markdown(path)
+        else:
+            raise HTTPException(400, f"Unsupported file format: {path.suffix}")
 
-        # Restore custom segment order if present
-        saved_order = self.load_segment_order()
-        if saved_order:
-            seg_map = {s.id: s for s in self.storyboard.segments}
-            reordered = [seg_map[sid] for sid in saved_order if sid in seg_map]
-            # Append any segments not in the saved order (newly added)
-            reordered_ids = {s.id for s in reordered}
-            extras = [s for s in self.storyboard.segments if s.id not in reordered_ids]
-            self.storyboard.segments = reordered + extras
+        # Absorb sidecars
+        absorbed = self._absorb_sidecars()
 
+        # Always autosave after load (ensures .otio exists for .md loads,
+        # and incorporates absorbed sidecars)
+        self._autosave()
         self._save_session()
-        return self.storyboard
+
+        return self.parsed  # type: ignore[return-value]
+
+    def _load_otio(self, path: Path) -> None:
+        """Load from an .otio file."""
+        self.timeline = otio.adapters.read_from_file(str(path))
+        self.parsed = from_otio(self.timeline)
+        self.otio_path = path.resolve()
+
+    def _load_markdown(self, path: Path) -> None:
+        """Load from a markdown file — v2 or old table format."""
+        content = path.read_text(encoding="utf-8")
+
+        if _V2_FENCE_RE.search(content):
+            # v2 format
+            self.parsed = parse_v2(path)
+        else:
+            # Old table format → migrate
+            from bee_video_editor.formats.migrate import old_to_new
+            from bee_video_editor.parsers.storyboard import parse_storyboard
+
+            old_sb = parse_storyboard(path)
+            self.parsed = old_to_new(old_sb)
+
+        self.timeline = to_otio(self.parsed)
+        self.otio_path = path.with_suffix(".otio").resolve()
+
+    # ── sidecars ─────────────────────────────────────────────────────
+
+    def _absorb_sidecars(self) -> bool:
+        """Absorb sidecar files into parsed model. Returns True if any were absorbed."""
+        if self.parsed is None or self.project_dir is None:
+            return False
+
+        bee_dir = self.project_dir / ".bee-video"
+        absorbed = False
+
+        # assignments.json → apply to visual[].src
+        assignments_path = bee_dir / "assignments.json"
+        if assignments_path.exists():
+            try:
+                assignments = json.loads(assignments_path.read_text())
+                for seg in self.parsed.segments:
+                    if seg.id in assignments:
+                        for key, media_path in assignments[seg.id].items():
+                            layer, idx_str = key.split(":")
+                            idx = int(idx_str)
+                            if layer == "visual" and idx < len(seg.config.visual):
+                                seg.config.visual[idx] = seg.config.visual[idx].model_copy(
+                                    update={"src": media_path}
+                                )
+                absorbed = True
+            except Exception:
+                pass
+
+        # segment-order.json → reorder segments
+        order_path = bee_dir / "segment-order.json"
+        if order_path.exists():
+            try:
+                order = json.loads(order_path.read_text())
+                seg_map = {s.id: s for s in self.parsed.segments}
+                reordered = [seg_map[sid] for sid in order if sid in seg_map]
+                reordered_ids = {s.id for s in reordered}
+                extras = [s for s in self.parsed.segments if s.id not in reordered_ids]
+                self.parsed.segments = reordered + extras
+                absorbed = True
+            except Exception:
+                pass
+
+        # voice.json → set voice_lock
+        voice_path = bee_dir / "voice.json"
+        if voice_path.exists():
+            try:
+                voice_data = json.loads(voice_path.read_text())
+                engine = voice_data.get("engine", "")
+                voice = voice_data.get("voice", "")
+                if engine and voice:
+                    self.parsed.project.voice_lock = VoiceLock(
+                        engine=engine, voice=voice,
+                    )
+                    absorbed = True
+            except Exception:
+                pass
+
+        return absorbed
+
+    # ── mutations ────────────────────────────────────────────────────
 
     def assign_media(
         self, segment_id: str, layer: str, index: int, media_path: str
     ) -> dict:
-        """Assign media to segment layer, persist to sidecar JSON."""
-        sb, _ = self.require_project()
-        seg = next((s for s in sb.segments if s.id == segment_id), None)
+        """Assign (or unassign) media on a segment's visual layer."""
+        parsed, _ = self.require_project()
+        seg = next((s for s in parsed.segments if s.id == segment_id), None)
         if seg is None:
             raise HTTPException(404, f"Segment not found: {segment_id}")
 
-        key = f"{layer}:{index}"
+        if index >= len(seg.config.visual):
+            raise HTTPException(
+                400,
+                f"Visual index {index} out of range (segment has {len(seg.config.visual)} visuals)",
+            )
 
-        # Empty media_path means unassign
         if not media_path:
-            seg.assigned_media.pop(key, None)
-            assignments = self._load_assignments()
-            if segment_id in assignments:
-                assignments[segment_id].pop(key, None)
-                if not assignments[segment_id]:
-                    del assignments[segment_id]
-            self._save_assignments(assignments)
+            # Unassign
+            seg.config.visual[index] = seg.config.visual[index].model_copy(
+                update={"src": None}
+            )
         else:
-            seg.assigned_media[key] = media_path
-            assignments = self._load_assignments()
-            assignments.setdefault(segment_id, {})[key] = media_path
-            self._save_assignments(assignments)
+            seg.config.visual[index] = seg.config.visual[index].model_copy(
+                update={"src": media_path}
+            )
 
+        self._autosave()
         return {
             "status": "ok",
             "segment_id": segment_id,
-            "key": key,
+            "key": f"{layer}:{index}",
             "media_path": media_path,
         }
 
-    def save_segment_order(self, order: list[str]) -> None:
-        """Persist a custom segment ordering to .bee-video/segment-order.json."""
-        _, _ = self.require_project()
-        order_path = self.project_dir / ".bee-video" / "segment-order.json"  # type: ignore[operator]
-        order_path.parent.mkdir(parents=True, exist_ok=True)
-        order_path.write_text(json.dumps(order, indent=2))
-
-    def load_segment_order(self) -> list[str] | None:
-        """Return saved segment order from .bee-video/segment-order.json, or None."""
-        if self.project_dir is None:
-            return None
-        order_path = self.project_dir / ".bee-video" / "segment-order.json"
-        if not order_path.exists():
-            return None
-        try:
-            return json.loads(order_path.read_text())
-        except Exception:
-            return None
+    def reorder_segments(self, order: list[str]) -> None:
+        """Reorder parsed.segments by matching IDs, then autosave."""
+        parsed, _ = self.require_project()
+        seg_map = {s.id: s for s in parsed.segments}
+        reordered = [seg_map[sid] for sid in order if sid in seg_map]
+        reordered_ids = {s.id for s in reordered}
+        extras = [s for s in parsed.segments if s.id not in reordered_ids]
+        self.parsed.segments = reordered + extras  # type: ignore[union-attr]
+        self._autosave()
 
     def save_voice_config(self, engine: str, voice: str | None, speed: float = 0.95) -> None:
-        """Persist TTS voice config to .bee-video/voice.json."""
+        """Set voice_lock on the parsed project and autosave."""
         self.require_project()
-        config_path = self.project_dir / ".bee-video" / "voice.json"
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        data = {"engine": engine, "speed": speed}
         if voice:
-            data["voice"] = voice
-        config_path.write_text(json.dumps(data, indent=2))
+            self.parsed.project.voice_lock = VoiceLock(engine=engine, voice=voice)  # type: ignore[union-attr]
+        self._autosave()
 
     def load_voice_config(self) -> dict | None:
-        """Load TTS voice config from .bee-video/voice.json, or None if absent/corrupt."""
-        if self.project_dir is None:
+        """Return voice_lock as dict, or None."""
+        if self.parsed is None:
             return None
-        config_path = self.project_dir / ".bee-video" / "voice.json"
-        if not config_path.exists():
+        vl = self.parsed.project.voice_lock
+        if vl is None:
             return None
-        try:
-            return json.loads(config_path.read_text())
-        except Exception:
-            return None
+        return vl.model_dump()
+
+    # ── persistence helpers ──────────────────────────────────────────
+
+    def _autosave(self) -> None:
+        """Rebuild timeline from parsed model and write to disk."""
+        if self.parsed is None or self.otio_path is None:
+            return
+        self.timeline = to_otio(self.parsed)
+        otio.adapters.write_to_file(self.timeline, str(self.otio_path))
 
     def _save_session(self) -> None:
         """Persist session info for auto-reload on restart."""
-        if not self.project_dir or not self.storyboard_path:
+        if not self.project_dir or not self.otio_path:
             return
         data = {
-            "storyboard_path": str(self.storyboard_path),
+            "otio_path": str(self.otio_path),
             "project_dir": str(self.project_dir),
         }
         # Project-local copy
@@ -148,20 +242,9 @@ class SessionStore:
         global_session.parent.mkdir(parents=True, exist_ok=True)
         global_session.write_text(json.dumps(data, indent=2))
 
-    def _load_assignments(self) -> dict:
-        if self.assignments_path and self.assignments_path.exists():
-            with open(self.assignments_path) as f:
-                return json.load(f)
-        return {}
-
-    def _save_assignments(self, assignments: dict) -> None:
-        if self.assignments_path:
-            self.assignments_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.assignments_path, "w") as f:
-                json.dump(assignments, f, indent=2)
-
 
 # Module-level singleton + dependency function
+
 
 def _try_restore() -> SessionStore:
     """Create SessionStore, attempting to restore the last session."""
@@ -170,10 +253,10 @@ def _try_restore() -> SessionStore:
     if last_session.exists():
         try:
             data = json.loads(last_session.read_text())
-            sb_path = Path(data["storyboard_path"])
-            proj_dir = Path(data["project_dir"])
-            if sb_path.exists() and proj_dir.exists():
-                store.load_project(sb_path, proj_dir)
+            otio_path = Path(data.get("otio_path", ""))
+            proj_dir = Path(data.get("project_dir", ""))
+            if otio_path.exists() and proj_dir.exists():
+                store.load_project(otio_path, proj_dir)
         except Exception:
             pass  # Failed to restore — start fresh
     return store
