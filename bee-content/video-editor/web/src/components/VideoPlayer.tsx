@@ -14,20 +14,36 @@ export function VideoPlayer() {
 
   const segment = storyboard?.segments.find(s => s.id === selectedSegmentIds[0]);
 
-  // Find media assigned to this segment
+  // Find media assigned to this segment — prefer visual:0 for the primary video track
   const assignedEntries = segment ? Object.entries(segment.assigned_media) : [];
-  const videoEntry = assignedEntries.find(([, path]) => {
-    const ext = path.split('.').pop()?.toLowerCase() || '';
-    return ['mp4', 'mkv', 'webm', 'mov', 'avi'].includes(ext);
-  });
+  const visual0Path = segment?.assigned_media['visual:0'] ?? null;
+  const videoEntry = (() => {
+    // First: check visual:0 explicitly
+    if (visual0Path) {
+      const ext = visual0Path.split('.').pop()?.toLowerCase() || '';
+      if (['mp4', 'mkv', 'webm', 'mov', 'avi'].includes(ext)) return ['visual:0', visual0Path] as [string, string];
+    }
+    // Fallback: any assigned path that looks like a video
+    return assignedEntries.find(([, path]) => {
+      const ext = path.split('.').pop()?.toLowerCase() || '';
+      return ['mp4', 'mkv', 'webm', 'mov', 'avi'].includes(ext);
+    }) ?? null;
+  })();
   const audioEntry = assignedEntries.find(([key, path]) => {
     const ext = path.split('.').pop()?.toLowerCase() || '';
     return ['mp3', 'wav', 'm4a', 'aac', 'ogg'].includes(ext) || key.startsWith('audio');
   });
-  const imageEntry = assignedEntries.find(([, path]) => {
-    const ext = path.split('.').pop()?.toLowerCase() || '';
-    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext);
-  });
+  const imageEntry = (() => {
+    // If visual:0 is an image, use it
+    if (visual0Path && !videoEntry) {
+      const ext = visual0Path.split('.').pop()?.toLowerCase() || '';
+      if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext)) return ['visual:0', visual0Path] as [string, string];
+    }
+    return assignedEntries.find(([, path]) => {
+      const ext = path.split('.').pop()?.toLowerCase() || '';
+      return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext);
+    }) ?? null;
+  })();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -172,17 +188,17 @@ export function VideoPlayer() {
             </div>
           </div>
         )}
-        {!hasMedia && !segment && (
+        {!hasMedia && !segment && !previewMedia && (
           <div className="text-center px-4">
             <div className="text-3xl mb-2 opacity-30">🎬</div>
-            <div className="text-xs text-gray-600">Select a segment or click media to preview</div>
+            <div className="text-xs text-gray-600">Select a segment with media to preview</div>
           </div>
         )}
         {!hasMedia && segment && (
           <div className="text-center px-4">
             <div className="text-sm text-gray-500 mb-1">{segment.title}</div>
             <div className="text-xs text-gray-600">
-              No media assigned. Drag files from the media library onto segment layers.
+              Select a segment with media to preview
             </div>
           </div>
         )}
@@ -212,6 +228,23 @@ export function VideoPlayer() {
           </button>
         )}
       </div>
+
+      {/* Now-playing filename bar */}
+      {hasMedia && (
+        <div className="bg-editor-surface border-t border-editor-border px-3 py-1 flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 truncate">
+            {previewMedia
+              ? previewMedia.name
+              : videoEntry
+                ? videoEntry[1].split('/').pop()
+                : audioEntry
+                  ? audioEntry[1].split('/').pop()
+                  : imageEntry
+                    ? imageEntry[1].split('/').pop()
+                    : ''}
+          </span>
+        </div>
+      )}
 
       {/* Transport controls */}
       {hasMedia && (videoSrc || audioSrc) && (
@@ -278,12 +311,6 @@ export function VideoPlayer() {
         </div>
       )}
 
-      {/* Minimal bar when showing image only */}
-      {imageSrc && !videoSrc && !audioSrc && (
-        <div className="bg-editor-surface border-t border-editor-border px-3 py-1 text-[10px] text-gray-500">
-          {imageEntry ? imageEntry[1].split('/').pop() : previewMedia?.name}
-        </div>
-      )}
     </div>
   );
 }
