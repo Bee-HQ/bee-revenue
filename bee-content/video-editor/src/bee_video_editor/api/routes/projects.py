@@ -6,78 +6,31 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends
 
+from bee_video_editor.api.schema_compat import parsed_to_schema
 from bee_video_editor.api.schemas import (
     AssignMediaRequest,
-    LayerEntrySchema,
     LoadProjectRequest,
     ReorderSegmentsRequest,
-    SegmentSchema,
     StoryboardSchema,
+    UpdateSegmentRequest,
 )
 from bee_video_editor.api.session import SessionStore, get_session
-from bee_video_editor.models_storyboard import Storyboard
 
 router = APIRouter()
-
-
-def _segment_to_schema(seg) -> SegmentSchema:
-    def _layers(entries):
-        return [
-            LayerEntrySchema(
-                content=e.content,
-                content_type=e.content_type,
-                time_start=e.time_start,
-                time_end=e.time_end,
-                raw=e.raw,
-            )
-            for e in entries
-        ]
-
-    return SegmentSchema(
-        id=seg.id,
-        start=seg.start,
-        end=seg.end,
-        title=seg.title,
-        section=seg.section,
-        section_time=seg.section_time,
-        subsection=seg.subsection,
-        duration_seconds=seg.duration_seconds,
-        visual=_layers(seg.visual),
-        audio=_layers(seg.audio),
-        overlay=_layers(seg.overlay),
-        music=_layers(seg.music),
-        source=_layers(seg.source),
-        transition=_layers(seg.transition),
-        assigned_media=seg.assigned_media,
-    )
-
-
-def _storyboard_to_schema(sb: Storyboard) -> StoryboardSchema:
-    return StoryboardSchema(
-        title=sb.title,
-        total_segments=sb.total_segments,
-        total_duration_seconds=sb.total_duration_seconds,
-        sections=sb.sections,
-        segments=[_segment_to_schema(s) for s in sb.segments],
-        stock_footage_needed=len(sb.stock_footage),
-        photos_needed=len(sb.photos_needed),
-        maps_needed=len(sb.maps_needed),
-        production_rules=[r for r in sb.production_rules.rules],
-    )
 
 
 @router.post("/load", response_model=StoryboardSchema)
 def load_project(req: LoadProjectRequest, session: SessionStore = Depends(get_session)):
     """Load a storyboard file and return the parsed project."""
-    sb = session.load_project(Path(req.storyboard_path), Path(req.project_dir))
-    return _storyboard_to_schema(sb)
+    parsed = session.load_project(Path(req.storyboard_path), Path(req.project_dir))
+    return parsed_to_schema(parsed)
 
 
 @router.get("/current", response_model=StoryboardSchema)
 def get_current_project(session: SessionStore = Depends(get_session)):
     """Get the currently loaded project."""
-    sb, _ = session.require_project()
-    return _storyboard_to_schema(sb)
+    parsed, _ = session.require_project()
+    return parsed_to_schema(parsed)
 
 
 @router.put("/assign")
@@ -89,5 +42,30 @@ def assign_media(req: AssignMediaRequest, session: SessionStore = Depends(get_se
 @router.put("/reorder")
 def reorder_segments(req: ReorderSegmentsRequest, session: SessionStore = Depends(get_session)):
     """Persist a custom segment ordering."""
-    session.save_segment_order(req.segment_order)
+    session.reorder_segments(req.segment_order)
     return {"status": "ok", "count": len(req.segment_order)}
+
+
+@router.put("/update-segment")
+def update_segment(req: UpdateSegmentRequest, session: SessionStore = Depends(get_session)):
+    """Update segment config (transition, color, volume, trim points)."""
+    return session.update_segment_config(req.segment_id, req.updates)
+
+
+@router.get("/export")
+def export_project(format: str = "md", session: SessionStore = Depends(get_session)):
+    """Export the current project in markdown or OTIO format."""
+    parsed, project_dir = session.require_project()
+    if format == "md":
+        from bee_video_editor.formats.writer import write_v2
+        return {"format": "md", "content": write_v2(parsed)}
+    elif format == "otio":
+        from bee_video_editor.formats.otio_convert import clean_otio
+        import opentimelineio as otio_lib
+        out = project_dir / "output" / "export.otio"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        otio_lib.adapters.write_to_file(clean_otio(session.timeline), str(out))
+        return {"format": "otio", "path": str(out)}
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(400, f"Unsupported format: {format}")

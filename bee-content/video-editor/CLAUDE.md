@@ -176,6 +176,25 @@ my-project/
 **Dev:** pytest (`--extra dev`)
 **System:** FFmpeg must be installed and on PATH
 
+## Content Production Skills (Claude Code)
+
+Six skills under `.claude/commands/true-crime/` for the full video production pipeline:
+
+```
+/true-crime:research-case            → case-research.md
+/true-crime:review-case-research     → viability & completeness check
+
+/true-crime:generate-screenplay      → screenplay.md
+/true-crime:review-screenplay        → formula compliance check
+
+/true-crime:generate-storyboard      → storyboard.md (JSON blocks)
+/true-crime:review-storyboard        → production readiness check
+
+bee-video produce                    → final video
+```
+
+Each generation skill reads the formula + visual bible as context. Each review skill checks against formula requirements.
+
 ## Related Documents
 
 | Doc | Purpose |

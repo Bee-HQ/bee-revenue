@@ -16,58 +16,78 @@ app = typer.Typer(
 console = Console()
 
 
+def _load_storyboard(path: str):
+    """Load storyboard from .md or .otio, auto-detecting format.
+
+    Returns a ParsedStoryboard (formats.parser).
+    """
+    from bee_video_editor.formats.parser import parse_v2
+
+    p = Path(path)
+
+    # OTIO file — convert to ParsedStoryboard
+    if p.suffix == ".otio":
+        import opentimelineio as otio
+        from bee_video_editor.formats.otio_convert import from_otio
+        tl = otio.adapters.read_from_file(str(p))
+        return from_otio(tl)
+
+    # Markdown — try v2 first, then fall back to old parser + migrate
+    text = p.read_text(encoding="utf-8")
+    if "```json bee-video:" in text:
+        return parse_v2(path)
+
+    # Old table format — parse with legacy parser, then migrate
+    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.formats.migrate import old_to_new
+    old = parse_storyboard(path)
+    return old_to_new(old)
+
+
 @app.command()
 def parse(
     storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
 ):
     """Parse a storyboard and show project summary."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.formats.parser import segment_duration
 
-    sb = parse_storyboard(storyboard)
-    summary = sb.summary()
+    parsed = _load_storyboard(storyboard)
 
-    console.print(f"\n[bold]{sb.title}[/bold]")
-    if sb.total_duration or sb.resolution or sb.format:
-        parts = [p for p in [sb.total_duration, sb.resolution, sb.format] if p]
-        console.print(" | ".join(parts))
-    console.print(f"Total segments: {summary['total_segments']}")
+    console.print(f"\n[bold]{parsed.project.title}[/bold]")
+    total_segments = len(parsed.segments)
+    console.print(f"Total segments: {total_segments}")
     console.print()
 
     # Visual type breakdown
-    table = Table(title="Visual Types")
-    table.add_column("Type", style="cyan")
-    table.add_column("Count", justify="right")
+    visual_types: dict[str, int] = {}
+    for seg in parsed.segments:
+        for v in seg.config.visual:
+            vt = v.type
+            visual_types[vt] = visual_types.get(vt, 0) + 1
 
-    for vtype, count in summary["visual_type_counts"].items():
-        table.add_row(vtype, str(count))
+    if visual_types:
+        table = Table(title="Visual Types")
+        table.add_column("Type", style="cyan")
+        table.add_column("Count", justify="right")
 
-    console.print(table)
+        for vtype, count in visual_types.items():
+            table.add_row(vtype, str(count))
+
+        console.print(table)
 
     # Sections
-    console.print("\n[bold]Sections:[/bold]")
-    for section in summary["sections"]:
-        seg_count = len(sb.segments_in_section(section))
-        console.print(f"  {section} ({seg_count} segments)")
+    if parsed.sections:
+        console.print("\n[bold]Sections:[/bold]")
+        for section in parsed.sections:
+            seg_count = len([s for s in parsed.segments if s.section == section.title])
+            console.print(f"  {section.title} ({seg_count} segments)")
 
-    # Asset needs
-    if summary["stock_footage_needed"]:
-        console.print(f"\n[bold]Stock footage needed:[/bold] {summary['stock_footage_needed']}")
-    if summary["photos_needed"]:
-        console.print(f"[bold]Photos needed:[/bold] {summary['photos_needed']}")
-    if summary["maps_needed"]:
-        console.print(f"[bold]Maps needed:[/bold] {summary['maps_needed']}")
-
-    # Pre-production status
-    pp_done = sum(1 for item in sb.pre_production if item.checked)
-    pp_total = len(sb.pre_production)
-    if pp_total:
-        console.print(f"\n[bold]Pre-production:[/bold] {pp_done}/{pp_total} assets ready")
-
-    # Post checklist
-    pc_done = sum(1 for item in sb.post_checklist if item.checked)
-    pc_total = len(sb.post_checklist)
-    if pc_total:
-        console.print(f"[bold]Post-assembly:[/bold] {pc_done}/{pc_total} checklist items done")
+    # Total duration
+    if parsed.segments:
+        total_dur = sum(segment_duration(s) for s in parsed.segments)
+        mins = int(total_dur) // 60
+        secs = int(total_dur) % 60
+        console.print(f"\n[bold]Total duration:[/bold] {mins}m {secs}s")
     console.print()
 
 
@@ -78,18 +98,18 @@ def segments(
     content_type: str | None = typer.Option(None, "--type", "-t", help="Filter by visual content type (FOOTAGE/STOCK/GRAPHIC/NAR/etc.)"),
 ):
     """List all segments from the storyboard."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
+    from bee_video_editor.formats.parser import segment_duration
 
-    sb = parse_storyboard(storyboard)
+    parsed = _load_storyboard(storyboard)
 
-    segs = sb.segments
+    segs = parsed.segments
     if section:
         segs = [s for s in segs if section.lower() in s.section.lower()]
     if content_type:
         ct = content_type.upper()
         segs = [
             s for s in segs
-            if any(e.content_type == ct for e in (s.visual + s.audio + s.overlay + s.music + s.source))
+            if any(e.type == ct for e in (s.config.visual + s.config.audio + s.config.overlay))
         ]
 
     table = Table(title=f"Segments ({len(segs)} total)")
@@ -102,14 +122,18 @@ def segments(
     table.add_column("Audio", max_width=40, overflow="ellipsis")
 
     for i, seg in enumerate(segs):
-        visual_summary = ", ".join(e.content_type for e in seg.visual) or "-"
-        audio_summary = ", ".join(e.content_type for e in seg.audio) or "-"
+        visual_summary = ", ".join(e.type for e in seg.config.visual) or "-"
+        audio_types = [e.type for e in seg.config.audio]
+        if seg.narration:
+            audio_types.insert(0, "NAR")
+        audio_summary = ", ".join(audio_types) or "-"
+        dur = segment_duration(seg)
         table.add_row(
             str(i),
             f"{seg.start}-{seg.end}",
-            str(seg.duration_seconds) + "s",
+            f"{int(dur)}s",
             seg.section,
-            (seg.title or seg.subsection or "")[:30],
+            (seg.title or "")[:30],
             visual_summary[:40],
             audio_summary[:40],
         )
@@ -126,15 +150,16 @@ def init(
     """Initialize a production project from a storyboard."""
     from bee_video_editor.services.production import ProductionConfig, init_project
 
+    parsed = _load_storyboard(storyboard)
     config = ProductionConfig(
         project_dir=Path(project_dir),
         tts_engine=tts_engine,
     )
-    sb, state = init_project(storyboard, config)
+    state = init_project(parsed, config)
 
     console.print(f"\n[bold green]Project initialized![/bold green]")
-    console.print(f"Title: {sb.title}")
-    console.print(f"Segments: {sb.total_segments}")
+    console.print(f"Title: {parsed.project.title}")
+    console.print(f"Segments: {len(parsed.segments)}")
     console.print(f"Output: {config.output_dir}")
     console.print(f"State: {config.output_dir / 'production_state.json'}")
     console.print()
@@ -152,11 +177,10 @@ def graphics(
     animated: bool = typer.Option(False, "--animated", help="Use Lottie animations for lower-thirds (requires lottie + Cairo)"),
 ):
     """Generate all graphics assets (lower thirds, timelines, etc.)."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, generate_graphics_for_project
 
     config = ProductionConfig(project_dir=Path(project_dir))
-    project = parse_storyboard(storyboard)
+    project = _load_storyboard(storyboard)
 
     if animated:
         try:
@@ -195,7 +219,6 @@ def narration(
     workers: int = typer.Option(1, "--workers", "-w", help="Parallel workers for TTS (default: 1)"),
 ):
     """Generate TTS narration for all narrator segments."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, generate_narration_for_project
 
     config = ProductionConfig(
@@ -203,7 +226,7 @@ def narration(
         tts_engine=tts_engine,
         tts_voice=voice,
     )
-    project = parse_storyboard(storyboard)
+    project = _load_storyboard(storyboard)
 
     console.print(f"[bold]Generating narration ({tts_engine})...[/bold]")
     result = generate_narration_for_project(project, config, workers=workers)
@@ -226,14 +249,13 @@ def trim_footage(
     footage_dir: str | None = typer.Option(None, "--footage", "-f", help="Footage directory"),
 ):
     """Trim source footage based on storyboard source layers."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, trim_source_footage
 
     config = ProductionConfig(
         project_dir=Path(project_dir),
         footage_dir=Path(footage_dir) if footage_dir else None,
     )
-    project = parse_storyboard(storyboard)
+    project = _load_storyboard(storyboard)
 
     console.print("[bold]Trimming source footage...[/bold]")
     result = trim_source_footage(project, config)
@@ -438,16 +460,15 @@ def captions(
     caption_style: str = typer.Option("karaoke", "--style", "-s", help="Caption style: karaoke or phrase"),
 ):
     """Generate ASS captions from storyboard narrator text."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.processors.captions import (
         extract_caption_segments,
         generate_captions_estimated,
     )
 
-    sb = parse_storyboard(storyboard_path)
-    segments = extract_caption_segments(sb)
+    parsed = _load_storyboard(storyboard_path)
+    cap_segments = extract_caption_segments(parsed)
 
-    if not segments:
+    if not cap_segments:
         console.print("[yellow]No captionable segments found.[/yellow]")
         return
 
@@ -455,12 +476,12 @@ def captions(
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "captions.ass"
 
-    console.print(f"[bold]Generating captions ({caption_style}, {len(segments)} segments)...[/bold]")
+    console.print(f"[bold]Generating captions ({caption_style}, {len(cap_segments)} segments)...[/bold]")
 
     if precise:
         console.print("[yellow]Precise mode not yet implemented — falling back to estimated.[/yellow]")
 
-    generate_captions_estimated(segments, out, style=caption_style)
+    generate_captions_estimated(cap_segments, out, style=caption_style)
     console.print(f"[green]Captions written to {out}[/green]")
 
 
@@ -472,12 +493,11 @@ def preflight(
     """Check which assets are ready and which are missing."""
     from rich.table import Table
 
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.preflight import run_preflight
 
-    sb = parse_storyboard(storyboard_path)
+    parsed = _load_storyboard(storyboard_path)
     proj = Path(project_dir)
-    report = run_preflight(sb, proj)
+    report = run_preflight(parsed, proj)
 
     table = Table(title="Asset Preflight Report")
     table.add_column("Segment", style="dim")
@@ -538,14 +558,13 @@ def previews(
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
 ):
     """Generate low-res preview clips for all assigned segments."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import generate_all_previews
 
-    sb = parse_storyboard(storyboard_path)
+    parsed = _load_storyboard(storyboard_path)
     proj = Path(project_dir)
 
     console.print("[bold]Generating previews...[/bold]")
-    result = generate_all_previews(sb, proj)
+    result = generate_all_previews(parsed, proj)
 
     console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
     if result.failed:
@@ -612,16 +631,17 @@ def produce(
     animated: bool = typer.Option(False, "--animated"),
     workers: int = typer.Option(1, "--workers", "-w", help="Parallel TTS workers"),
 ):
-    """Run the full production pipeline: init → graphics → captions → narration → trim → assemble."""
+    """Run the full production pipeline: init -> graphics -> captions -> narration -> trim -> assemble."""
     from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
 
+    parsed = _load_storyboard(storyboard_path)
     config = ProductionConfig(
         project_dir=Path(project_dir),
         tts_engine=tts_engine,
         tts_voice=voice,
     )
 
-    step_icons = {"running": "⏳", "done": "✓", "skipped": "⏭", "failed": "✗"}
+    step_icons = {"running": "...", "done": "ok", "skipped": "skip", "failed": "FAIL"}
     step_colors = {"running": "yellow", "done": "green", "skipped": "dim", "failed": "red"}
     total_steps = 6
     step_nums = {"init": 1, "graphics": 2, "captions": 3, "narration": 4, "trim": 5, "assemble": 6}
@@ -636,7 +656,7 @@ def produce(
     console.print(f"\n[bold]Producing video from {storyboard_path}[/bold]\n")
 
     result = run_full_pipeline(
-        storyboard_path=Path(storyboard_path),
+        parsed=parsed,
         config=config,
         skip_graphics=skip_graphics,
         skip_captions=skip_captions,
@@ -660,29 +680,6 @@ def produce(
         console.print(f"Error: {failed[0].message}")
         console.print("\n[dim]Fix the issue and re-run — completed steps will be skipped.[/dim]")
         raise typer.Exit(1)
-
-
-@app.command(name="export-legacy")
-def export_legacy(
-    storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
-    output: str = typer.Option(None, "--output", "-o", help="Output file path (default: <project>/output/timeline.otio)"),
-    project_dir: str = typer.Option(".", "--project-dir", "-p"),
-    fps: float = typer.Option(30.0, "--fps", help="Frame rate"),
-):
-    """Export storyboard to OpenTimelineIO format for NLE editing (legacy v1 format)."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
-    from bee_video_editor.exporters.otio_export import export_otio
-
-    sb = parse_storyboard(storyboard_path)
-
-    if output is None:
-        out_dir = Path(project_dir) / "output"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        output = str(out_dir / "timeline.otio")
-
-    result = export_otio(sb, Path(output), fps=fps)
-    console.print(f"[green]Exported OTIO timeline: {result}[/green]")
-    console.print(f"[dim]Segments: {len(sb.segments)}, Tracks: 2 (V1 + A1)[/dim]")
 
 
 @app.command(name="import-md")
@@ -847,14 +844,13 @@ def rough_cut(
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
 ):
     """Export a fast 720p rough cut — no grading, no transitions. For structure review."""
-    from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.services.production import ProductionConfig, rough_cut_export
 
-    sb = parse_storyboard(storyboard_path)
+    parsed = _load_storyboard(storyboard_path)
     config = ProductionConfig(project_dir=Path(project_dir))
 
     console.print("[bold]Exporting rough cut (720p, no grading)...[/bold]")
-    result = rough_cut_export(sb, config)
+    result = rough_cut_export(parsed, config)
 
     if result:
         console.print(f"[bold green]Rough cut: {result}[/bold green]")
@@ -997,7 +993,7 @@ def validate(
     report = validate_project(Path(project_dir))
 
     severity_colors = {"error": "red", "warning": "yellow", "info": "dim"}
-    severity_icons = {"error": "✗", "warning": "!", "info": "·"}
+    severity_icons = {"error": "x", "warning": "!", "info": "."}
 
     for issue in report.issues:
         color = severity_colors[issue.severity]

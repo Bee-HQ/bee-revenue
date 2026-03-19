@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from bee_video_editor.models_storyboard import Storyboard, StoryboardSegment
+from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment, segment_duration
 from bee_video_editor.processors import graphics as gfx
 from bee_video_editor.processors.ffmpeg import (
     FFmpegError,
@@ -85,20 +85,19 @@ class ProductionConfig:
     def state_path(self) -> Path:
         return self.output_dir / "production_state.json"
 
-    def apply_voice_lock(self) -> None:
-        """Apply voice lock from .bee-video/voice.json if no explicit engine/voice was set."""
-        voice_path = self.project_dir / ".bee-video" / "voice.json"
-        if not voice_path.exists():
-            return
-        try:
-            data = json.loads(voice_path.read_text())
-        except Exception:
-            return
+    def apply_voice_lock(self, voice_lock=None) -> None:
+        """Apply voice lock if no explicit engine/voice was set.
 
-        # Only apply if using defaults (engine=edge, voice=None)
+        Args:
+            voice_lock: A VoiceLock model instance (from ParsedStoryboard.project.voice_lock),
+                        or None if no voice lock is configured.
+        """
+        if voice_lock is None:
+            return
         if self.tts_engine == "edge" and self.tts_voice is None:
-            self.tts_engine = data.get("engine", self.tts_engine)
-            self.tts_voice = data.get("voice", self.tts_voice)
+            self.tts_engine = voice_lock.engine
+            if voice_lock.voice:
+                self.tts_voice = voice_lock.voice
 
 
 @dataclass
@@ -159,12 +158,12 @@ class ProductionState:
             self.save(state_path)
 
 
-def _derive_segment_type(seg: StoryboardSegment) -> str:
-    """Derive a segment type string from a StoryboardSegment's layers."""
-    has_footage = any(e.content_type == "FOOTAGE" for e in seg.visual)
-    has_nar = any(e.content_type == "NAR" for e in seg.audio)
-    has_real_audio = any(e.content_type == "REAL_AUDIO" for e in seg.audio)
-    has_gen_visual = any(e.content_type in ("GRAPHIC", "MAP", "STOCK", "WAVEFORM") for e in seg.visual)
+def _derive_segment_type(seg: ParsedSegment) -> str:
+    """Derive a segment type string from a ParsedSegment's config layers."""
+    has_footage = any(v.type == "FOOTAGE" for v in seg.config.visual)
+    has_nar = bool(seg.narration)
+    has_real_audio = any(a.type == "REAL_AUDIO" for a in seg.config.audio)
+    has_gen_visual = any(v.type in ("GRAPHIC", "MAP", "STOCK", "WAVEFORM") for v in seg.config.visual)
     if has_footage and has_nar:
         return "MIX"
     if has_footage or has_real_audio:
@@ -177,18 +176,17 @@ def _derive_segment_type(seg: StoryboardSegment) -> str:
 
 
 def init_project(
-    storyboard_path: str | Path,
+    parsed: ParsedStoryboard,
     config: ProductionConfig,
-) -> tuple[Storyboard, ProductionState]:
-    """Initialize a production project from a storyboard.
+) -> ProductionState:
+    """Initialize a production project from a parsed storyboard.
 
-    Returns the parsed Storyboard and a new ProductionState.
+    Returns a new ProductionState.
     """
-    from bee_video_editor.parsers.storyboard import parse_storyboard
-    storyboard = parse_storyboard(storyboard_path)
+    from bee_video_editor.formats.timecodes import format_header_tc
 
     state = ProductionState(
-        storyboard_path=str(storyboard_path),
+        storyboard_path="",
         phase="parsed",
     )
     state.segment_statuses = [
@@ -197,7 +195,7 @@ def init_project(
             time_range=f"{seg.start}-{seg.end}",
             segment_type=_derive_segment_type(seg),
         )
-        for i, seg in enumerate(storyboard.segments)
+        for i, seg in enumerate(parsed.segments)
     ]
 
     # Create output directories
@@ -206,11 +204,11 @@ def init_project(
 
     state.save(config.state_path)
 
-    return storyboard, state
+    return state
 
 
 def generate_graphics_for_project(
-    project: Storyboard,
+    project: ParsedStoryboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
     animated: bool = False,
@@ -218,7 +216,6 @@ def generate_graphics_for_project(
     """Generate all graphics assets."""
     result = ProductionResult()
     graphics_dir = config.output_dir / "graphics"
-    sb = project
 
     if state:
         state.phase = "graphics"
@@ -234,17 +231,11 @@ def generate_graphics_for_project(
             pass  # fall back to static
 
     lower_third_idx = 0
-    for seg in sb.segments:
-        for entry in seg.overlay:
-            if entry.content_type == "LOWER-THIRD":
-                match = re.search(r'"([^"]+)"', entry.content)
-                if match:
-                    parts = match.group(1).split(" — ")
-                    name = parts[0].strip()
-                    role = parts[1].strip() if len(parts) > 1 else ""
-                else:
-                    name = f"Character {lower_third_idx}"
-                    role = ""
+    for seg in project.segments:
+        for entry in seg.config.overlay:
+            if entry.type == "LOWER_THIRD":
+                name = entry.text or f"Character {lower_third_idx}"
+                role = entry.subtext or ""
 
                 if _animated_lower_third is not None:
                     out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.webm"
@@ -264,12 +255,12 @@ def generate_graphics_for_project(
                         result.failed.append(FailedItem(path=str(out), error=str(e)))
                 lower_third_idx += 1
 
-    # Timeline markers
+    # Timeline markers (now in overlays)
     timeline_idx = 0
-    for seg in sb.segments:
-        for entry in seg.visual:
-            if entry.content_type == "TIMELINE-MARKER":
-                text = entry.content.strip().strip('"')
+    for seg in project.segments:
+        for entry in seg.config.overlay:
+            if entry.type == "TIMELINE_MARKER":
+                text = entry.date or entry.text or ""
                 if text:
                     out = graphics_dir / f"timeline-{timeline_idx:02d}-{_slugify(text)[:30]}.png"
                     if out.exists():
@@ -282,12 +273,12 @@ def generate_graphics_for_project(
                             result.failed.append(FailedItem(path=str(out), error=str(e)))
                     timeline_idx += 1
 
-    # Financial cards
+    # Financial cards (now in overlays)
     fin_idx = 0
-    for seg in sb.segments:
-        for entry in seg.visual:
-            if entry.content_type == "FINANCIAL-CARD":
-                amount = entry.content.strip().strip('"')
+    for seg in project.segments:
+        for entry in seg.config.overlay:
+            if entry.type == "FINANCIAL_CARD":
+                amount = entry.amount or ""
                 if amount:
                     out = graphics_dir / f"financial-{fin_idx:02d}-{_slugify(amount)[:20]}.png"
                     if out.exists():
@@ -300,11 +291,30 @@ def generate_graphics_for_project(
                             result.failed.append(FailedItem(path=str(out), error=str(e)))
                     fin_idx += 1
 
+    # Quote cards (in overlays)
+    quote_idx = 0
+    for seg in project.segments:
+        for entry in seg.config.overlay:
+            if entry.type == "QUOTE_CARD":
+                quote_text = entry.quote or ""
+                author = entry.author or ""
+                if quote_text:
+                    out = graphics_dir / f"quote-{quote_idx:02d}-{_slugify(quote_text)[:30]}.png"
+                    if out.exists():
+                        result.skipped.append(str(out))
+                    else:
+                        try:
+                            gfx.quote_card(quote_text, author, out)
+                            result.succeeded.append(out)
+                        except Exception as e:
+                            result.failed.append(FailedItem(path=str(out), error=str(e)))
+                    quote_idx += 1
+
     return result
 
 
 def generate_narration_for_project(
-    project: Storyboard,
+    project: ParsedStoryboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
     workers: int = 1,
@@ -312,7 +322,6 @@ def generate_narration_for_project(
     """Generate TTS narration for all NAR segments."""
     result = ProductionResult()
     narration_dir = config.output_dir / "narration"
-    sb = project
 
     if state:
         state.phase = "narration"
@@ -322,18 +331,17 @@ def generate_narration_for_project(
 
     # Collect all narration tasks
     tasks = []
-    for i, seg in enumerate(sb.segments):
-        for entry in seg.audio:
-            if entry.content_type != "NAR":
-                continue
-            nar_text = _clean_text(entry.content)
-            if not nar_text:
-                continue
-            out = narration_dir / f"nar-{i:03d}-{_slugify(seg.subsection or seg.section)[:30]}.mp3"
-            if out.exists():
-                result.skipped.append(f"narration segment {i} already exists")
-                continue
-            tasks.append((i, nar_text, out))
+    for i, seg in enumerate(project.segments):
+        if not seg.narration:
+            continue
+        nar_text = _clean_text(seg.narration)
+        if not nar_text:
+            continue
+        out = narration_dir / f"nar-{i:03d}-{_slugify(seg.section)[:30]}.mp3"
+        if out.exists():
+            result.skipped.append(f"narration segment {i} already exists")
+            continue
+        tasks.append((i, nar_text, out))
 
     if not tasks:
         return result
@@ -376,27 +384,12 @@ def generate_narration_for_project(
     return result
 
 
-def _parse_trim_from_source(content: str) -> tuple[str, str | None, str | None]:
-    """Parse source layer content into (file_path, start, end).
-
-    Handles:
-        `footage/test.mp4` trim 0:00-0:10
-        footage/test.mp4 trim 0:00-0:10
-        `footage/test.mp4`
-    """
-    text = content.strip().replace("`", "")
-    trim_match = re.match(r'(.+?)\s+trim\s+(\d+:\d+)-(\d+:\d+)', text)
-    if trim_match:
-        return trim_match.group(1).strip(), trim_match.group(2), trim_match.group(3)
-    return text.strip(), None, None
-
-
 def trim_source_footage(
-    project: Storyboard,
+    project: ParsedStoryboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
 ) -> ProductionResult:
-    """Trim source footage based on storyboard source layers."""
+    """Trim source footage based on storyboard visual layers with src."""
     result = ProductionResult()
     segments_dir = config.output_dir / "segments"
 
@@ -405,10 +398,13 @@ def trim_source_footage(
         state.save(config.state_path)
 
     for i, seg in enumerate(project.segments):
-        for entry in seg.source:
-            file_path, start, end = _parse_trim_from_source(entry.content)
-            if not file_path:
+        for v in seg.config.visual:
+            if not v.src:
                 continue
+
+            file_path = v.src
+            start = v.tc_in   # precise format "HH:MM:SS.mmm" or None
+            end = v.out        # precise format or None
 
             # Resolve path relative to footage_dir
             rel_path = file_path.replace("footage/", "")
@@ -506,7 +502,7 @@ def assemble_final(
 
 
 def run_full_pipeline(
-    storyboard_path: Path,
+    parsed: ParsedStoryboard,
     config: ProductionConfig,
     skip_graphics: bool = False,
     skip_captions: bool = False,
@@ -519,7 +515,7 @@ def run_full_pipeline(
     on_step: callable | None = None,
     workers: int = 1,
 ) -> PipelineResult:
-    """Run the full production pipeline: init → graphics → captions → narration → trim → assemble.
+    """Run the full production pipeline: init -> graphics -> captions -> narration -> trim -> assemble.
 
     Steps that already have output are skipped automatically (idempotent).
     Stops on the first failure. Completed steps are not re-run on retry.
@@ -545,10 +541,6 @@ def run_full_pipeline(
             return False
         return True
 
-    # Parse storyboard
-    from bee_video_editor.parsers.storyboard import parse_storyboard
-    storyboard = parse_storyboard(storyboard_path)
-
     # Step 1: Init
     def do_init():
         for subdir in ["segments", "normalized", "composited", "graphics", "narration", "captions", "final"]:
@@ -565,7 +557,7 @@ def run_full_pipeline(
         result.steps.append(PipelineStep(name="graphics", status="skipped", message="already exists"))
     else:
         def do_graphics():
-            r = generate_graphics_for_project(storyboard, config, animated=animated)
+            r = generate_graphics_for_project(parsed, config, animated=animated)
             return f"{len(r.succeeded)} generated, {len(r.failed)} failed"
         if not _step("graphics", do_graphics):
             return result
@@ -578,7 +570,7 @@ def run_full_pipeline(
     else:
         def do_captions():
             from bee_video_editor.processors.captions import extract_caption_segments, generate_captions_estimated
-            segments = extract_caption_segments(storyboard)
+            segments = extract_caption_segments(parsed)
             if not segments:
                 return "no captionable segments"
             out = config.output_dir / "captions" / "captions.ass"
@@ -594,7 +586,7 @@ def run_full_pipeline(
         result.steps.append(PipelineStep(name="narration", status="skipped", message="already exists"))
     else:
         def do_narration():
-            r = generate_narration_for_project(storyboard, config, workers=workers)
+            r = generate_narration_for_project(parsed, config, workers=workers)
             return f"{len(r.succeeded)} clips, {len(r.failed)} failed"
         if not _step("narration", do_narration):
             return result
@@ -606,7 +598,7 @@ def run_full_pipeline(
         result.steps.append(PipelineStep(name="trim", status="skipped", message="already exists"))
     else:
         def do_trim():
-            r = trim_source_footage(storyboard, config)
+            r = trim_source_footage(parsed, config)
             return f"{len(r.succeeded)} trimmed"
         if not _step("trim", do_trim):
             return result
@@ -644,14 +636,14 @@ def generate_preview(
     suffix = media_path.suffix.lower()
 
     if suffix in (".png", ".jpg", ".jpeg", ".webp", ".bmp"):
-        # Image → video with Ken Burns
+        # Image -> video with Ken Burns
         image_to_video(media_path, output_path, duration=max_duration, ken_burns="zoom_in")
         # Scale down
         scaled = output_path.parent / f"_scaled_{output_path.name}"
         normalize_format(output_path, scaled, width, height, 30)
         scaled.rename(output_path)
     else:
-        # Video → first N seconds at low res
+        # Video -> first N seconds at low res
         cmd = [
             "ffmpeg", "-y",
             "-i", str(media_path),
@@ -669,7 +661,7 @@ def generate_preview(
 
 
 def generate_all_previews(
-    storyboard: Storyboard,
+    storyboard: ParsedStoryboard,
     project_dir: Path,
 ) -> ProductionResult:
     """Generate preview clips for all segments with assigned media."""
@@ -677,16 +669,9 @@ def generate_all_previews(
     previews_dir = project_dir / "output" / "previews"
     previews_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load assignments
-    assignments_path = project_dir / ".bee-video" / "assignments.json"
-    assignments: dict = {}
-    if assignments_path.exists():
-        assignments = json.loads(assignments_path.read_text())
-
     for seg in storyboard.segments:
-        seg_assignments = assignments.get(seg.id, {})
-        # Look for visual:0 assignment (primary visual)
-        media_path_str = seg_assignments.get("visual:0")
+        # Look for primary visual with src assigned
+        media_path_str = seg.config.visual[0].src if seg.config.visual else None
         if not media_path_str:
             continue
 
@@ -710,22 +695,21 @@ def generate_all_previews(
 
 
 def rough_cut_export(
-    project: Storyboard,
+    project: ParsedStoryboard,
     config: ProductionConfig,
 ) -> Path | None:
     """Export a fast 720p rough cut — no grading, no transitions.
 
-    Collects assigned media (visual:0) from each segment, normalizes to
+    Collects assigned media (visual[0].src) from each segment, normalizes to
     720p/30fps, and concatenates. Returns output path or None if no media.
     """
-    sb = project
     rough_dir = config.output_dir / "rough"
     rough_dir.mkdir(parents=True, exist_ok=True)
 
     # Collect assigned clips in segment order
     clips = []
-    for seg in sb.segments:
-        media_path = seg.assigned_media.get("visual:0")
+    for seg in project.segments:
+        media_path = seg.config.visual[0].src if seg.config.visual else None
         if not media_path or not Path(media_path).exists():
             continue
         clips.append((seg.id, Path(media_path)))

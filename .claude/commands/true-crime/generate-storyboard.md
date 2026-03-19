@@ -33,25 +33,37 @@ Ask: "Where should I save the storyboard?"
 
 ## Context Documents
 
-**Read these three documents before generating.** They contain the rules and specs you must follow:
+**Read ALL of these before generating.** They contain the rules, specs, and examples you must follow:
 
-1. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
+1. **The screenplay** — read it fully. Pay attention to:
+   - Visual codes per scene — these map directly to JSON visual entries
+   - `**NARRATOR:**` blocks — these become `> NAR:` blockquotes
+   - `>> **SPEAKER:**` dialog — these become REAL_AUDIO entries
+   - `[LOWER-THIRD:]`, `[QUOTE-CARD:]`, etc. — these become overlay entries
+   - Act headers with timecodes — these set the segment timing
+
+2. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
    - Act percentage targets by archetype
    - 90-second max narrator stretch rule
-   - Open loop hierarchy
    - Footage mix targets
    - Visual palette progression
+   - Production rules (Section 7)
 
-2. **Visual storyboard bible** — `bee-content/discovery/true-crime/research/visual-storyboard-bible.md`
-   - Visual code → production spec mapping
-   - Color values, durations, effects for each element
+3. **Visual storyboard bible** — `bee-content/discovery/true-crime/research/visual-storyboard-bible.md`
+   - Visual code → production spec mapping (colors, durations, effects, ken burns types)
    - Overlay specs (lower thirds, quote cards, etc.)
+   - Use the bible to fill in JSON fields like `color`, `ken_burns`, `duration` for each visual type
 
-3. **Output format spec** — `bee-content/video-editor/docs/superpowers/specs/2026-03-19-otio-project-format-design.md`
-   - Exact JSON block structure (`bee-video:project`, `bee-video:segment`)
-   - Visual/audio/overlay type definitions and fields
-   - Narration as `> NAR:` blockquotes
-   - Timecode formats (header shorthand vs JSON precise)
+4. **Output format spec** — `bee-content/video-editor/docs/superpowers/specs/2026-03-19-otio-project-format-design.md`
+   - **Read the "Full Example" section carefully** — this is the exact format you must produce
+   - JSON block structure (`bee-video:project`, `bee-video:segment`)
+   - Visual/audio/overlay type definitions with required fields
+   - Narration as `> NAR:` blockquotes below the JSON block
+   - Timecode formats (header shorthand `M:SS` vs JSON precise `HH:MM:SS.mmm`)
+
+5. **Case research** — if available in the same directory as the screenplay
+   - Section 2 (Footage Inventory) — use to populate `src` fields for footage that's been located
+   - Footage-sources.md — if it exists, use file paths from download commands
 
 ## Screenplay Input Format
 

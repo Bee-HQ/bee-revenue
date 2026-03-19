@@ -19,6 +19,7 @@ from bee_video_editor.formats.models import (
     VisualEntry,
 )
 from bee_video_editor.formats.parser import ParsedSection, ParsedSegment, ParsedStoryboard
+from bee_video_editor.formats.slugify import unique_slug
 
 
 # Match a file path at the start of a content string (e.g. "footage/file.mp4 00:01:30-00:02:00")
@@ -74,6 +75,7 @@ def old_to_new(storyboard: Storyboard) -> ParsedStoryboard:
 
     # Build segments
     segments: list[ParsedSegment] = []
+    seen_ids: set[str] = set()
     for old_seg in storyboard.segments:
         # --- Visual entries ---
         visuals: list[VisualEntry] = []
@@ -147,6 +149,7 @@ def old_to_new(storyboard: Storyboard) -> ParsedStoryboard:
         narration = " ".join(narration_parts)
 
         segments.append(ParsedSegment(
+            id=unique_slug(old_seg.title, seen_ids),
             title=old_seg.title,
             start=old_seg.start,
             end=old_seg.end,

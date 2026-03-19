@@ -13,6 +13,7 @@ def test_write_minimal():
         project=ProjectConfig(title="Test"),
         sections=[ParsedSection(title="Sec", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="seg",
             title="Seg", start="0:00", end="0:10", section="Sec",
             config=SegmentConfig(visual=[VisualEntry(type="FOOTAGE", src="clip.mp4")]),
             narration="Hello world.",
@@ -34,6 +35,7 @@ def test_write_json_key_order():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(
                 visual=[VisualEntry(type="FOOTAGE", src="a.mp4")],
@@ -56,6 +58,7 @@ def test_write_omits_none_fields():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(visual=[VisualEntry(type="BLACK")]),
             narration="",
@@ -71,6 +74,7 @@ def test_write_multiline_narration():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(),
             narration="First paragraph.\n\nSecond paragraph.",
@@ -87,6 +91,7 @@ def test_write_no_narration():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(),
             narration="",
@@ -103,6 +108,7 @@ def test_write_omits_empty_lists():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(
                 visual=[VisualEntry(type="FOOTAGE", src="a.mp4")],
@@ -123,6 +129,7 @@ def test_write_narration_only_segment_no_json_block():
         project=ProjectConfig(title="T"),
         sections=[ParsedSection(title="S", start="0:00", end="0:10")],
         segments=[ParsedSegment(
+            id="x",
             title="X", start="0:00", end="0:10", section="S",
             config=SegmentConfig(),
             narration="Just narration.",

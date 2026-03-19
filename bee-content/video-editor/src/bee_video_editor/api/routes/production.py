@@ -32,12 +32,12 @@ def _count_files(directory: Path, pattern: str = "*") -> int:
 @router.get("/status", response_model=ProductionStatusSchema)
 def get_production_status(session: SessionStore = Depends(get_session)):
     """Get current production status."""
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
     output_dir = project_dir / "output"
 
     return ProductionStatusSchema(
         phase="loaded",
-        segments_total=storyboard.total_segments,
+        segments_total=len(parsed.segments),
         segments_done=_count_files(output_dir / "segments", "*.mp4"),
         narration_files=_count_files(output_dir / "narration"),
         graphics_files=_count_files(output_dir / "graphics"),
@@ -60,7 +60,7 @@ def init_project(session: SessionStore = Depends(get_session)):
 @router.post("/graphics")
 def generate_graphics(session: SessionStore = Depends(get_session)):
     """Generate graphics assets from storyboard."""
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
     output_dir = project_dir / "output"
     graphics_dir = output_dir / "graphics"
     graphics_dir.mkdir(parents=True, exist_ok=True)
@@ -71,19 +71,11 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
     failed = []
     lower_third_idx = 0
 
-    for seg in storyboard.segments:
-        for overlay in seg.overlay:
-            if overlay.content_type == "GRAPHIC" and "lower third" in overlay.content.lower():
-                # Extract name — role from content like: Lower third — "Name — Role"
-                import re
-                match = re.search(r'"([^"]+)"', overlay.content)
-                if match:
-                    parts = match.group(1).split(" — ")
-                    name = parts[0].strip()
-                    role = parts[1].strip() if len(parts) > 1 else ""
-                else:
-                    name = f"Character {lower_third_idx}"
-                    role = ""
+    for seg in parsed.segments:
+        for entry in seg.config.overlay:
+            if entry.type == "LOWER_THIRD":
+                name = entry.text or f"Character {lower_third_idx}"
+                role = entry.subtext or ""
 
                 slug = name.lower().replace(" ", "-")[:30]
                 out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{slug}.png"
@@ -116,24 +108,18 @@ def generate_graphics(session: SessionStore = Depends(get_session)):
 VALID_TTS_ENGINES = {"edge", "kokoro", "openai", "elevenlabs"}
 
 
-def _count_narration_segments(storyboard) -> int:
-    """Count how many NAR audio entries exist in the storyboard."""
-    from bee_video_editor.processors.captions import _clean_text
-    count = 0
-    for seg in storyboard.segments:
-        for audio_entry in seg.audio:
-            if audio_entry.content_type == "NAR" and _clean_text(audio_entry.content):
-                count += 1
-    return count
+def _count_narration_segments(parsed) -> int:
+    """Count how many narration segments exist in the parsed storyboard."""
+    return sum(1 for seg in parsed.segments if seg.narration)
 
 
-def _run_narration_background(storyboard, config, workers: int = 1):
+def _run_narration_background(parsed, config, workers: int = 1):
     """Generate narration in a background thread using the service layer."""
     global _narration_task
     from bee_video_editor.services.production import generate_narration_for_project
 
     try:
-        result = generate_narration_for_project(storyboard, config, workers=workers)
+        result = generate_narration_for_project(parsed, config, workers=workers)
         _narration_task["running"] = False
         _narration_task["status"] = "ok" if result.ok else ("partial" if result.succeeded else "error")
         _narration_task["succeeded"] = [str(p) for p in result.succeeded]
@@ -158,7 +144,7 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
     if _narration_task and _narration_task.get("running"):
         raise HTTPException(409, "Narration is already running")
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
 
     from bee_video_editor.services.production import ProductionConfig
     config = ProductionConfig(
@@ -166,10 +152,10 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
         tts_engine=req.tts_engine,
         tts_voice=req.tts_voice,
     )
-    config.apply_voice_lock()
+    config.apply_voice_lock(parsed.project.voice_lock)
     config.output_dir.joinpath("narration").mkdir(parents=True, exist_ok=True)
 
-    total = _count_narration_segments(storyboard)
+    total = _count_narration_segments(parsed)
 
     _narration_task = {
         "running": True,
@@ -182,7 +168,7 @@ def generate_narration(req: GenerateRequest, session: SessionStore = Depends(get
 
     thread = threading.Thread(
         target=_run_narration_background,
-        args=(storyboard, config),
+        args=(parsed, config),
         kwargs={"workers": 1},
         daemon=True,
     )
@@ -243,8 +229,8 @@ def get_preflight(session: SessionStore = Depends(get_session)):
     """Run asset preflight check against loaded project."""
     from bee_video_editor.services.preflight import run_preflight
 
-    storyboard, project_dir = session.require_project()
-    report = run_preflight(storyboard, project_dir)
+    parsed, project_dir = session.require_project()
+    report = run_preflight(parsed, project_dir)
 
     return {
         "total": report.total,
@@ -274,8 +260,8 @@ def generate_captions(req: CaptionRequest, session: SessionStore = Depends(get_s
         generate_captions_estimated,
     )
 
-    storyboard, project_dir = session.require_project()
-    segments = extract_caption_segments(storyboard)
+    parsed, project_dir = session.require_project()
+    segments = extract_caption_segments(parsed)
 
     if not segments:
         return {"status": "ok", "count": 0, "message": "No captionable segments found"}
@@ -324,26 +310,21 @@ async def ws_progress(websocket: WebSocket):
 
 async def _ws_narration(websocket: WebSocket, session, params: dict):
     """Run narration with WebSocket progress updates."""
-    from bee_video_editor.processors.captions import _clean_text
     from bee_video_editor.services.production import ProductionConfig, generate_narration_for_project
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
     config = ProductionConfig(
         project_dir=project_dir,
         tts_engine=params.get("tts_engine", "edge"),
         tts_voice=params.get("tts_voice"),
     )
-    config.apply_voice_lock()
+    config.apply_voice_lock(parsed.project.voice_lock)
     workers = params.get("workers", 1)
 
     narration_dir = config.output_dir / "narration"
     narration_dir.mkdir(parents=True, exist_ok=True)
 
-    total = 0
-    for seg in storyboard.segments:
-        for entry in seg.audio:
-            if entry.content_type == "NAR" and _clean_text(entry.content):
-                total += 1
+    total = _count_narration_segments(parsed)
 
     await websocket.send_json({"step": "narration", "status": "started", "done": 0, "total": total})
 
@@ -351,7 +332,7 @@ async def _ws_narration(websocket: WebSocket, session, params: dict):
     done_count = [0]
 
     def run():
-        result_holder["result"] = generate_narration_for_project(storyboard, config, workers=workers)
+        result_holder["result"] = generate_narration_for_project(parsed, config, workers=workers)
 
     thread = threading.Thread(target=run, daemon=True)
     thread.start()
@@ -384,9 +365,9 @@ async def _ws_produce(websocket: WebSocket, session, params: dict):
 
     from bee_video_editor.services.production import ProductionConfig, run_full_pipeline
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
 
-    if not session.storyboard_path:
+    if not session.otio_path:
         await websocket.send_json({"error": "No storyboard path available"})
         return
 
@@ -395,7 +376,7 @@ async def _ws_produce(websocket: WebSocket, session, params: dict):
         tts_engine=params.get("tts_engine", "edge"),
         tts_voice=params.get("tts_voice"),
     )
-    config.apply_voice_lock()
+    config.apply_voice_lock(parsed.project.voice_lock)
 
     msg_queue: queue.Queue = queue.Queue()
     result_holder: dict = {}
@@ -405,7 +386,7 @@ async def _ws_produce(websocket: WebSocket, session, params: dict):
 
     def run():
         result_holder["result"] = run_full_pipeline(
-            storyboard_path=session.storyboard_path,
+            parsed=parsed,
             config=config,
             skip_graphics=params.get("skip_graphics", False),
             skip_captions=params.get("skip_captions", False),
@@ -462,9 +443,9 @@ def produce_video(
     if tts_engine not in VALID_TTS_ENGINES:
         raise HTTPException(400, f"Invalid TTS engine '{tts_engine}'. Must be one of: {', '.join(sorted(VALID_TTS_ENGINES))}")
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
 
-    if not session.storyboard_path:
+    if not session.otio_path:
         raise HTTPException(400, "No storyboard path available — load project first")
 
     config = ProductionConfig(
@@ -472,10 +453,10 @@ def produce_video(
         tts_engine=tts_engine,
         tts_voice=tts_voice,
     )
-    config.apply_voice_lock()
+    config.apply_voice_lock(parsed.project.voice_lock)
 
     result = run_full_pipeline(
-        storyboard_path=session.storyboard_path,
+        parsed=parsed,
         config=config,
         skip_graphics=skip_graphics,
         skip_captions=skip_captions,
@@ -498,14 +479,14 @@ def generate_segment_preview(segment_id: str, session: SessionStore = Depends(ge
     """Generate a preview for a single segment."""
     from bee_video_editor.services.production import generate_preview
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
 
     # Find segment from in-memory session state (not disk)
-    seg = next((s for s in storyboard.segments if s.id == segment_id), None)
+    seg = next((s for s in parsed.segments if s.id == segment_id), None)
     if not seg:
         raise HTTPException(404, f"Segment not found: {segment_id}")
 
-    media_path_str = seg.assigned_media.get("visual:0")
+    media_path_str = seg.config.visual[0].src if seg.config.visual else None
     if not media_path_str:
         raise HTTPException(400, f"No media assigned to segment {segment_id}")
 
@@ -529,8 +510,8 @@ def generate_all_segment_previews(session: SessionStore = Depends(get_session)):
     """Generate previews for all segments with assigned media."""
     from bee_video_editor.services.production import generate_all_previews
 
-    storyboard, project_dir = session.require_project()
-    result = generate_all_previews(storyboard, project_dir)
+    parsed, project_dir = session.require_project()
+    result = generate_all_previews(parsed, project_dir)
 
     status = "ok" if result.ok else "partial" if result.succeeded else "error"
     return {
@@ -546,17 +527,19 @@ def export_otio_timeline(
     fps: float = 30.0,
     session: SessionStore = Depends(get_session),
 ):
-    """Export storyboard to OTIO format."""
-    from bee_video_editor.exporters.otio_export import export_otio
+    """Export storyboard to OTIO format (clean, no bee_video metadata)."""
+    from bee_video_editor.formats.otio_convert import clean_otio
 
-    storyboard, project_dir = session.require_project()
+    import opentimelineio as otio_lib
+
+    parsed, project_dir = session.require_project()
     output_dir = project_dir / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "timeline.otio"
 
-    export_otio(storyboard, output_path, fps=fps)
+    otio_lib.adapters.write_to_file(clean_otio(session.timeline), str(output_path))
 
-    return {"status": "ok", "output": str(output_path), "segments": storyboard.total_segments}
+    return {"status": "ok", "output": str(output_path), "segments": len(parsed.segments)}
 
 
 @router.post("/assemble")
@@ -660,9 +643,9 @@ def rough_cut(session: SessionStore = Depends(get_session)):
     """Export a fast 720p rough cut for structure review."""
     from bee_video_editor.services.production import ProductionConfig, rough_cut_export
 
-    storyboard, project_dir = session.require_project()
+    parsed, project_dir = session.require_project()
     config = ProductionConfig(project_dir=project_dir)
-    result = rough_cut_export(storyboard, config)
+    result = rough_cut_export(parsed, config)
 
     if result is None:
         raise HTTPException(400, "No assigned media found. Assign media to segments first.")

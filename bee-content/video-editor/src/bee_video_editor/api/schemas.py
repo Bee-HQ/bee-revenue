@@ -16,6 +16,7 @@ class LayerEntrySchema(BaseModel):
     time_start: str | None = None
     time_end: str | None = None
     raw: str = ""
+    metadata: dict | None = None
 
 
 class SegmentSchema(BaseModel):
@@ -147,6 +148,11 @@ class StockSearchRequest(BaseModel):
 class StockDownloadRequest(BaseModel):
     url: str
     filename: str
+
+
+class UpdateSegmentRequest(BaseModel):
+    segment_id: str
+    updates: dict  # partial config: transition_in, visual_updates, audio_updates
 
 
 class GenerateClipRequest(BaseModel):

@@ -492,6 +492,7 @@ def from_otio(timeline: otio.schema.Timeline) -> ParsedStoryboard:
         )
 
         segments.append(ParsedSegment(
+            id=sid,
             title=title,
             start=start_tc,
             end=end_tc,

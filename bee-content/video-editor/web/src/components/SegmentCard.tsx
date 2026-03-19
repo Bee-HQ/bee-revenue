@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { LayerEntry, LayerName, Segment } from '../types';
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
+import { TransitionPicker } from './TransitionPicker';
+import { ColorGradePicker } from './ColorGradePicker';
+import { VolumeSlider } from './VolumeSlider';
+import { TrimControls } from './TrimControls';
 
 const VISUAL_TYPE_COLORS: Record<string, string> = {
   FOOTAGE: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
@@ -15,7 +19,7 @@ const VISUAL_TYPE_COLORS: Record<string, string> = {
 
 const AUDIO_TYPE_COLORS: Record<string, string> = {
   NAR: 'bg-green-600/20 text-green-400 border-green-600/40',
-  'REAL AUDIO': 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
+  REAL_AUDIO: 'bg-yellow-600/20 text-yellow-400 border-yellow-600/40',
   MUSIC: 'bg-indigo-600/20 text-indigo-400 border-indigo-600/40',
   UNKNOWN: 'bg-gray-600/20 text-gray-400 border-gray-600/40',
 };
@@ -40,12 +44,21 @@ export function SegmentCard({ segment }: Props) {
   const draggedMedia = useProjectStore(s => s.draggedMedia);
   const assignMedia = useProjectStore(s => s.assignMedia);
   const assignMediaBatch = useProjectStore(s => s.assignMediaBatch);
+  const effects = useProjectStore(s => s.effects);
+  const loadEffects = useProjectStore(s => s.loadEffects);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const isSelected = selectedSegmentIds.includes(segment.id);
   const multiSelected = selectedSegmentIds.length > 1 && isSelected;
   const hasAssignments = Object.keys(segment.assigned_media).length > 0;
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Load effects on first expand
+  useEffect(() => {
+    if (expanded && !effects) {
+      loadEffects();
+    }
+  }, [expanded, effects, loadEffects]);
 
   const handlePreview = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,6 +107,11 @@ export function SegmentCard({ segment }: Props) {
     }
   };
 
+  // Parse transition info from the transition layer entries
+  const transitionEntry = segment.transition[0] ?? null;
+  const transitionType = transitionEntry?.content_type?.toLowerCase() ?? null;
+  const transitionDuration = transitionEntry ? parseFloat(transitionEntry.content) || 1.0 : 1.0;
+
   const renderLayerEntries = (
     entries: LayerEntry[],
     layerName: LayerName,
@@ -128,18 +146,61 @@ export function SegmentCard({ segment }: Props) {
         {entries.map((entry, i) => {
           const colors = colorMap[entry.content_type] || colorMap.UNKNOWN;
           return (
-            <div key={i} className="flex items-start gap-2 mb-1">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${colors}`}>
-                {entry.content_type}
-              </span>
-              {entry.time_start && (
-                <span className="text-[10px] text-gray-600 shrink-0">
-                  {entry.time_start}-{entry.time_end}
+            <div key={i} className="mb-1">
+              <div className="flex items-start gap-2">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${colors}`}>
+                  {entry.content_type}
                 </span>
+                {entry.time_start && (
+                  <span className="text-[10px] text-gray-600 shrink-0">
+                    {entry.time_start}-{entry.time_end}
+                  </span>
+                )}
+                <span className="text-xs text-gray-400 leading-relaxed">
+                  {entry.content || entry.raw}
+                </span>
+              </div>
+
+              {/* Inline editing controls */}
+              {layerName === 'visual' && effects && (
+                <div className="ml-4 mt-1 space-y-0.5">
+                  <ColorGradePicker
+                    segmentId={segment.id}
+                    visualIndex={i}
+                    currentColor={entry.metadata?.color ?? null}
+                    presets={effects.color_presets}
+                  />
+                  <TrimControls
+                    segmentId={segment.id}
+                    visualIndex={i}
+                    currentIn={entry.metadata?.tc_in ?? null}
+                    currentOut={entry.metadata?.out ?? null}
+                  />
+                </div>
               )}
-              <span className="text-xs text-gray-400 leading-relaxed">
-                {entry.content || entry.raw}
-              </span>
+
+              {layerName === 'audio' && (
+                <div className="ml-4 mt-1">
+                  <VolumeSlider
+                    segmentId={segment.id}
+                    audioIndex={i}
+                    currentVolume={entry.metadata?.volume ?? 1.0}
+                  />
+                </div>
+              )}
+
+              {layerName === 'music' && (
+                <div className="ml-4 mt-1">
+                  <VolumeSlider
+                    segmentId={segment.id}
+                    audioIndex={i}
+                    currentVolume={entry.metadata?.volume ?? 1.0}
+                    currentFadeIn={entry.metadata?.fade_in ?? undefined}
+                    currentFadeOut={entry.metadata?.fade_out ?? undefined}
+                    showFades
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -192,7 +253,7 @@ export function SegmentCard({ segment }: Props) {
               disabled={previewLoading}
               title="Generate preview clip"
             >
-              {previewLoading ? '…' : '▷'}
+              {previewLoading ? '...' : '▷'}
             </button>
           )}
           <button
@@ -229,6 +290,17 @@ export function SegmentCard({ segment }: Props) {
       {/* Expanded layer details */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
+          {/* Transition picker — shown above visual layer */}
+          {effects && (
+            <div className="border-l-2 pl-3 py-1 border-editor-border">
+              <TransitionPicker
+                segmentId={segment.id}
+                currentType={transitionType}
+                currentDuration={transitionDuration}
+                transitions={effects.transitions}
+              />
+            </div>
+          )}
           {renderLayerEntries(segment.visual, 'visual', VISUAL_TYPE_COLORS)}
           {renderLayerEntries(segment.audio, 'audio', AUDIO_TYPE_COLORS)}
           {renderLayerEntries(segment.overlay, 'overlay', VISUAL_TYPE_COLORS)}

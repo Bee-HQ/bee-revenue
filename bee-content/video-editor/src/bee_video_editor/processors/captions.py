@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pysubs2
 
-from bee_video_editor.models_storyboard import Storyboard
+from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment
 
 
 @dataclass
@@ -47,43 +47,53 @@ STYLE_MAP = {
 }
 
 
-def extract_caption_segments(storyboard: Storyboard) -> list[CaptionSegment]:
+def extract_caption_segments(parsed: ParsedStoryboard) -> list[CaptionSegment]:
     """Extract captionable text from storyboard segments.
 
-    Walks every segment's audio layer entries. For each NAR or REAL AUDIO entry:
+    For each segment:
+    - If narration text exists, creates a Narrator caption
+    - For REAL_AUDIO entries in config.audio, creates RealAudio captions
     - Strips quotes and trailing notes
     - Converts times to milliseconds
-    - Uses LayerEntry.time_start/time_end if present
-    - Maps content_type to style name
     """
     results = []
-    for seg in storyboard.segments:
+    for seg in parsed.segments:
         seg_start_ms = _time_to_ms(seg.start)
         seg_end_ms = _time_to_ms(seg.end)
 
-        for entry in seg.audio:
-            if entry.content_type not in CAPTION_CONTENT_TYPES:
+        # Narration text (from > NAR: blockquotes)
+        if seg.narration:
+            text = _clean_text(seg.narration)
+            if text:
+                results.append(CaptionSegment(
+                    text=text,
+                    start_ms=seg_start_ms,
+                    end_ms=seg_end_ms,
+                    style_name="Narrator",
+                ))
+
+        # REAL_AUDIO entries from config.audio
+        for entry in seg.config.audio:
+            if entry.type != "REAL_AUDIO":
                 continue
 
-            text = _clean_text(entry.content)
+            text = _clean_text(entry.src or "")
             if not text:
                 continue
 
             # Use entry-level time range if available, else segment range
-            if entry.time_start and entry.time_end:
-                start_ms = _time_to_ms(entry.time_start)
-                end_ms = _time_to_ms(entry.time_end)
+            if entry.tc_in and entry.out:
+                start_ms = _time_to_ms(entry.tc_in)
+                end_ms = _time_to_ms(entry.out)
             else:
                 start_ms = seg_start_ms
                 end_ms = seg_end_ms
-
-            style_name = STYLE_MAP.get(entry.content_type, "Narrator")
 
             results.append(CaptionSegment(
                 text=text,
                 start_ms=start_ms,
                 end_ms=end_ms,
-                style_name=style_name,
+                style_name="RealAudio",
             ))
 
     return results
