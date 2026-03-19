@@ -1,0 +1,97 @@
+import { useState, useRef, useEffect } from 'react';
+import { api } from '../api/client';
+
+export function ExportMenu() {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleExportMd = async () => {
+    setOpen(false);
+    setStatus('Exporting...');
+    try {
+      const result = await api.exportMarkdown();
+      // Trigger browser download
+      const blob = new Blob([result.content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'storyboard.md';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('Markdown exported');
+    } catch (err: any) {
+      setStatus(`Error: ${err.message}`);
+    }
+    setTimeout(() => setStatus(''), 3000);
+  };
+
+  const handleExportOtio = async () => {
+    setOpen(false);
+    setStatus('Exporting...');
+    try {
+      const result = await api.exportOtio();
+      setStatus(`OTIO saved to ${result.path}`);
+    } catch (err: any) {
+      setStatus(`Error: ${err.message}`);
+    }
+    setTimeout(() => setStatus(''), 5000);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded
+                   border border-editor-border hover:border-gray-500 transition-colors"
+      >
+        Export
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-editor-surface border border-editor-border
+                        rounded-lg shadow-lg py-1 w-48 z-50">
+          <button
+            onClick={handleExportMd}
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+          >
+            Export Markdown
+            <span className="block text-gray-500 text-[10px]">For review & version control</span>
+          </button>
+          <button
+            onClick={handleExportOtio}
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+          >
+            Export for NLE
+            <span className="block text-gray-500 text-[10px]">Clean OTIO for DaVinci/Premiere</span>
+          </button>
+          <div className="border-t border-editor-border my-1" />
+          <button
+            onClick={() => { setOpen(false); setStatus('Use Assemble in the production bar'); setTimeout(() => setStatus(''), 3000); }}
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+          >
+            Export Final Video
+            <span className="block text-gray-500 text-[10px]">Assemble via production pipeline</span>
+          </button>
+        </div>
+      )}
+
+      {status && (
+        <span className="absolute right-0 top-full mt-8 text-[10px] text-gray-400 whitespace-nowrap">
+          {status}
+        </span>
+      )}
+    </div>
+  );
+}

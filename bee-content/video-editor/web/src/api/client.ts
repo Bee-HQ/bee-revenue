@@ -143,6 +143,14 @@ export const api = {
     return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
   },
 
+  exportMarkdown(): Promise<{ format: string; content: string }> {
+    return request('/projects/export?format=md');
+  },
+
+  exportOtio(): Promise<{ format: string; path: string }> {
+    return request('/projects/export?format=otio');
+  },
+
   connectProgress(
     action: string,
     params: Record<string, any>,

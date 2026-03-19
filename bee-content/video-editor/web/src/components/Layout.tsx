@@ -4,6 +4,7 @@ import { MediaLibrary } from './MediaLibrary';
 import { VideoPlayer } from './VideoPlayer';
 import { SegmentList } from './SegmentList';
 import { ProductionBar } from './ProductionBar';
+import { ExportMenu } from './ExportMenu';
 
 export function Layout() {
   const storyboard = useProjectStore(s => s.storyboard);
@@ -25,6 +26,7 @@ export function Layout() {
           <span>{storyboard.total_segments} segments</span>
           <span>{totalMins}m {totalSecs}s</span>
           <span>{storyboard.sections.length} sections</span>
+          <ExportMenu />
         </div>
       </header>
 
