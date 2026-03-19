@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
+import { SkeletonList } from './SkeletonCard';
 
 const VISUAL_TYPE_DOT: Record<string, string> = {
   FOOTAGE: 'bg-yellow-400',
@@ -130,13 +131,23 @@ function SegmentRow({
 
 export function SegmentList() {
   const storyboard = useProjectStore(s => s.storyboard);
+  const loading = useProjectStore(s => s.loading);
   const reorderSegments = useProjectStore(s => s.reorderSegments);
   const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
 
   const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
-  if (!storyboard) return null;
+  if (!storyboard) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-3 py-2 border-b border-editor-border flex items-center justify-between shrink-0">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Segments</h3>
+        </div>
+        {loading ? <SkeletonList count={5} /> : null}
+      </div>
+    );
+  }
 
   const segments = storyboard.segments;
 

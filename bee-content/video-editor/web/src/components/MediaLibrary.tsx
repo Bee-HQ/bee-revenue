@@ -3,6 +3,7 @@ import type { DownloadScriptInfo, DownloadStatus, DownloadTools, MediaFile } fro
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { StockSearch } from './StockSearch';
+import { SkeletonList } from './SkeletonCard';
 
 const CATEGORY_ICONS: Record<string, string> = {
   footage: '🎥',
@@ -258,11 +259,13 @@ function MediaThumbnail({ file }: { file: MediaFile }) {
 
 export function MediaLibrary() {
   const { mediaFiles, mediaCategories, loadMedia, setDraggedMedia, setPreviewMedia, previewMedia } = useProjectStore();
+  const storeLoading = useProjectStore(s => s.loading);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDownloads, setShowDownloads] = useState(false);
   const [showStock, setShowStock] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const categories = Object.keys(mediaCategories);
@@ -296,6 +299,15 @@ export function MediaLibrary() {
     loadMedia();
     if (fileInput.current) fileInput.current.value = '';
   };
+
+  // Mark media as loaded once the project finishes loading or files arrive
+  useEffect(() => {
+    if (!storeLoading) setMediaLoaded(true);
+  }, [storeLoading]);
+
+  useEffect(() => {
+    if (mediaFiles.length > 0) setMediaLoaded(true);
+  }, [mediaFiles.length]);
 
   return (
     <div className="flex flex-col h-full">
@@ -413,8 +425,13 @@ export function MediaLibrary() {
           <div className="px-2 py-1 text-xs text-gray-500">Uploading...</div>
         )}
 
+        {/* Skeleton while media hasn't loaded yet */}
+        {isEmpty && !uploading && !showDownloads && !mediaLoaded && (
+          <SkeletonList count={3} />
+        )}
+
         {/* Empty state with download prompt */}
-        {isEmpty && !uploading && !showDownloads && (
+        {isEmpty && !uploading && !showDownloads && mediaLoaded && (
           <div className="px-3 py-6 text-center">
             <div className="text-2xl mb-2">📂</div>
             <div className="text-xs text-gray-400 mb-3">
