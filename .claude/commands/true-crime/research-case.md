@@ -16,7 +16,16 @@ Accept any of:
 ### 2. Output directory
 Ask: "Where should I save the research?"
 - Suggest: `bee-content/discovery/true-crime/cases/<case-slug>/case-research.md`
-- Create the directory if it doesn't exist
+- Create the full directory structure:
+  ```
+  cases/<case-slug>/
+  ├── case-research.md
+  ├── footage-sources.md
+  ├── footage/
+  ├── stock/
+  ├── photos/
+  └── music/
+  ```
 
 ## Research Process
 
@@ -60,6 +69,17 @@ For each piece of footage found, note:
 ### Phase 4: Compile
 
 Write the `case-research.md` file following the exact structure below.
+
+### Phase 5: Footage sources document
+
+After writing `case-research.md`, also create `footage-sources.md` in the same directory. For every piece of footage marked **YES** or **Partial** in the inventory, include:
+- Direct URL
+- yt-dlp download command (for YouTube/news sites): `yt-dlp -f "bestvideo[height<=720]+bestaudio/best[height<=720]" --remux-video mp4 -o "footage/<category>/<description>.mp4" "<url>"`
+- Expected file category (`footage/bodycam/`, `footage/trial/`, `footage/interrogation/`, `footage/911-calls/`)
+- Notes on trim points if specific moments are needed
+- Fair use / copyright notes
+
+Reference the existing example at `bee-content/discovery/true-crime/cases/alex-murdaugh/footage-sources.md` for the expected format and level of detail.
 
 ## Output Template
 
@@ -280,4 +300,6 @@ After writing the file, report:
 
 3. **Footage gaps** — what's missing that would strengthen the video?
 
-4. **Next step** — "Review the research, then run `/generate-screenplay` to create the screenplay"
+4. **Files created** — list `case-research.md`, `footage-sources.md`, and directories created
+
+5. **Next step** — "Review the research, then run `/true-crime:review-case-research` to check viability"

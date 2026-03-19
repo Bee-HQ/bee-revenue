@@ -26,9 +26,13 @@ Ask: "Where should I save the screenplay?"
 
 ## Context Documents
 
-**Read these before generating:**
+**Read ALL of these before generating.** They are your source material and quality standards:
 
-1. **Case research** — the file from step 1 (the raw material)
+1. **Case research** — the file from step 1. Pay special attention to:
+   - Section 5 (Narrative Angles) — use the hook, dramatic moments, central irony, and act structure suggestions to inform your screenplay structure
+   - Section 2 (Footage Inventory) — only reference real audio clips that are marked **YES** in availability
+   - Section 4 (Key Evidence) — pull verbatim quotes from here
+   - Section 8 (Production Notes) — respect the archetype recommendation and challenges
 2. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
    - Phase 2: Screenplay structure template
    - Act percentages by archetype
@@ -41,6 +45,10 @@ Ask: "Where should I save the screenplay?"
    - Visual codes to tag each scene with
 4. **Narration style guide** — `bee-content/discovery/true-crime/channels/dr-insanity/narration-style-guide.md`
    - Voice, tone, pacing, sentence rhythm
+5. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/screenplay-v2.md`
+   - Read this as a concrete example of the target output quality, format, and style
+   - Match the level of detail, visual code density, and real audio integration frequency
+   - This is a trial-centric screenplay — adapt the pattern for your case's archetype
 
 ## Screenplay Format
 

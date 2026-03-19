@@ -118,4 +118,9 @@ Present the review as:
 [1-2 sentences: ready for storyboard generation or what needs fixing first?]
 ```
 
-If the screenplay needs work, provide specific, actionable fixes with scene references. If it's ready, say: "Screenplay is solid. Run `/generate-storyboard` to create the storyboard."
+If the screenplay needs work, provide specific, actionable fixes with scene references, then ask:
+"Want me to fix these issues now?"
+
+If the user says yes, make the corrections directly in the file, then re-run the review checks on the updated file.
+
+If it's ready, say: "Screenplay is solid. Run `/true-crime:generate-storyboard` to create the storyboard."

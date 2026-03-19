@@ -108,4 +108,9 @@ Present the review as:
 [1-2 sentence summary: is this ready for screenplay generation?]
 ```
 
-If the research needs work, list the specific actions to take. If it's ready, say: "Research is solid. Run `/generate-screenplay` to create the screenplay."
+If the research needs work, list the specific actions to take, then ask:
+"Want me to fix these issues now?"
+
+If the user says yes, make the corrections directly in the file, then re-run the review checks on the updated file.
+
+If it's ready, say: "Research is solid. Run `/true-crime:generate-screenplay` to create the screenplay."
