@@ -97,3 +97,26 @@ def test_visual_entry_serializes_in_as_in():
     d = v.model_dump(by_alias=True, exclude_none=True)
     assert "in" in d
     assert "tc_in" not in d
+
+def test_visual_entry_download_fields():
+    from bee_video_editor.formats.models import VisualEntry
+    v = VisualEntry(**{
+        "type": "FOOTAGE",
+        "src": "footage/clip.mp4",
+        "download_url": "https://youtube.com/watch?v=abc123",
+        "download_trim": "2:14-2:29",
+    })
+    assert v.download_url == "https://youtube.com/watch?v=abc123"
+    assert v.download_trim == "2:14-2:29"
+    d = v.model_dump(by_alias=True, exclude_none=True)
+    assert "download_url" in d
+
+def test_visual_entry_pexels_url():
+    from bee_video_editor.formats.models import VisualEntry
+    v = VisualEntry(type="STOCK", src=None, query="aerial farm", pexels_url="https://www.pexels.com/video/12345/")
+    assert v.pexels_url is not None
+
+def test_audio_entry_download_url():
+    from bee_video_editor.formats.models import AudioEntry
+    a = AudioEntry(type="MUSIC", download_url="https://example.com/track.mp3")
+    assert a.download_url == "https://example.com/track.mp3"

@@ -45,6 +45,9 @@ class VisualEntry(BaseModel):
     subtext: str | None = None
     prompt: str | None = None
     provider: str | None = None
+    download_url: str | None = None       # URL to download source (YouTube, direct link)
+    download_trim: str | None = None      # "M:SS-M:SS" — trim after download
+    pexels_url: str | None = None         # specific Pexels video URL (for STOCK entries)
     model_config = {"populate_by_name": True}
 
 class AudioEntry(BaseModel):
@@ -57,6 +60,7 @@ class AudioEntry(BaseModel):
     fade_out: float | None = None
     engine: str | None = None
     voice: str | None = None
+    download_url: str | None = None       # URL to download audio file
     model_config = {"populate_by_name": True}
 
 class OverlayEntry(BaseModel):
