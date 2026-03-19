@@ -21,8 +21,10 @@ from bee_video_editor.processors.maps import (  # noqa: E402
     _apply_dark_grade,
     _apply_vignette,
     map_flat,
+    map_hybrid,
     map_pulse,
     map_route,
+    map_satellite,
     map_tactical,
 )
 
@@ -286,6 +288,119 @@ class TestMapRoute:
         map_route([(32.84, -80.78)], out)
         assert out.exists()
         assert mock_ctx.add_object.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# map_satellite
+# ---------------------------------------------------------------------------
+
+class TestMapSatellite:
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_creates_png(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "sat.png"
+        result = map_satellite(32.5916, -80.6754, out, zoom=12)
+        assert result == out
+        assert out.exists()
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_output_is_1920x1080(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "sat.png"
+        map_satellite(32.5916, -80.6754, out, zoom=12)
+        img = Image.open(str(out))
+        assert img.size == (1920, 1080)
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_with_label(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "sat_label.png"
+        map_satellite(32.5916, -80.6754, out, zoom=12, label="Test Location")
+        assert out.exists()
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_uses_satellite_tile_provider(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "sat.png"
+        map_satellite(32.5916, -80.6754, out, zoom=12)
+
+        # set_tile_provider should be called with the satellite provider (not OSM)
+        import staticmaps as sm
+        from bee_video_editor.processors.maps import _SATELLITE_TILES
+        mock_ctx.set_tile_provider.assert_called_once_with(_SATELLITE_TILES)
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_with_markers(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        markers = [MapLocation(lat=32.5916, lng=-80.6754, label="Site", pin_color="red")]
+        out = tmp_path / "sat_markers.png"
+        map_satellite(32.5916, -80.6754, out, zoom=12, markers=markers)
+        assert mock_ctx.add_object.called
+
+
+# ---------------------------------------------------------------------------
+# map_hybrid
+# ---------------------------------------------------------------------------
+
+class TestMapHybrid:
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_creates_png(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "hyb.png"
+        result = map_hybrid(32.5916, -80.6754, out, zoom=12)
+        assert result == out
+        assert out.exists()
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_output_is_1920x1080(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "hyb.png"
+        map_hybrid(32.5916, -80.6754, out, zoom=12)
+        img = Image.open(str(out))
+        assert img.size == (1920, 1080)
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_with_label(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "hyb_label.png"
+        map_hybrid(32.5916, -80.6754, out, zoom=12, label="Test Region")
+        assert out.exists()
+
+    @patch("bee_video_editor.processors.maps.staticmaps.Context")
+    def test_uses_topo_tile_provider(self, MockContext, tmp_path):
+        mock_ctx = MagicMock()
+        mock_ctx.render_pillow.return_value = _dummy_rgba()
+        MockContext.return_value = mock_ctx
+
+        out = tmp_path / "hyb.png"
+        map_hybrid(32.5916, -80.6754, out, zoom=12)
+
+        from bee_video_editor.processors.maps import _TOPO_TILES
+        mock_ctx.set_tile_provider.assert_called_once_with(_TOPO_TILES)
 
 
 # ---------------------------------------------------------------------------

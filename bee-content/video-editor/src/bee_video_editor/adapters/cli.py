@@ -737,7 +737,7 @@ def export_v2(
 
 @app.command(name="map")
 def generate_map(
-    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route"),
+    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route, satellite, hybrid"),
     lat: float = typer.Option(..., help="Center latitude"),
     lng: float = typer.Option(..., help="Center longitude"),
     output: str = typer.Option(None, "--output", "-o"),
@@ -750,8 +750,10 @@ def generate_map(
         from bee_video_editor.processors.maps import (
             MapLocation,
             map_flat,
+            map_hybrid,
             map_pulse,
             map_route,
+            map_satellite,
             map_tactical,
         )
     except ImportError:
@@ -772,11 +774,15 @@ def generate_map(
         map_tactical(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
     elif map_type == "pulse":
         map_pulse(lat, lng, out_path, zoom=zoom, label=label)
+    elif map_type == "satellite":
+        map_satellite(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
+    elif map_type == "hybrid":
+        map_hybrid(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
     elif map_type == "route":
         console.print("[red]Route requires multiple points — use the Python API directly.[/red]")
         return
     else:
-        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route[/red]")
+        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route, satellite, hybrid[/red]")
         return
 
     console.print(f"[green]Map generated: {out_path}[/green]")
