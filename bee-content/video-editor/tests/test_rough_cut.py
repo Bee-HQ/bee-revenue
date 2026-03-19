@@ -4,28 +4,30 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from bee_video_editor.models_storyboard import (
-    ProductionRules,
-    Storyboard,
-    StoryboardSegment,
+from bee_video_editor.formats.models import (
+    ProjectConfig,
+    SegmentConfig,
+    VisualEntry,
 )
+from bee_video_editor.formats.parser import ParsedSegment, ParsedStoryboard
 from bee_video_editor.services.production import ProductionConfig, rough_cut_export
 
 
-def _seg(id: str, assigned_media: dict | None = None) -> StoryboardSegment:
-    return StoryboardSegment(
+def _seg(id: str, visual_src: str | None = None) -> ParsedSegment:
+    visual = [VisualEntry(type="FOOTAGE", src=visual_src)] if visual_src else []
+    return ParsedSegment(
         id=id, start="0:00", end="0:10", title=id,
-        section="X", section_time="", subsection="",
-        visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
-        assigned_media=assigned_media or {},
+        section="X",
+        config=SegmentConfig(visual=visual),
+        narration="",
     )
 
 
-def _sb(segments: list[StoryboardSegment]) -> Storyboard:
-    return Storyboard(
-        title="Test", segments=segments,
-        stock_footage=[], photos_needed=[], maps_needed=[],
-        production_rules=ProductionRules(),
+def _parsed(segments: list[ParsedSegment]) -> ParsedStoryboard:
+    return ParsedStoryboard(
+        project=ProjectConfig(title="Test", version=1),
+        sections=[],
+        segments=segments,
     )
 
 
@@ -39,9 +41,9 @@ class TestRoughCutExport:
             clip_a.write_bytes(b"\x00" * 100)
             clip_b.write_bytes(b"\x00" * 100)
 
-            sb = _sb([
-                _seg("sa", {"visual:0": str(clip_a)}),
-                _seg("sb", {"visual:0": str(clip_b)}),
+            parsed = _parsed([
+                _seg("sa", str(clip_a)),
+                _seg("sb", str(clip_b)),
             ])
             config = ProductionConfig(project_dir=proj_dir)
 
@@ -49,7 +51,7 @@ class TestRoughCutExport:
                  patch("bee_video_editor.services.production.concat_segments") as mock_concat:
                 mock_norm.side_effect = lambda i, o, **kw: Path(o)
                 mock_concat.return_value = Path("out.mp4")
-                result = rough_cut_export(sb, config)
+                result = rough_cut_export(parsed, config)
 
             assert mock_norm.call_count == 2
             for c in mock_norm.call_args_list:
@@ -66,8 +68,8 @@ class TestRoughCutExport:
             clip = proj_dir / "a.mp4"
             clip.write_bytes(b"\x00")
 
-            sb = _sb([
-                _seg("sa", {"visual:0": str(clip)}),
+            parsed = _parsed([
+                _seg("sa", str(clip)),
                 _seg("sb"),  # no media
             ])
             config = ProductionConfig(project_dir=proj_dir)
@@ -76,22 +78,22 @@ class TestRoughCutExport:
                  patch("bee_video_editor.services.production.concat_segments") as mock_concat:
                 mock_norm.side_effect = lambda i, o, **kw: Path(o)
                 mock_concat.return_value = Path("out.mp4")
-                rough_cut_export(sb, config)
+                rough_cut_export(parsed, config)
 
             assert mock_norm.call_count == 1
 
     def test_skips_deleted_media_files(self):
         with tempfile.TemporaryDirectory() as d:
             proj_dir = Path(d)
-            sb = _sb([_seg("sa", {"visual:0": "/nonexistent/deleted.mp4"})])
+            parsed = _parsed([_seg("sa", "/nonexistent/deleted.mp4")])
             config = ProductionConfig(project_dir=proj_dir)
-            result = rough_cut_export(sb, config)
+            result = rough_cut_export(parsed, config)
             assert result is None
 
     def test_returns_none_when_no_media(self):
         with tempfile.TemporaryDirectory() as d:
             proj_dir = Path(d)
-            sb = _sb([_seg("sa")])
+            parsed = _parsed([_seg("sa")])
             config = ProductionConfig(project_dir=proj_dir)
-            result = rough_cut_export(sb, config)
+            result = rough_cut_export(parsed, config)
             assert result is None

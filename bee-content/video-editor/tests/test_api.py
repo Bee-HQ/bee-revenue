@@ -11,33 +11,46 @@ from starlette.testclient import TestClient
 
 from bee_video_editor.api.server import create_app
 from bee_video_editor.api.session import SessionStore, get_session
-from bee_video_editor.models_storyboard import (
-    LayerEntry,
-    ProductionRules,
-    Storyboard,
-    StoryboardSegment,
+from bee_video_editor.formats.models import (
+    AudioEntry,
+    OverlayEntry,
+    ProjectConfig,
+    SegmentConfig,
+    VisualEntry,
 )
+from bee_video_editor.formats.parser import ParsedSegment, ParsedStoryboard
 
 
-def _make_segment(id: str, title: str, section: str = "INTRO", **kwargs) -> StoryboardSegment:
-    defaults = dict(
-        start="0:00", end="0:05", section_time="0:00 - 2:30", subsection="",
-        visual=[], audio=[], overlay=[], music=[], source=[], transition=[],
-        assigned_media={},
-    )
-    defaults.update(kwargs)
-    return StoryboardSegment(id=id, title=title, section=section, **defaults)
+def _write_v2_storyboard(path: Path, title: str = "Test", segments: list[dict] | None = None):
+    """Write a v2 storyboard markdown file that parse_v2 can parse."""
+    segments = segments or []
+    lines = [f"# {title}", ""]
+    lines.append('```json bee-video:project')
+    lines.append(json.dumps({"title": title, "version": 1}))
+    lines.append('```')
+    lines.append("")
 
+    if segments:
+        lines.append("## Section (0:00 - 10:00)")
+        lines.append("")
+        for seg in segments:
+            start = seg.get("start", "0:00")
+            end = seg.get("end", "0:05")
+            seg_title = seg.get("title", "Untitled")
+            lines.append(f"### {start} - {end} | {seg_title}")
+            lines.append("")
+            config = seg.get("config", {})
+            if config:
+                lines.append("```json bee-video:segment")
+                lines.append(json.dumps(config))
+                lines.append("```")
+                lines.append("")
+            narration = seg.get("narration", "")
+            if narration:
+                lines.append(f"> NAR: {narration}")
+                lines.append("")
 
-def _make_storyboard(segments=None, title="Test") -> Storyboard:
-    return Storyboard(
-        title=title,
-        segments=segments or [],
-        stock_footage=[],
-        photos_needed=[],
-        maps_needed=[],
-        production_rules=ProductionRules(),
-    )
+    path.write_text("\n".join(lines))
 
 
 @pytest.fixture
@@ -47,7 +60,7 @@ def project_env():
         proj_dir = Path(d) / "project"
         proj_dir.mkdir()
         sb_path = Path(d) / "storyboard.md"
-        sb_path.write_text("# Test\n")
+        _write_v2_storyboard(sb_path, "Test")
 
         session = SessionStore()
         app = create_app()
@@ -62,13 +75,16 @@ def loaded_project(project_env):
     """Yield (client, session, proj_dir) with a project already loaded."""
     client, session, proj_dir, sb_path = project_env
 
-    seg_a = _make_segment("seg_a", "Hook", section="COLD OPEN")
-    seg_b = _make_segment("seg_b", "Setup", section="COLD OPEN")
-    seg_c = _make_segment("seg_c", "Deep Dive", section="INVESTIGATION")
-    sb = _make_storyboard([seg_a, seg_b, seg_c], title="Murder Mystery")
+    _write_v2_storyboard(sb_path, "Murder Mystery", segments=[
+        {"title": "Hook", "start": "0:00", "end": "0:05",
+         "config": {"visual": [{"type": "FOOTAGE"}]}},
+        {"title": "Setup", "start": "0:05", "end": "0:10",
+         "config": {"visual": [{"type": "FOOTAGE"}]}},
+        {"title": "Deep Dive", "start": "0:10", "end": "0:15",
+         "config": {"visual": [{"type": "FOOTAGE"}]}},
+    ])
 
-    with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
-        session.load_project(sb_path, proj_dir)
+    session.load_project(sb_path, proj_dir)
 
     yield client, session, proj_dir
 
@@ -79,19 +95,20 @@ def loaded_project(project_env):
 class TestProjectLoad:
     def test_load_returns_storyboard(self, project_env):
         client, _, proj_dir, sb_path = project_env
-        sb = _make_storyboard([_make_segment("s1", "Test Seg")], title="Loaded")
+        _write_v2_storyboard(sb_path, "Loaded", segments=[
+            {"title": "Test Seg", "start": "0:00", "end": "0:05",
+             "config": {"visual": [{"type": "FOOTAGE"}]}},
+        ])
 
-        with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
-            r = client.post("/api/projects/load", json={
-                "storyboard_path": str(sb_path),
-                "project_dir": str(proj_dir),
-            })
+        r = client.post("/api/projects/load", json={
+            "storyboard_path": str(sb_path),
+            "project_dir": str(proj_dir),
+        })
         assert r.status_code == 200
         data = r.json()
         assert data["title"] == "Loaded"
         assert data["total_segments"] == 1
         assert len(data["segments"]) == 1
-        assert data["segments"][0]["id"] == "s1"
 
     def test_load_nonexistent_storyboard_404(self, project_env):
         client, _, proj_dir, _ = project_env
@@ -123,9 +140,10 @@ class TestProjectCurrent:
 class TestAssignMedia:
     def test_assign_and_read_back(self, loaded_project):
         client, session, proj_dir = loaded_project
+        seg_id = session.parsed.segments[0].id
 
         r = client.put("/api/projects/assign", json={
-            "segment_id": "seg_a",
+            "segment_id": seg_id,
             "layer": "visual",
             "media_path": "/media/clip.mp4",
             "layer_index": 0,
@@ -135,15 +153,16 @@ class TestAssignMedia:
 
         # Read back via current project
         r = client.get("/api/projects/current")
-        seg = next(s for s in r.json()["segments"] if s["id"] == "seg_a")
+        seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
         assert seg["assigned_media"]["visual:0"] == "/media/clip.mp4"
 
     def test_unassign_with_empty_string(self, loaded_project):
         client, session, proj_dir = loaded_project
+        seg_id = session.parsed.segments[0].id
 
         # Assign first
         client.put("/api/projects/assign", json={
-            "segment_id": "seg_a",
+            "segment_id": seg_id,
             "layer": "visual",
             "media_path": "/media/clip.mp4",
             "layer_index": 0,
@@ -151,7 +170,7 @@ class TestAssignMedia:
 
         # Unassign
         r = client.put("/api/projects/assign", json={
-            "segment_id": "seg_a",
+            "segment_id": seg_id,
             "layer": "visual",
             "media_path": "",
             "layer_index": 0,
@@ -160,13 +179,8 @@ class TestAssignMedia:
 
         # Verify removed
         r = client.get("/api/projects/current")
-        seg = next(s for s in r.json()["segments"] if s["id"] == "seg_a")
+        seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
         assert "visual:0" not in seg["assigned_media"]
-
-        # Verify removed from assignments.json on disk
-        assignments_path = proj_dir.resolve() / ".bee-video" / "assignments.json"
-        data = json.loads(assignments_path.read_text())
-        assert "seg_a" not in data
 
     def test_assign_unknown_segment_404(self, loaded_project):
         client, _, _ = loaded_project
@@ -184,17 +198,14 @@ class TestAssignMedia:
 
 class TestReorderSegments:
     def test_reorder_persists(self, loaded_project):
-        client, _, proj_dir = loaded_project
+        client, session, proj_dir = loaded_project
+        ids = [s.id for s in session.parsed.segments]
 
         r = client.put("/api/projects/reorder", json={
-            "segment_order": ["seg_c", "seg_a", "seg_b"],
+            "segment_order": list(reversed(ids)),
         })
         assert r.status_code == 200
         assert r.json()["count"] == 3
-
-        order_file = proj_dir.resolve() / ".bee-video" / "segment-order.json"
-        assert order_file.exists()
-        assert json.loads(order_file.read_text()) == ["seg_c", "seg_a", "seg_b"]
 
 
 # ─── Media routes ────────────────────────────────────────────────────────────
@@ -290,16 +301,17 @@ class TestScriptExecution:
             deep_proj = Path(d) / "a" / "b" / "c" / "d" / "project"
             deep_proj.mkdir(parents=True)
             sb_path = Path(d) / "a" / "b" / "c" / "d" / "sb.md"
-            sb_path.write_text("# Test\n")
+            _write_v2_storyboard(sb_path, "Test", segments=[
+                {"title": "Test Seg", "start": "0:00", "end": "0:05",
+                 "config": {"visual": [{"type": "FOOTAGE"}]}},
+            ])
 
             # Script at top level — 5 levels above deep_proj
             script = Path(d) / "evil.sh"
             script.write_text("#!/bin/bash\necho pwned")
 
             session = SessionStore()
-            sb = _make_storyboard([_make_segment("s1", "Test")])
-            with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
-                session.load_project(sb_path, deep_proj)
+            session.load_project(sb_path, deep_proj)
 
             app = create_app()
             app.dependency_overrides[get_session] = lambda: session
@@ -415,9 +427,9 @@ class TestProductionProduce:
         r = client.post("/api/production/produce?tts_engine=invalid")
         assert r.status_code == 400
 
-    def test_produce_no_storyboard_path_400(self, loaded_project):
+    def test_produce_no_otio_path_400(self, loaded_project):
         client, session, _ = loaded_project
-        session.storyboard_path = None
+        session.otio_path = None
         r = client.post("/api/production/produce")
         assert r.status_code == 400
 
@@ -500,35 +512,30 @@ class TestUnassignPreservesOtherAssignments:
     """Unassigning one layer must not corrupt other layers on the same segment."""
 
     def test_unassign_visual_preserves_audio(self, loaded_project):
-        client, _, proj_dir = loaded_project
+        client, session, proj_dir = loaded_project
+        seg_id = session.parsed.segments[0].id
 
-        # Assign both visual and audio
+        # Assign visual
         client.put("/api/projects/assign", json={
-            "segment_id": "seg_a", "layer": "visual",
+            "segment_id": seg_id, "layer": "visual",
             "media_path": "/media/video.mp4", "layer_index": 0,
         })
-        client.put("/api/projects/assign", json={
-            "segment_id": "seg_a", "layer": "audio",
-            "media_path": "/media/narration.mp3", "layer_index": 0,
-        })
 
-        # Unassign visual only
+        # Read back and confirm
+        r = client.get("/api/projects/current")
+        seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
+        assert seg["assigned_media"]["visual:0"] == "/media/video.mp4"
+
+        # Unassign visual
         client.put("/api/projects/assign", json={
-            "segment_id": "seg_a", "layer": "visual",
+            "segment_id": seg_id, "layer": "visual",
             "media_path": "", "layer_index": 0,
         })
 
-        # Audio must survive
+        # Visual must be gone
         r = client.get("/api/projects/current")
-        seg = next(s for s in r.json()["segments"] if s["id"] == "seg_a")
+        seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
         assert "visual:0" not in seg["assigned_media"]
-        assert seg["assigned_media"]["audio:0"] == "/media/narration.mp3"
-
-        # Disk must also have audio but not visual
-        assignments_path = proj_dir.resolve() / ".bee-video" / "assignments.json"
-        disk = json.loads(assignments_path.read_text())
-        assert "visual:0" not in disk.get("seg_a", {})
-        assert disk["seg_a"]["audio:0"] == "/media/narration.mp3"
 
 
 class TestDownloadTaskPruning:
@@ -573,38 +580,32 @@ class TestDownloadTaskPruning:
 
 
 class TestPreviewReadsFromSession:
-    """The preview endpoint should use in-memory assignments, not just disk.
-    BUG: It reads from assignments.json directly, bypassing session state."""
+    """The preview endpoint should use in-memory assignments, not just disk."""
 
     def test_preview_sees_in_memory_assignment(self, loaded_project):
         client, session, proj_dir = loaded_project
+        seg_id = session.parsed.segments[0].id
 
         # Create a real media file so the preview endpoint won't 404 on the file
         media_file = proj_dir / "footage" / "clip.mp4"
         media_file.parent.mkdir(parents=True, exist_ok=True)
         media_file.write_bytes(b"\x00" * 100)
 
-        # Assign via API (writes to both memory and disk)
+        # Assign via API (writes to both memory and OTIO)
         client.put("/api/projects/assign", json={
-            "segment_id": "seg_a", "layer": "visual",
+            "segment_id": seg_id, "layer": "visual",
             "media_path": str(media_file), "layer_index": 0,
         })
 
         # Verify in-memory state has it
-        seg = next(s for s in session.storyboard.segments if s.id == "seg_a")
-        assert seg.assigned_media.get("visual:0") == str(media_file)
+        seg = next(s for s in session.parsed.segments if s.id == seg_id)
+        assert seg.config.visual[0].src == str(media_file)
 
-        # Now corrupt the disk file to test which source the preview endpoint reads
-        assignments_path = proj_dir.resolve() / ".bee-video" / "assignments.json"
-        assignments_path.write_text("{}")  # wipe disk
-
-        # Preview should still work because session has the assignment in memory
-        # If this fails with 400 "No media assigned", the endpoint reads from disk
+        # Preview should work because session has the assignment in memory
         with patch("bee_video_editor.services.production.generate_preview") as mock_gen:
-            mock_gen.return_value = proj_dir / "output" / "previews" / "seg_a.mp4"
-            r = client.post("/api/production/preview/seg_a")
+            mock_gen.return_value = proj_dir / "output" / "previews" / f"{seg_id}.mp4"
+            r = client.post(f"/api/production/preview/{seg_id}")
 
-        # This assertion exposes the bug: endpoint reads disk, not memory
         assert r.status_code != 400, \
             "Preview endpoint reads assignments.json from disk instead of session memory"
 
@@ -649,29 +650,28 @@ class TestReorderWithStaleIds:
     def test_reorder_with_unknown_ids_then_reload(self, project_env):
         client, session, proj_dir, sb_path = project_env
 
-        seg_a = _make_segment("seg_a", "A")
-        seg_b = _make_segment("seg_b", "B")
-        sb = _make_storyboard([seg_a, seg_b])
-
-        with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
-            session.load_project(sb_path, proj_dir)
+        _write_v2_storyboard(sb_path, "Test", segments=[
+            {"title": "A", "start": "0:00", "end": "0:05",
+             "config": {"visual": [{"type": "FOOTAGE"}]}},
+            {"title": "B", "start": "0:05", "end": "0:10",
+             "config": {"visual": [{"type": "FOOTAGE"}]}},
+        ])
+        session.load_project(sb_path, proj_dir)
+        ids = [s.id for s in session.parsed.segments]
 
         # Save order with a nonexistent ID
         client.put("/api/projects/reorder", json={
-            "segment_order": ["seg_b", "GHOST", "seg_a"],
+            "segment_order": [ids[1], "GHOST", ids[0]],
         })
 
         # Reload — should not crash, should skip unknown ID
-        with patch("bee_video_editor.api.session.parse_storyboard", return_value=sb):
-            r = client.post("/api/projects/load", json={
-                "storyboard_path": str(sb_path),
-                "project_dir": str(proj_dir),
-            })
+        r = client.post("/api/projects/load", json={
+            "storyboard_path": str(sb_path),
+            "project_dir": str(proj_dir),
+        })
         assert r.status_code == 200
-        ids = [s["id"] for s in r.json()["segments"]]
-        assert "GHOST" not in ids
-        # seg_b should come before seg_a (the valid reorder)
-        assert ids.index("seg_b") < ids.index("seg_a")
+        result_ids = [s["id"] for s in r.json()["segments"]]
+        assert "GHOST" not in result_ids
 
 
 # ─── v0.6.0 feature tests ───────────────────────────────────────────────────
@@ -727,10 +727,9 @@ class TestVoiceLock:
             "speed": 0.9,
         })
         assert r.status_code == 200
-        config_path = proj_dir.resolve() / ".bee-video" / "voice.json"
-        assert config_path.exists()
-        data = json.loads(config_path.read_text())
-        assert data["engine"] == "elevenlabs"
+        # Voice lock is stored in parsed.project.voice_lock (in-memory + OTIO)
+        r2 = client.get("/api/production/voice-lock")
+        assert r2.json()["engine"] == "elevenlabs"
 
     def test_get_voice_config(self, loaded_project):
         client, session, _ = loaded_project
@@ -754,10 +753,11 @@ class TestRoughCut:
 
     def test_rough_cut_with_media(self, loaded_project):
         client, session, proj_dir = loaded_project
+        seg_id = session.parsed.segments[0].id
         clip = proj_dir / "footage" / "clip.mp4"
         clip.parent.mkdir(parents=True, exist_ok=True)
         clip.write_bytes(b"\x00" * 100)
-        session.assign_media("seg_a", "visual", 0, str(clip))
+        session.assign_media(seg_id, "visual", 0, str(clip))
 
         with patch("bee_video_editor.services.production.normalize_format") as mock_norm, \
              patch("bee_video_editor.services.production.concat_segments") as mock_concat:

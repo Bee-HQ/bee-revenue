@@ -43,3 +43,22 @@ def reorder_segments(req: ReorderSegmentsRequest, session: SessionStore = Depend
     """Persist a custom segment ordering."""
     session.reorder_segments(req.segment_order)
     return {"status": "ok", "count": len(req.segment_order)}
+
+
+@router.get("/export")
+def export_project(format: str = "md", session: SessionStore = Depends(get_session)):
+    """Export the current project in markdown or OTIO format."""
+    parsed, project_dir = session.require_project()
+    if format == "md":
+        from bee_video_editor.formats.writer import write_v2
+        return {"format": "md", "content": write_v2(parsed)}
+    elif format == "otio":
+        from bee_video_editor.formats.otio_convert import clean_otio
+        import opentimelineio as otio_lib
+        out = project_dir / "output" / "export.otio"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        otio_lib.adapters.write_to_file(clean_otio(session.timeline), str(out))
+        return {"format": "otio", "path": str(out)}
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(400, f"Unsupported format: {format}")
