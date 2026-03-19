@@ -152,6 +152,43 @@ export function ProductionBar() {
         Previews
       </button>
 
+      <span className="text-gray-700">|</span>
+
+      <button
+        className={buttonClass('captions')}
+        disabled={isRunning}
+        onClick={() => runAction('captions', () => api.generateCaptions('karaoke'))}
+      >
+        Captions
+      </button>
+
+      <button
+        className={buttonClass('roughcut')}
+        disabled={isRunning}
+        onClick={() => runAction('roughcut', api.roughCut)}
+      >
+        Rough Cut
+      </button>
+
+      <button
+        className={buttonClass('preflight')}
+        disabled={isRunning}
+        onClick={async () => {
+          setStatus(s => ({ ...s, preflight: 'running' }));
+          try {
+            const r = await api.getPreflight();
+            const ok = r.missing === 0;
+            setStatus(s => ({ ...s, preflight: ok ? 'done' : 'error' }));
+            setMessage(`Preflight: ${r.found} found, ${r.missing} missing, ${r.needs_check} to check`);
+          } catch (e: any) {
+            setStatus(s => ({ ...s, preflight: 'error' }));
+            setMessage(`Preflight failed: ${e.message}`);
+          }
+        }}
+      >
+        Preflight
+      </button>
+
       {message && (
         <span className="text-xs text-gray-500 ml-auto truncate max-w-md">
           {message}

@@ -113,6 +113,21 @@ export const api = {
     return request<StatusResponse>('/production/previews', { method: 'POST' });
   },
 
+  generateCaptions(style: string = 'karaoke') {
+    return request<StatusResponse>('/production/captions', {
+      method: 'POST',
+      body: JSON.stringify({ style }),
+    });
+  },
+
+  roughCut() {
+    return request<StatusResponse>('/production/rough-cut', { method: 'POST' });
+  },
+
+  getPreflight(): Promise<{ total: number; found: number; missing: number; needs_check: number }> {
+    return request('/production/preflight');
+  },
+
   // Download endpoints
   listDownloadScripts(): Promise<DownloadScriptInfo[]> {
     return request('/media/download/scripts');
