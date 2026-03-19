@@ -75,6 +75,7 @@ def auto_assign(session: SessionStore = Depends(get_session)):
 
     # Apply assignments
     applied = 0
+    apply_errors: list[str] = []
     for a in plan.assignments:
         try:
             rel_path = str(a.file_path.relative_to(project_dir))
@@ -82,14 +83,15 @@ def auto_assign(session: SessionStore = Depends(get_session)):
                 "visual_updates": [{"index": a.layer_index, "src": rel_path}]
             })
             applied += 1
-        except Exception:
-            pass
+        except Exception as e:
+            apply_errors.append(f"{a.segment_id}: {e}")
 
     return {
         "status": "ok",
         "assigned": applied,
         "unmatched": len(plan.unmatched),
         "conflicts": plan.conflicts,
+        "apply_errors": apply_errors,
     }
 
 

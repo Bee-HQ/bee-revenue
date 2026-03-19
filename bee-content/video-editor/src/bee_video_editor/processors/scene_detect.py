@@ -37,6 +37,8 @@ def detect_scenes(
     min_scene_duration: float = 2.0,
 ) -> list[Scene]:
     """Detect scene changes in a video using FFmpeg's select filter."""
+    if not (0.0 <= threshold <= 1.0):
+        raise ValueError(f"threshold must be between 0.0 and 1.0, got {threshold}")
     video_path = Path(video_path)
     if not video_path.exists():
         return []

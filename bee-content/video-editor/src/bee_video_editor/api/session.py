@@ -23,10 +23,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+_ALLOWED_DOWNLOAD_DOMAINS = {
+    "pexels.com", "www.pexels.com", "images.pexels.com", "videos.pexels.com",
+    "pixabay.com", "cdn.pixabay.com",
+    "youtube.com", "www.youtube.com", "youtu.be",
+    "i.ytimg.com",
+}
+
+
 def _validate_download_url(url: str) -> None:
-    """Validate a download URL — block non-HTTPS, private IPs, file:// etc."""
-    from urllib.parse import urlparse
+    """Validate a download URL — block non-HTTPS, private IPs, internal hosts."""
     import ipaddress
+    import socket
+    from urllib.parse import urlparse
 
     parsed = urlparse(url)
     if parsed.scheme != "https":
@@ -34,20 +43,51 @@ def _validate_download_url(url: str) -> None:
     if not parsed.hostname:
         raise HTTPException(400, "Invalid URL: no hostname")
 
-    # Block private/reserved IPs
+    hostname = parsed.hostname
+
+    # Block private/reserved IP literals
     try:
-        ip = ipaddress.ip_address(parsed.hostname)
+        ip = ipaddress.ip_address(hostname)
         if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
             raise HTTPException(400, "Downloads from private/internal addresses are not allowed")
     except ValueError:
-        pass  # hostname is a domain name, not an IP — that's fine
+        pass  # hostname is a domain name — resolve it below
+
+    # Resolve hostname and check ALL resolved IPs
+    try:
+        addrs = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        for family, _, _, _, sockaddr in addrs:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+                raise HTTPException(400, "Downloads from private/internal addresses are not allowed")
+    except socket.gaierror:
+        raise HTTPException(400, f"Cannot resolve hostname: {hostname}")
+
+
+def _is_youtube_url(url: str) -> bool:
+    """Check if a URL is a valid YouTube URL (not just substring match)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+    return hostname in ("youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com")
 
 
 def _stream_download(url: str, out_path: Path) -> None:
-    """Stream-download a URL to a file path."""
+    """Stream-download a URL to a file path. Validates redirect targets."""
     import httpx
+    import ipaddress
+
     with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp:
         resp.raise_for_status()
+        # Validate the final URL after redirects
+        final_host = resp.url.host
+        if final_host:
+            try:
+                ip = ipaddress.ip_address(final_host)
+                if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+                    raise HTTPException(400, "Redirect to private/internal address blocked")
+            except ValueError:
+                pass  # domain name — DNS already resolved by httpx, accept it
         with open(out_path, "wb") as f:
             for chunk in resp.iter_bytes():
                 f.write(chunk)
@@ -349,12 +389,16 @@ class SessionStore:
 
         result: dict = {"status": "ok", "segment_id": segment_id, "layer": layer, "index": index}
 
+        # Sanitize segment_id for use in filenames (prevent path traversal)
+        slug = re.sub(r'[^a-zA-Z0-9_-]', '_', segment_id[:30])
+
         if download_url:
-            # Use yt-dlp for YouTube, httpx for direct links
-            if "youtube.com" in download_url or "youtu.be" in download_url:
+            # Validate ALL download URLs (including YouTube)
+            _validate_download_url(download_url)
+
+            if _is_youtube_url(download_url):
                 if not shutil.which("yt-dlp"):
                     raise HTTPException(400, "yt-dlp not installed")
-                slug = segment_id[:30]
                 out_path = out_dir / f"{slug}.mp4"
                 cmd = ["yt-dlp", "-o", str(out_path), "--merge-output-format", "mp4", download_url]
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -362,20 +406,18 @@ class SessionStore:
                     raise HTTPException(500, f"yt-dlp failed: {proc.stderr[:200]}")
                 result["path"] = str(out_path.relative_to(project_dir))
             else:
-                # Direct URL download — validate URL first
-                _validate_download_url(download_url)
-                slug = segment_id[:30]
+                # Direct URL download
+                from urllib.parse import urlparse as _urlparse
                 allowed_exts = {"mp4", "mkv", "webm", "mov", "mp3", "wav", "m4a", "png", "jpg", "jpeg"}
-                ext = download_url.rsplit(".", 1)[-1][:4].lower() if "." in download_url.split("/")[-1] else "mp4"
+                url_path = _urlparse(download_url).path
+                ext = Path(url_path).suffix.lstrip(".").lower()[:4] if url_path else "mp4"
                 if ext not in allowed_exts:
                     ext = "mp4"
                 out_path = out_dir / f"{slug}.{ext}"
                 _stream_download(download_url, out_path)
                 result["path"] = str(out_path.relative_to(project_dir))
         elif pexels_url:
-            # Download from Pexels — validate URL
             _validate_download_url(pexels_url)
-            slug = segment_id[:30]
             out_path = out_dir / f"{slug}-pexels.mp4"
             _stream_download(pexels_url, out_path)
             result["path"] = str(out_path.relative_to(project_dir))
