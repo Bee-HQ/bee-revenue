@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '../api/client';
 import { useProjectStore } from '../stores/project';
+import { toast } from '../stores/toast';
 
 type Status = 'idle' | 'running' | 'done' | 'error';
 
@@ -16,16 +17,16 @@ export function ProductionBar() {
     try {
       const result = await action();
       setStatus(s => ({ ...s, [key]: 'done' }));
-      if (result.count !== undefined) {
-        setMessage(`${key}: generated ${result.count} files`);
-      } else if (result.output) {
-        setMessage(`${key}: ${result.output}`);
-      } else {
-        setMessage(`${key}: done`);
-      }
+      const msg = result.count !== undefined
+        ? `${key}: generated ${result.count} files`
+        : result.output ? `${key}: ${result.output}` : `${key}: done`;
+      setMessage(msg);
+      toast.success(msg);
     } catch (e: any) {
       setStatus(s => ({ ...s, [key]: 'error' }));
-      setMessage(`${key} failed: ${e.message}`);
+      const msg = `${key} failed: ${e.message}`;
+      setMessage(msg);
+      toast.error(msg);
     }
   };
 
@@ -39,10 +40,18 @@ export function ProductionBar() {
       } else if (data.step === 'complete') {
         const finalStatus = data.status === 'ok' ? 'done' : 'error';
         setStatus(s => ({ ...s, narration: finalStatus as Status }));
-        setMessage(`Narration: ${data.succeeded} generated${data.failed ? ` (${data.failed} failed)` : ''}`);
+        const msg = `Narration: ${data.succeeded} generated${data.failed ? ` (${data.failed} failed)` : ''}`;
+        setMessage(msg);
+        if (data.status === 'ok') {
+          toast.success(msg);
+        } else {
+          toast.error(msg);
+        }
       } else if (data.error) {
         setStatus(s => ({ ...s, narration: 'error' }));
-        setMessage(`Narration failed: ${data.error}`);
+        const msg = `Narration failed: ${data.error}`;
+        setMessage(msg);
+        toast.error(msg);
       }
     }, () => {
       setStatus(s => {
@@ -58,11 +67,20 @@ export function ProductionBar() {
 
     api.connectProgress('produce', {}, (data) => {
       if (data.step === 'complete') {
-        setStatus(s => ({ ...s, produce: data.status === 'ok' ? 'done' : 'error' }));
-        setMessage(data.output ? `Done: ${data.output}` : 'Produce complete');
+        const ok = data.status === 'ok';
+        setStatus(s => ({ ...s, produce: ok ? 'done' : 'error' }));
+        const msg = data.output ? `Done: ${data.output}` : 'Produce complete';
+        setMessage(msg);
+        if (ok) {
+          toast.success(msg);
+        } else {
+          toast.error(msg);
+        }
       } else if (data.error) {
         setStatus(s => ({ ...s, produce: 'error' }));
-        setMessage(`Produce failed: ${data.error}`);
+        const msg = `Produce failed: ${data.error}`;
+        setMessage(msg);
+        toast.error(msg);
       } else {
         setMessage(`${data.step}: ${data.status}${data.message ? ' — ' + data.message : ''}`);
       }
@@ -179,10 +197,18 @@ export function ProductionBar() {
             const r = await api.getPreflight();
             const ok = r.missing === 0;
             setStatus(s => ({ ...s, preflight: ok ? 'done' : 'error' }));
-            setMessage(`Preflight: ${r.found} found, ${r.missing} missing, ${r.needs_check} to check`);
+            const msg = `Preflight: ${r.found} found, ${r.missing} missing, ${r.needs_check} to check`;
+            setMessage(msg);
+            if (ok) {
+              toast.success(msg);
+            } else {
+              toast.warning(msg);
+            }
           } catch (e: any) {
             setStatus(s => ({ ...s, preflight: 'error' }));
-            setMessage(`Preflight failed: ${e.message}`);
+            const msg = `Preflight failed: ${e.message}`;
+            setMessage(msg);
+            toast.error(msg);
           }
         }}
       >

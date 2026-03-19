@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useProjectStore } from './stores/project';
 import { Layout } from './components/Layout';
 import { LoadProject } from './components/LoadProject';
+import { ToastContainer } from './components/ToastContainer';
 
 export default function App() {
   const storyboard = useProjectStore(s => s.storyboard);
@@ -23,8 +24,18 @@ export default function App() {
   }, []);
 
   if (!storyboard) {
-    return <LoadProject />;
+    return (
+      <>
+        <LoadProject />
+        <ToastContainer />
+      </>
+    );
   }
 
-  return <Layout />;
+  return (
+    <>
+      <Layout />
+      <ToastContainer />
+    </>
+  );
 }

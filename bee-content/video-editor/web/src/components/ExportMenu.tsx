@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
+import { toast } from '../stores/toast';
 
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
@@ -31,8 +32,10 @@ export function ExportMenu() {
       a.click();
       URL.revokeObjectURL(url);
       setStatus('Markdown exported');
+      toast.success('Markdown exported');
     } catch (err: any) {
       setStatus(`Error: ${err.message}`);
+      toast.error(`Export failed: ${err.message}`);
     }
     setTimeout(() => setStatus(''), 3000);
   };
@@ -42,9 +45,12 @@ export function ExportMenu() {
     setStatus('Exporting...');
     try {
       const result = await api.exportOtio();
-      setStatus(`OTIO saved to ${result.path}`);
+      const msg = `OTIO saved to ${result.path}`;
+      setStatus(msg);
+      toast.success(msg);
     } catch (err: any) {
       setStatus(`Error: ${err.message}`);
+      toast.error(`Export failed: ${err.message}`);
     }
     setTimeout(() => setStatus(''), 5000);
   };
