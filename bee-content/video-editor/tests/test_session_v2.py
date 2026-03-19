@@ -419,3 +419,44 @@ def test_update_segment_not_found(tmp_path):
     with pytest.raises(HTTPException) as exc_info:
         session.update_segment_config("nonexistent-id", {"transition_in": None})
     assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Download entry tests
+# ---------------------------------------------------------------------------
+
+
+def test_download_entry_no_metadata_raises(tmp_path):
+    """Trying to download an entry without download_url raises 400."""
+    from fastapi import HTTPException
+
+    session = _load_session(tmp_path)
+    seg_id = session.parsed.segments[0].id
+    with pytest.raises(HTTPException) as exc_info:
+        session.download_entry(seg_id, "visual", 0, tmp_path)
+    assert exc_info.value.status_code == 400
+
+
+def test_download_entry_invalid_segment_raises(tmp_path):
+    """Downloading from a nonexistent segment raises 404."""
+    from fastapi import HTTPException
+
+    session = _load_session(tmp_path)
+    with pytest.raises(HTTPException) as exc_info:
+        session.download_entry("nonexistent", "visual", 0, tmp_path)
+    assert exc_info.value.status_code == 404
+
+
+def test_download_entry_stock_query_returns_search_needed(tmp_path):
+    """Stock entry with query but no URL returns search_needed status."""
+    session = _load_session(tmp_path)
+    # The second segment has a STOCK visual — modify it to have a query but no src
+    session.parsed.segments[1].config.visual[0] = (
+        session.parsed.segments[1].config.visual[0].model_copy(
+            update={"src": None, "query": "aerial farm dusk"}
+        )
+    )
+    seg_id = session.parsed.segments[1].id
+    result = session.download_entry(seg_id, "visual", 0, tmp_path)
+    assert result["status"] == "search_needed"
+    assert result["query"] == "aerial farm dusk"
