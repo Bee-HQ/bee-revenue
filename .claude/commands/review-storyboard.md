@@ -1,0 +1,133 @@
+# Review Storyboard
+
+You are reviewing a storyboard for production readiness — checking that every segment has valid JSON, timing is correct, the formula is followed, and the storyboard can be fed directly into the bee-video production pipeline.
+
+## Setup
+
+Ask: "Which storyboard should I review?"
+- Look for `storyboard.md` files in `bee-content/discovery/true-crime/cases/*/`
+- Accept any path
+
+## Context Documents
+
+Read before reviewing:
+
+1. **The storyboard** (the file being reviewed)
+2. **Output format spec** — `bee-content/video-editor/docs/superpowers/specs/2026-03-19-otio-project-format-design.md`
+   - Valid JSON block structure
+   - Visual/audio/overlay type definitions
+   - Required fields per type
+3. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
+   - Act percentages
+   - Visual rules (no shot > 12 seconds, Ken Burns on stills, etc.)
+   - Audio rules (levels, music continuity)
+   - Production rules section
+
+## Review Checklist
+
+### 1. Format Validity
+
+- **Project block:** Is there exactly one `` ```json bee-video:project `` block? Is it valid JSON?
+- **Segment blocks:** Does every `### time | title` segment have a `` ```json bee-video:segment `` block? Is each valid JSON?
+- **Narration:** Are `> NAR:` blockquotes present where narration is needed? Are they below the JSON block (not inside it)?
+- **Timecodes:** Do segment headers use valid `M:SS` or `H:MM:SS` format? Are they sequential (no overlaps, no gaps)?
+- **Section headers:** Do `## ACT` headers have time ranges that match their segments?
+
+### 2. Visual Completeness
+
+For each segment's `visual` array:
+- **Type valid?** Must be one of: FOOTAGE, STOCK, PHOTO, MAP, GRAPHIC, GENERATED, WAVEFORM, BLACK
+- **Source assignment:** Count segments with `"src": null` vs assigned. Report the ratio.
+- **Required fields:** FOOTAGE needs `src`/`in`/`out` (or null). MAP needs `style`. PHOTO needs `ken_burns`.
+- **Duration rule:** No single visual should last more than 12 seconds (from production rules). Flag violations.
+
+### 3. Audio Completeness
+
+For each segment's `audio` array:
+- **Type valid?** Must be one of: REAL_AUDIO, MUSIC, SFX, NAR
+- **Music continuity:** Does every segment have a MUSIC entry? (Formula: background music never stops)
+- **Volume levels:** NAR should be ~0.8-1.0, REAL_AUDIO ~0.6-0.8, MUSIC ~0.15-0.25
+- **Narration present:** If `> NAR:` blockquote exists, is there narration content?
+- **90-second rule:** Check for consecutive segments totaling >90 seconds with only NAR audio (no REAL_AUDIO). Flag violations.
+
+### 4. Overlay Completeness
+
+- **Lower thirds:** Does every character's first appearance have a LOWER_THIRD overlay?
+- **Type valid?** Must be one of: LOWER_THIRD, TIMELINE_MARKER, QUOTE_CARD, FINANCIAL_CARD, TEXT_OVERLAY
+- **Duration:** LOWER_THIRD should have duration 4-6 seconds
+
+### 5. Transitions
+
+- **First segment:** Should have `"transition_in": {"type": "fade_from_black", ...}`
+- **Act transitions:** Should have dissolves (1-1.5s)
+- **Impact moments:** Should NOT have transitions (hard cuts)
+- **Consistency:** Check that transitions follow the pattern from the formula
+
+### 6. Timing
+
+- **Total duration:** Does it match the project's expected runtime?
+- **Act percentages:** Calculate actual percentages, compare against archetype targets
+- **Segment duration range:** Most segments should be 8-30 seconds. Flag outliers.
+
+### 7. Asset Readiness
+
+- **Count unassigned:** How many `"src": null` entries by type?
+- **Stock footage queries:** Do STOCK entries with null src have a `"query"` field?
+- **Maps:** Do MAP entries have `style` and coordinates?
+- **Generated:** Do GENERATED entries have a `"prompt"` field?
+
+## Output
+
+```
+## Storyboard Review: "[Title]"
+
+### Overall: PRODUCTION-READY / NEEDS WORK / MAJOR ISSUES
+
+### Format Validity
+- Project block: VALID/INVALID
+- Segment blocks: [N valid] / [N total]
+- Timecode issues: [list]
+
+### Visual Coverage
+- Segments with assigned media: [N] / [N total] ([%])
+- Segments with null src: [N] (these need media assignment)
+- Visual type distribution: [table]
+- Duration violations (>12s): [list]
+
+### Audio Coverage
+- Segments with music: [N] / [N total]
+- Segments with narration: [N]
+- Segments with real audio: [N]
+- 90-second narrator stretches: [list any violations]
+
+### Overlay Coverage
+- Characters with lower thirds: [N] / [N total characters]
+- Missing lower thirds: [list]
+
+### Transitions
+- [any issues]
+
+### Timing
+- Total duration: [actual vs target]
+- Act percentages: [table: actual vs target]
+
+### Asset Summary
+| Type | Assigned | Unassigned |
+|------|----------|------------|
+| FOOTAGE | [N] | [N] |
+| STOCK | [N] | [N] |
+| PHOTO | [N] | [N] |
+| MAP | [N] | [N] |
+| MUSIC | [N] | [N] |
+
+### Issues
+[numbered list with segment references and fixes]
+
+### Verdict
+[ready for production, or what needs to happen first?]
+```
+
+If production-ready, say: "Storyboard is ready. Next steps:"
+- "Assign remaining media in web editor (`bee-video serve`)"
+- "Run `bee-video preflight storyboard.md` to verify assets"
+- "Run `bee-video produce storyboard.md -p ./project` to generate the video"

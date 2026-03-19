@@ -95,7 +95,7 @@ def storyboard_to_otio(storyboard: Storyboard, fps: float = 30.0) -> otio.schema
 
         # Audio clip (matching duration)
         has_narration = any(a.content_type == "NAR" for a in seg.audio)
-        has_real_audio = any(a.content_type == "REAL AUDIO" for a in seg.audio)
+        has_real_audio = any(a.content_type == "REAL_AUDIO" for a in seg.audio)
 
         if has_narration or has_real_audio:
             audio_clip = otio.schema.Clip(

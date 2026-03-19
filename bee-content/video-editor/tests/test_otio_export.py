@@ -143,7 +143,7 @@ class TestStoryboardToOtio:
     def test_real_audio_also_creates_audio_clip(self):
         sb = Storyboard(title="Test", segments=[
             _seg("s1", "0:00", "0:10", "REAL",
-                 audio=[LayerEntry(content="ambient", content_type="REAL AUDIO", raw="")]),
+                 audio=[LayerEntry(content="ambient", content_type="REAL_AUDIO", raw="")]),
         ], production_rules=ProductionRules())
 
         tl = storyboard_to_otio(sb)
