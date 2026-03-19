@@ -386,41 +386,56 @@ def generate_narration_for_project(
     return result
 
 
+def _parse_trim_from_source(content: str) -> tuple[str, str | None, str | None]:
+    """Parse source layer content into (file_path, start, end).
+
+    Handles:
+        `footage/test.mp4` trim 0:00-0:10
+        footage/test.mp4 trim 0:00-0:10
+        `footage/test.mp4`
+    """
+    text = content.strip().replace("`", "")
+    trim_match = re.match(r'(.+?)\s+trim\s+(\d+:\d+)-(\d+:\d+)', text)
+    if trim_match:
+        return trim_match.group(1).strip(), trim_match.group(2), trim_match.group(3)
+    return text.strip(), None, None
+
+
 def trim_source_footage(
-    project: Project | Storyboard,
+    project: Storyboard,
     config: ProductionConfig,
     state: ProductionState | None = None,
 ) -> ProductionResult:
-    """Trim source footage. Only works with Project (assembly guide) — Storyboard returns empty result."""
+    """Trim source footage based on storyboard source layers."""
     result = ProductionResult()
-
-    # Storyboard has no trim notes — return empty
-    if isinstance(project, Storyboard):
-        return result
-
     segments_dir = config.output_dir / "segments"
 
     if state:
         state.phase = "trimming"
         state.save(config.state_path)
 
-    for note in project.trim_notes:
-        # Resolve glob pattern to actual file
-        pattern = str(config.footage_dir / note.source_file.replace("footage/", ""))
-        matches = globmod.glob(pattern)
-        if not matches:
-            result.failed.append(FailedItem(path=note.source_file, error="No matching source file found"))
-            continue
-        source = matches[0]
+    for i, seg in enumerate(project.segments):
+        for entry in seg.source:
+            file_path, start, end = _parse_trim_from_source(entry.content)
+            if not file_path:
+                continue
 
-        for j, t in enumerate(note.trims):
-            slug = _slugify(t.label)[:40]
-            out = segments_dir / f"trim-{slug}-{j:02d}.mp4"
+            # Resolve path relative to footage_dir
+            rel_path = file_path.replace("footage/", "")
+            pattern = str(config.footage_dir / rel_path)
+            matches = globmod.glob(pattern)
+            if not matches:
+                result.failed.append(FailedItem(path=file_path, error="No matching source file found"))
+                continue
+            source_file = matches[0]
+
+            slug = _slugify(Path(file_path).stem)[:40]
+            out = segments_dir / f"trim-{i:03d}-{slug}.mp4"
             if out.exists():
                 result.skipped.append(str(out))
             else:
                 try:
-                    trim(source, out, start=t.start, end=t.duration)
+                    trim(source_file, out, start=start, end=end)
                     result.succeeded.append(out)
                 except Exception as e:
                     result.failed.append(FailedItem(path=str(out), error=str(e)))

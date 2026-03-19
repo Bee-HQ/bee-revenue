@@ -25,6 +25,7 @@ from bee_video_editor.services.production import (
     _derive_segment_type,
     _ensure_storyboard,
     _extract_narrator_text,
+    _parse_trim_from_source,
     _slugify,
     generate_all_previews,
     generate_preview,
@@ -243,6 +244,24 @@ class TestPipelineResult:
     def test_output_path_default_none(self):
         result = PipelineResult(steps=[])
         assert result.output_path is None
+
+
+def test_parse_trim_from_source():
+    from bee_video_editor.services.production import _parse_trim_from_source
+    path, start, end = _parse_trim_from_source("`footage/test.mp4` trim 0:00-0:10")
+    assert path == "footage/test.mp4"
+    assert start == "0:00"
+    assert end == "0:10"
+
+    path, start, end = _parse_trim_from_source("`footage/test.mp4`")
+    assert path == "footage/test.mp4"
+    assert start is None
+    assert end is None
+
+    path, start, end = _parse_trim_from_source("footage/test.mp4 trim 1:30-2:00")
+    assert path == "footage/test.mp4"
+    assert start == "1:30"
+    assert end == "2:00"
 
 
 class TestTrimWithStoryboard:
