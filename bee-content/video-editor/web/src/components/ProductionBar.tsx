@@ -144,6 +144,26 @@ export function ProductionBar() {
       </button>
 
       <button
+        className={buttonClass('acquire')}
+        disabled={isRunning}
+        onClick={async () => {
+          setStatus(s => ({ ...s, acquire: 'running' }));
+          try {
+            const r = await api.acquireMedia();
+            setStatus(s => ({ ...s, acquire: 'done' }));
+            const msg = `Acquired: ${r.downloaded} downloaded, ${r.failed} failed (${r.queries} queries)`;
+            toast.success(msg);
+            useProjectStore.getState().loadMedia();
+          } catch (e: any) {
+            setStatus(s => ({ ...s, acquire: 'error' }));
+            toast.error(`Acquire failed: ${e.message}`);
+          }
+        }}
+      >
+        Acquire
+      </button>
+
+      <button
         className={buttonClass('init')}
         disabled={isRunning}
         onClick={() => runAction('init', api.initProject)}

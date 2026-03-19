@@ -194,6 +194,10 @@ export const api = {
     return request('/projects/auto-assign', { method: 'POST' });
   },
 
+  acquireMedia(): Promise<{ status: string; queries: number; matched: number; downloaded: number; failed: number; errors: string[] }> {
+    return request('/projects/acquire-media', { method: 'POST' });
+  },
+
   exportMarkdown(): Promise<{ format: string; content: string }> {
     return request('/projects/export?format=md');
   },

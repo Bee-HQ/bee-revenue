@@ -95,6 +95,24 @@ def auto_assign(session: SessionStore = Depends(get_session)):
     }
 
 
+@router.post("/acquire-media")
+def acquire_all_media(session: SessionStore = Depends(get_session)):
+    """Search and download all stock media needed by the storyboard."""
+    from bee_video_editor.services.acquisition import acquire_media
+
+    parsed, project_dir = session.require_project()
+    report = acquire_media(parsed, project_dir)
+
+    return {
+        "status": "ok",
+        "queries": report.queries_total,
+        "matched": report.queries_matched,
+        "downloaded": report.downloads_succeeded,
+        "failed": report.downloads_failed,
+        "errors": report.errors,
+    }
+
+
 @router.get("/export")
 def export_project(format: str = "md", session: SessionStore = Depends(get_session)):
     """Export the current project in markdown or OTIO format."""
