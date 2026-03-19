@@ -662,14 +662,14 @@ def produce(
         raise typer.Exit(1)
 
 
-@app.command()
-def export(
+@app.command(name="export-legacy")
+def export_legacy(
     storyboard_path: str = typer.Argument(..., help="Path to storyboard markdown file"),
     output: str = typer.Option(None, "--output", "-o", help="Output file path (default: <project>/output/timeline.otio)"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
     fps: float = typer.Option(30.0, "--fps", help="Frame rate"),
 ):
-    """Export storyboard to OpenTimelineIO format for NLE editing."""
+    """Export storyboard to OpenTimelineIO format for NLE editing (legacy v1 format)."""
     from bee_video_editor.parsers.storyboard import parse_storyboard
     from bee_video_editor.exporters.otio_export import export_otio
 
@@ -683,6 +683,59 @@ def export(
     result = export_otio(sb, Path(output), fps=fps)
     console.print(f"[green]Exported OTIO timeline: {result}[/green]")
     console.print(f"[dim]Segments: {len(sb.segments)}, Tracks: 2 (V1 + A1)[/dim]")
+
+
+@app.command(name="import-md")
+def import_md(
+    storyboard: str = typer.Argument(..., help="Path to storyboard .md file (format v2)"),
+    output: str | None = typer.Option(None, help="Output .otio path (default: same name as input)"),
+    lenient: bool = typer.Option(False, "--lenient", help="Downgrade parse errors to warnings, skip bad segments"),
+):
+    """Import a v2 markdown storyboard into an OTIO project file."""
+    import opentimelineio as otio_lib
+    from bee_video_editor.formats.parser import parse_v2
+    from bee_video_editor.formats.otio_convert import to_otio
+
+    parsed = parse_v2(storyboard, lenient=lenient)
+    tl = to_otio(parsed)
+
+    if output is None:
+        output = str(Path(storyboard).with_suffix(".otio"))
+
+    otio_lib.adapters.write_to_file(tl, output)
+    console.print(f"[green]Imported to {output}[/green]")
+    console.print(f"  {len(parsed.segments)} segments, {len(parsed.sections)} sections")
+
+
+@app.command(name="export")
+def export_v2(
+    project: str = typer.Argument(..., help="Path to .otio project file"),
+    format: str = typer.Option("md", help="Export format: md or otio"),
+    output: str | None = typer.Option(None, help="Output path"),
+):
+    """Export an OTIO project to markdown or clean OTIO."""
+    import opentimelineio as otio_lib
+    from bee_video_editor.formats.otio_convert import from_otio, clean_otio
+    from bee_video_editor.formats.writer import write_v2
+
+    tl = otio_lib.adapters.read_from_file(project)
+
+    if format == "md":
+        parsed = from_otio(tl)
+        md = write_v2(parsed)
+        if output is None:
+            output = str(Path(project).with_suffix(".md"))
+        Path(output).write_text(md, encoding="utf-8")
+        console.print(f"[green]Exported markdown to {output}[/green]")
+    elif format == "otio":
+        clean = clean_otio(tl)
+        if output is None:
+            output = str(Path(project).stem + "_clean.otio")
+        otio_lib.adapters.write_to_file(clean, output)
+        console.print(f"[green]Exported clean OTIO to {output}[/green]")
+    else:
+        console.print(f"[red]Unknown format: {format}. Use 'md' or 'otio'.[/red]")
+        raise typer.Exit(1)
 
 
 @app.command(name="map")
