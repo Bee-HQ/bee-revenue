@@ -1,5 +1,9 @@
 # Shot-by-Shot Storyboard: "He Called 911 on His Own Family — Then a Snapchat Video Surfaced"
 
+**Total Duration:** ~55 minutes
+**Resolution:** 1080p
+**Format:** MP4 (H.264 + AAC)
+
 Every second of this video has an assigned visual. Nothing is ever a black screen.
 
 > **Visual codes** reference the [Visual Storyboard Bible](../../research/visual-storyboard-bible.md). Each code maps to a production asset with exact specs.
@@ -10,6 +14,29 @@ Every second of this video has an assigned visual. Nothing is ever a black scree
 - `MUSIC:` = Background music (always playing, low volume under narration, swells during transitions)
 
 **Visual change rule:** No single visual lasts more than 10-15 seconds. Cut, dissolve, or shift every 8-12 seconds.
+
+---
+
+## PRE-PRODUCTION
+
+### Audio
+- [ ] Generate full narrator voiceover from screenplay (TTS)
+- [ ] Select/generate dark ambient background music (MusicGen or licensed)
+- [ ] Normalize all audio to -14 LUFS (YouTube standard)
+
+### Graphics
+- [ ] Lower thirds for 15+ characters
+- [ ] Timeline markers (date stamps)
+- [ ] Financial amount overlays ($792K, $4.3M, $8.8M, $12M)
+- [ ] Key quote overlays
+- [ ] Case status graphic (charges + sentences)
+
+### Maps
+- [ ] Lowcountry SC region with 5 counties highlighted
+- [ ] Moselle property aerial zoom-in
+- [ ] Archers Creek Bridge (boat crash location)
+- [ ] Walterboro courthouse
+- [ ] Route from Moselle to Almeda (mother's house)
 
 ---
 
@@ -330,3 +357,14 @@ Ready to overlay:
    - Narrator: -14 LUFS (primary)
    - Real audio clips: -14 LUFS (match narrator — bodycam audio is low quality, needs to be intelligible; [CAPTION-ANIMATED] carries comprehension)
    - Background music: -30 LUFS (bed level, rises to -20 during transitions)
+
+---
+
+## POST-ASSEMBLY
+
+- [ ] Color grade consistency pass across all segments
+- [ ] Audio levels check (-14 LUFS narrator, -30 LUFS music bed)
+- [ ] Transition timing review (0.5-1s dissolves, hard cuts for impact)
+- [ ] Background music continuity check
+- [ ] Thumbnail generation
+- [ ] Export at 1080p H.264 + AAC
