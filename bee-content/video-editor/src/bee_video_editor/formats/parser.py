@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from bee_video_editor.formats.models import ProjectConfig, SegmentConfig
+from bee_video_editor.formats.slugify import unique_slug
 
 
 class StoryboardParseError(Exception):
@@ -25,6 +26,7 @@ class ParsedSection:
 
 @dataclass
 class ParsedSegment:
+    id: str
     title: str
     start: str
     end: str
@@ -70,6 +72,7 @@ def parse_v2(path: str | Path, *, lenient: bool = False) -> ParsedStoryboard:
     project_configs: list[tuple[int, dict]] = []
     sections: list[ParsedSection] = []
     segments: list[ParsedSegment] = []
+    seen_ids: set[str] = set()
 
     # State
     current_section: ParsedSection | None = None
@@ -101,9 +104,12 @@ def parse_v2(path: str | Path, *, lenient: bool = False) -> ParsedStoryboard:
 
         config = current_segment_config if current_segment_config is not None else SegmentConfig()
         narration = _join_narration(current_narration_lines)
+        seg_title = current_segment_header["title"]
+        seg_id = unique_slug(seg_title, seen_ids)
 
         segments.append(ParsedSegment(
-            title=current_segment_header["title"],
+            id=seg_id,
+            title=seg_title,
             start=current_segment_header["start"],
             end=current_segment_header["end"],
             section=current_section.title if current_section else "",
@@ -325,3 +331,9 @@ def parse_v2(path: str | Path, *, lenient: bool = False) -> ParsedStoryboard:
         sections=sections,
         segments=segments,
     )
+
+
+def segment_duration(seg: ParsedSegment) -> float:
+    """Return the duration of a segment in seconds."""
+    from bee_video_editor.formats.timecodes import parse_header_tc
+    return parse_header_tc(seg.end) - parse_header_tc(seg.start)

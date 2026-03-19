@@ -171,6 +171,15 @@ def test_parse_full_multi_paragraph_narration():
     assert "\n\n" in crime_seg.narration
 
 
+def test_parse_segments_have_unique_ids():
+    from bee_video_editor.formats.parser import parse_v2
+    parsed = parse_v2(FIXTURES / "storyboard_v2_minimal.md")
+    assert parsed.segments[0].id == "first-segment"
+    assert parsed.segments[1].id == "second-segment"
+    ids = [s.id for s in parsed.segments]
+    assert len(ids) == len(set(ids))
+
+
 def _parse_text(text: str):
     from bee_video_editor.formats.parser import parse_v2
     import tempfile, os
