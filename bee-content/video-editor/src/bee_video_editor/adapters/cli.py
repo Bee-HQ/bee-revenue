@@ -737,7 +737,7 @@ def export_v2(
 
 @app.command(name="map")
 def generate_map(
-    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route"),
+    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route, satellite, hybrid"),
     lat: float = typer.Option(..., help="Center latitude"),
     lng: float = typer.Option(..., help="Center longitude"),
     output: str = typer.Option(None, "--output", "-o"),
@@ -750,8 +750,10 @@ def generate_map(
         from bee_video_editor.processors.maps import (
             MapLocation,
             map_flat,
+            map_hybrid,
             map_pulse,
             map_route,
+            map_satellite,
             map_tactical,
         )
     except ImportError:
@@ -772,11 +774,15 @@ def generate_map(
         map_tactical(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
     elif map_type == "pulse":
         map_pulse(lat, lng, out_path, zoom=zoom, label=label)
+    elif map_type == "satellite":
+        map_satellite(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
+    elif map_type == "hybrid":
+        map_hybrid(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
     elif map_type == "route":
         console.print("[red]Route requires multiple points — use the Python API directly.[/red]")
         return
     else:
-        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route[/red]")
+        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route, satellite, hybrid[/red]")
         return
 
     console.print(f"[green]Map generated: {out_path}[/green]")
@@ -1057,6 +1063,38 @@ def stock_library_check(
         for m in matches:
             console.print(f"  Pexels {m['pexels_id']} — used {m['usage_count']}x, first in {m['first_used_project']}")
         console.print("[dim]Consider varying your search terms to avoid visual repetition.[/dim]")
+
+
+@app.command()
+def scenes(
+    video: str = typer.Argument(..., help="Path to video file"),
+    threshold: float = typer.Option(0.3, help="Scene change threshold (0.0-1.0)"),
+    min_duration: float = typer.Option(2.0, help="Minimum scene duration in seconds"),
+):
+    """Detect scene boundaries in a video file."""
+    import shutil
+    if not shutil.which("ffmpeg"):
+        console.print("[red]FFmpeg is required for scene detection[/red]")
+        raise typer.Exit(1)
+
+    from bee_video_editor.processors.scene_detect import detect_scenes
+
+    scenes_list = detect_scenes(video, threshold=threshold, min_scene_duration=min_duration)
+
+    if not scenes_list:
+        console.print("[yellow]No scenes detected[/yellow]")
+        return
+
+    table = Table(title=f"Detected {len(scenes_list)} scenes")
+    table.add_column("#", justify="right")
+    table.add_column("Start")
+    table.add_column("End")
+    table.add_column("Duration", justify="right")
+
+    for s in scenes_list:
+        table.add_row(str(s.index + 1), s.start_timecode, s.end_timecode, f"{s.duration:.1f}s")
+
+    console.print(table)
 
 
 if __name__ == "__main__":

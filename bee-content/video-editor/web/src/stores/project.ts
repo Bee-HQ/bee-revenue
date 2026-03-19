@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
+import { toast } from './toast';
 
 const MAX_HISTORY = 50;
 
@@ -93,6 +94,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       get().loadMedia();
     } catch (e: any) {
       set({ error: e.message, loading: false });
+      toast.error(`Failed to load: ${e.message}`);
     }
   },
 
@@ -126,6 +128,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     segments.splice(toIndex, 0, moved);
     const newOrder = segments.map(s => s.id);
     set({ storyboard: { ...storyboard, segments }, segmentOrder: newOrder });
+    toast.info('Segments reordered');
     // Persist to backend (fire-and-forget, non-critical)
     api.reorderSegments(newOrder).catch(() => {});
   },
@@ -181,7 +184,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const segment = storyboard?.segments.find(s => s.id === segmentId);
     const oldValue = segment?.assigned_media[key] ?? null;
 
-    await api.assignMedia(segmentId, layer, mediaPath, layerIndex);
+    try {
+      await api.assignMedia(segmentId, layer, mediaPath, layerIndex);
+    } catch (e: any) {
+      toast.error(`Assignment failed: ${e.message}`);
+      throw e;
+    }
 
     // Push history entry, cap at MAX_HISTORY
     const entry: HistoryEntry = { segmentId, key, oldValue, newValue: mediaPath };
@@ -195,6 +203,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       undoStack: newStack,
       redoStack: [],
     });
+    toast.success('Media assigned');
   },
 
   undo: async () => {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api/client';
 import { useProjectStore } from '../stores/project';
+import { toast } from '../stores/toast';
 
 interface Props {
   segmentId: string;
@@ -30,8 +31,10 @@ export function DownloadButton({ segmentId, layer, index, downloadUrl, pexelsUrl
         setStatus('idle');
         setMessage(`Search: "${result.query}"`);
       } else if (result.path) {
+        const filename = result.path.split('/').pop() || 'Downloaded';
         setStatus('done');
-        setMessage(result.path.split('/').pop() || 'Downloaded');
+        setMessage(filename);
+        toast.success(`Downloaded: ${filename}`);
         // Refresh project to pick up the new src
         const storyboard = await api.getCurrentProject();
         useProjectStore.setState({ storyboard });
@@ -40,6 +43,7 @@ export function DownloadButton({ segmentId, layer, index, downloadUrl, pexelsUrl
       setStatus('error');
       const msg = err instanceof Error ? err.message : 'Download failed';
       setMessage(msg);
+      toast.error(`Download failed: ${msg}`);
     }
     setTimeout(() => {
       setStatus((prev) => (prev !== 'downloading' ? 'idle' : prev));

@@ -60,6 +60,59 @@ def download_entry(req: DownloadEntryRequest, session: SessionStore = Depends(ge
     return session.download_entry(req.segment_id, req.layer, req.index, project_dir)
 
 
+@router.post("/auto-assign")
+def auto_assign(session: SessionStore = Depends(get_session)):
+    """Auto-assign media files to segments based on keyword matching."""
+    from bee_video_editor.services.matcher import auto_assign_media
+
+    parsed, project_dir = session.require_project()
+    media_dirs = [
+        project_dir / "footage",
+        project_dir / "stock",
+        project_dir / "photos",
+    ]
+    plan = auto_assign_media(parsed, media_dirs)
+
+    # Apply assignments
+    applied = 0
+    apply_errors: list[str] = []
+    for a in plan.assignments:
+        try:
+            rel_path = str(a.file_path.relative_to(project_dir))
+            session.update_segment_config(a.segment_id, {
+                "visual_updates": [{"index": a.layer_index, "src": rel_path}]
+            })
+            applied += 1
+        except Exception as e:
+            apply_errors.append(f"{a.segment_id}: {e}")
+
+    return {
+        "status": "ok",
+        "assigned": applied,
+        "unmatched": len(plan.unmatched),
+        "conflicts": plan.conflicts,
+        "apply_errors": apply_errors,
+    }
+
+
+@router.post("/acquire-media")
+def acquire_all_media(session: SessionStore = Depends(get_session)):
+    """Search and download all stock media needed by the storyboard."""
+    from bee_video_editor.services.acquisition import acquire_media
+
+    parsed, project_dir = session.require_project()
+    report = acquire_media(parsed, project_dir)
+
+    return {
+        "status": "ok",
+        "queries": report.queries_total,
+        "matched": report.queries_matched,
+        "downloaded": report.downloads_succeeded,
+        "failed": report.downloads_failed,
+        "errors": report.errors,
+    }
+
+
 @router.get("/export")
 def export_project(format: str = "md", session: SessionStore = Depends(get_session)):
     """Export the current project in markdown or OTIO format."""

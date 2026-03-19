@@ -113,6 +113,25 @@ export const api = {
     return request<StatusResponse>('/production/previews', { method: 'POST' });
   },
 
+  generateCaptions(style: string = 'karaoke') {
+    return request<StatusResponse>('/production/captions', {
+      method: 'POST',
+      body: JSON.stringify({ style }),
+    });
+  },
+
+  compositeSegments(): Promise<{ status: string; succeeded: number; failed: number; skipped: number; errors: string[] }> {
+    return request('/production/composite', { method: 'POST' });
+  },
+
+  roughCut() {
+    return request<StatusResponse>('/production/rough-cut', { method: 'POST' });
+  },
+
+  getPreflight(): Promise<{ total: number; found: number; missing: number; needs_check: number }> {
+    return request('/production/preflight');
+  },
+
   // Download endpoints
   listDownloadScripts(): Promise<DownloadScriptInfo[]> {
     return request('/media/download/scripts');
@@ -143,6 +162,20 @@ export const api = {
     return request<StatusResponse>('/media/download/create-dirs', { method: 'POST' });
   },
 
+  searchStock(query: string, count: number = 5): Promise<{ results: Array<{ id: number; url: string; duration: number; width: number; height: number; hd_url: string; sd_url: string }>; count: number }> {
+    return request('/media/stock/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, count }),
+    });
+  },
+
+  downloadStock(url: string, filename: string): Promise<{ status: string; path: string; name: string }> {
+    return request('/media/stock/download', {
+      method: 'POST',
+      body: JSON.stringify({ url, filename }),
+    });
+  },
+
   downloadEntry(segmentId: string, layer: string = 'visual', index: number = 0) {
     return request<{ status: string; path?: string; query?: string }>('/projects/download-entry', {
       method: 'POST',
@@ -159,6 +192,14 @@ export const api = {
 
   getEffects(): Promise<Effects> {
     return request('/production/effects');
+  },
+
+  autoAssign(): Promise<{ status: string; assigned: number; unmatched: number; conflicts: string[] }> {
+    return request('/projects/auto-assign', { method: 'POST' });
+  },
+
+  acquireMedia(): Promise<{ status: string; queries: number; matched: number; downloaded: number; failed: number; errors: string[] }> {
+    return request('/projects/acquire-media', { method: 'POST' });
   },
 
   exportMarkdown(): Promise<{ format: string; content: string }> {

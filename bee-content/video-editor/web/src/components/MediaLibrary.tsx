@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DownloadScriptInfo, DownloadStatus, DownloadTools, MediaFile } from '../types';
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
+import { StockSearch } from './StockSearch';
+import { SkeletonList } from './SkeletonCard';
 
 const CATEGORY_ICONS: Record<string, string> = {
   footage: '🎥',
@@ -257,10 +259,13 @@ function MediaThumbnail({ file }: { file: MediaFile }) {
 
 export function MediaLibrary() {
   const { mediaFiles, mediaCategories, loadMedia, setDraggedMedia, setPreviewMedia, previewMedia } = useProjectStore();
+  const storeLoading = useProjectStore(s => s.loading);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showDownloads, setShowDownloads] = useState(false);
+  const [showStock, setShowStock] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const categories = Object.keys(mediaCategories);
@@ -295,19 +300,37 @@ export function MediaLibrary() {
     if (fileInput.current) fileInput.current.value = '';
   };
 
+  // Mark media as loaded once the project finishes loading or files arrive
+  useEffect(() => {
+    if (!storeLoading) setMediaLoaded(true);
+  }, [storeLoading]);
+
+  useEffect(() => {
+    if (mediaFiles.length > 0) setMediaLoaded(true);
+  }, [mediaFiles.length]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 py-2 border-b border-editor-border flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Media</h3>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setShowDownloads(!showDownloads)}
+            onClick={() => { setShowDownloads(!showDownloads); setShowStock(false); }}
             className={`text-xs px-1 transition-colors ${
               showDownloads ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
             }`}
             title="Downloads"
           >
             ⬇
+          </button>
+          <button
+            onClick={() => { setShowStock(!showStock); setShowDownloads(false); }}
+            className={`text-xs px-1 transition-colors ${
+              showStock ? 'text-green-400' : 'text-gray-500 hover:text-gray-300'
+            }`}
+            title="Stock Footage Search"
+          >
+            🎞
           </button>
           <button
             onClick={() => loadMedia()}
@@ -337,6 +360,18 @@ export function MediaLibrary() {
       {showDownloads && (
         <div className="border-b border-editor-border max-h-64 overflow-y-auto">
           <DownloadPanel onDone={() => loadMedia()} />
+        </div>
+      )}
+
+      {/* Stock footage search panel */}
+      {showStock && (
+        <div className="border-b border-editor-border max-h-80 overflow-y-auto">
+          <div className="px-3 pt-2 pb-1">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+              Stock Footage (Pexels)
+            </div>
+          </div>
+          <StockSearch />
         </div>
       )}
 
@@ -390,8 +425,13 @@ export function MediaLibrary() {
           <div className="px-2 py-1 text-xs text-gray-500">Uploading...</div>
         )}
 
+        {/* Skeleton while media hasn't loaded yet */}
+        {isEmpty && !uploading && !showDownloads && !mediaLoaded && (
+          <SkeletonList count={3} />
+        )}
+
         {/* Empty state with download prompt */}
-        {isEmpty && !uploading && !showDownloads && (
+        {isEmpty && !uploading && !showDownloads && mediaLoaded && (
           <div className="px-3 py-6 text-center">
             <div className="text-2xl mb-2">📂</div>
             <div className="text-xs text-gray-400 mb-3">

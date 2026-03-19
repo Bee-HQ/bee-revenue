@@ -27,6 +27,30 @@ Ask: "Where should I save the research?"
   └── music/
   ```
 
+## Context Documents
+
+**Read before researching:**
+
+1. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
+   - **Phase 1: Case Selection Criteria** — the viability requirements you're researching toward:
+     - 20+ minutes of real footage (dealbreaker)
+     - Clear victim + clear suspect (dealbreaker)
+     - Suspect confronted on camera (dealbreaker)
+     - Self-incriminating moment (strongly preferred)
+     - 2+ separate audio sources (strongly preferred)
+     - Financial angle, multiple witnesses, visual location (preferred)
+   - **Section 1.2: Case Archetypes** — understand the four archetypes so you can recommend one in Section 8
+   - **Footage Mix Targets** — know what percentage of each footage type is needed per archetype
+
+2. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/case-research.md`
+   - Read this as the gold standard for depth, structure, and level of detail
+   - Match the specificity: exact dates, exact dollar amounts, verbatim quotes, direct URLs
+
+3. **Reference footage sources** — `bee-content/discovery/true-crime/cases/alex-murdaugh/footage-sources.md`
+   - Read this as the gold standard for the footage-sources document
+
+Keep the formula's dealbreakers in mind throughout research — if you discover early that a case has no real footage or no suspect confrontation, flag it immediately rather than completing the full research.
+
 ## Research Process
 
 ### Phase 1: Broad search

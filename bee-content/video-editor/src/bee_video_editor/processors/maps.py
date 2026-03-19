@@ -23,6 +23,19 @@ import staticmaps
 WIDTH = 1920
 HEIGHT = 1080
 
+# Esri World Imagery — free satellite tiles (no API key).
+# py-staticmaps already ships tile_provider_ArcGISWorldImagery; alias it here
+# so callers inside this module have a consistent local name.
+_SATELLITE_TILES = staticmaps.tile_provider_ArcGISWorldImagery
+
+# Esri World Topo (labeled terrain) — custom provider; same $z/$y/$x pattern.
+_TOPO_TILES = staticmaps.TileProvider(
+    name="Esri World Topo",
+    url_pattern="https://server.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/$z/$y/$x",
+    attribution="Esri",
+    max_zoom=18,
+)
+
 
 @dataclass
 class MapLocation:
@@ -74,10 +87,11 @@ def _make_context(
     center_lat: float,
     center_lng: float,
     zoom: int,
+    tile_provider=None,
 ) -> staticmaps.Context:
     """Create a configured staticmaps context."""
     ctx = staticmaps.Context()
-    ctx.set_tile_provider(staticmaps.tile_provider_OSM)
+    ctx.set_tile_provider(tile_provider or staticmaps.tile_provider_OSM)
     ctx.set_center(staticmaps.create_latlng(center_lat, center_lng))
     ctx.set_zoom(zoom)
     return ctx
@@ -132,6 +146,36 @@ def map_flat(
     return _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
 
 
+def _add_label(output_path: Path, label: str, color: tuple = (220, 30, 30)) -> None:
+    """Add label text overlay at the bottom center of a map image."""
+    from PIL import ImageFont
+
+    img = Image.open(str(output_path))
+    d = ImageDraw.Draw(img)
+
+    font = None
+    for fp in [
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ]:
+        if Path(fp).exists():
+            try:
+                font = ImageFont.truetype(fp, 42)
+                break
+            except Exception:
+                pass
+    if font is None:
+        font = ImageFont.load_default()
+
+    bbox = d.textbbox((0, 0), label, font=font)
+    tw = bbox[2] - bbox[0]
+    x = (img.width - tw) // 2
+    y = img.height - 90
+    d.text((x, y), label, fill=color, font=font)
+    img.save(str(output_path))
+
+
 def map_tactical(
     center_lat: float,
     center_lng: float,
@@ -152,33 +196,8 @@ def map_tactical(
 
     output_path = _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
 
-    # Add label text overlay if provided
     if label:
-        img = Image.open(str(output_path))
-        d = ImageDraw.Draw(img)
-        from PIL import ImageFont
-
-        try:
-            font_paths = [
-                "/System/Library/Fonts/Helvetica.ttc",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            ]
-            font = None
-            for fp in font_paths:
-                if Path(fp).exists():
-                    font = ImageFont.truetype(fp, 42)
-                    break
-            if font is None:
-                font = ImageFont.load_default()
-        except Exception:
-            font = ImageFont.load_default()
-
-        bbox = d.textbbox((0, 0), label, font=font)
-        tw = bbox[2] - bbox[0]
-        # Bottom-center, red text
-        d.text(((WIDTH - tw) // 2, HEIGHT - 120), label, fill=(200, 50, 50), font=font)
-        img.save(str(output_path))
+        _add_label(output_path, label, color=(200, 50, 50))
 
     return output_path
 
@@ -200,30 +219,7 @@ def map_pulse(
     output_path = _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
 
     if label:
-        img = Image.open(str(output_path))
-        d = ImageDraw.Draw(img)
-        from PIL import ImageFont
-
-        try:
-            font_paths = [
-                "/System/Library/Fonts/Helvetica.ttc",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            ]
-            font = None
-            for fp in font_paths:
-                if Path(fp).exists():
-                    font = ImageFont.truetype(fp, 48)
-                    break
-            if font is None:
-                font = ImageFont.load_default()
-        except Exception:
-            font = ImageFont.load_default()
-
-        bbox = d.textbbox((0, 0), label, font=font)
-        tw = bbox[2] - bbox[0]
-        d.text(((WIDTH - tw) // 2, HEIGHT - 120), label, fill=(200, 50, 50), font=font)
-        img.save(str(output_path))
+        _add_label(output_path, label, color=(200, 50, 50))
 
     return output_path
 
@@ -260,29 +256,60 @@ def map_route(
     output_path = _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
 
     if label:
-        img = Image.open(str(output_path))
-        d = ImageDraw.Draw(img)
-        from PIL import ImageFont
+        _add_label(output_path, label, color=(200, 50, 50))
 
-        try:
-            font_paths = [
-                "/System/Library/Fonts/Helvetica.ttc",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-            ]
-            font = None
-            for fp in font_paths:
-                if Path(fp).exists():
-                    font = ImageFont.truetype(fp, 42)
-                    break
-            if font is None:
-                font = ImageFont.load_default()
-        except Exception:
-            font = ImageFont.load_default()
+    return output_path
 
-        bbox = d.textbbox((0, 0), label, font=font)
-        tw = bbox[2] - bbox[0]
-        d.text(((WIDTH - tw) // 2, HEIGHT - 120), label, fill=(200, 50, 50), font=font)
-        img.save(str(output_path))
+
+def map_satellite(
+    center_lat: float,
+    center_lng: float,
+    output_path: Path,
+    zoom: int = 14,
+    markers: list[MapLocation] | None = None,
+    label: str = "",
+) -> Path:
+    """[MAP-SATELLITE] Satellite imagery with dark grade for cinematic look.
+
+    Uses Esri World Imagery tiles. Higher default zoom for detail.
+    """
+    ctx = _make_context(center_lat, center_lng, zoom, tile_provider=_SATELLITE_TILES)
+
+    if markers:
+        for loc in markers:
+            pin_color = staticmaps.RED if loc.pin_color == "red" else staticmaps.Color(0, 212, 170)
+            ctx.add_object(staticmaps.Marker(staticmaps.create_latlng(loc.lat, loc.lng), color=pin_color, size=12))
+
+    output_path = _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
+
+    if label:
+        _add_label(output_path, label)
+
+    return output_path
+
+
+def map_hybrid(
+    center_lat: float,
+    center_lng: float,
+    output_path: Path,
+    zoom: int = 13,
+    markers: list[MapLocation] | None = None,
+    label: str = "",
+) -> Path:
+    """[MAP-HYBRID] Satellite imagery with topo overlay labels.
+
+    Uses Esri Topo tiles for labeled satellite-style map.
+    """
+    ctx = _make_context(center_lat, center_lng, zoom, tile_provider=_TOPO_TILES)
+
+    if markers:
+        for loc in markers:
+            pin_color = staticmaps.RED if loc.pin_color == "red" else staticmaps.Color(0, 212, 170)
+            ctx.add_object(staticmaps.Marker(staticmaps.create_latlng(loc.lat, loc.lng), color=pin_color, size=12))
+
+    output_path = _render_and_post_process(ctx, output_path, dark_grade=True, vignette=True)
+
+    if label:
+        _add_label(output_path, label)
 
     return output_path
