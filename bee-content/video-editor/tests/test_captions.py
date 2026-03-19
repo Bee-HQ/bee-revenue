@@ -10,23 +10,31 @@ from bee_video_editor.processors.captions import (
     CaptionSegment,
     extract_caption_segments,
 )
-from bee_video_editor.models_storyboard import (
-    LayerEntry,
-    ProductionRules,
-    Storyboard,
-    StoryboardSegment,
+from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment
+from bee_video_editor.formats.models import (
+    AudioEntry,
+    ProjectConfig,
+    SegmentConfig,
 )
 
 
-def _make_segment(id, start, end, title, audio_entries):
-    """Helper to create a StoryboardSegment with audio entries."""
-    return StoryboardSegment(
+def _make_parsed(segments):
+    """Helper to create a ParsedStoryboard from a list of ParsedSegments."""
+    return ParsedStoryboard(
+        project=ProjectConfig(title="Test", version=1),
+        sections=[],
+        segments=segments,
+    )
+
+
+def _make_segment(id, start, end, title, narration="", audio_entries=None):
+    """Helper to create a ParsedSegment with optional narration and audio entries."""
+    audio = [AudioEntry(**a) for a in (audio_entries or [])]
+    return ParsedSegment(
         id=id, start=start, end=end, title=title,
-        section="TEST", section_time=f"{start} - {end}", subsection="",
-        audio=[
-            LayerEntry(content=text, content_type=ctype, time_start=ts, time_end=te, raw=text)
-            for text, ctype, ts, te in audio_entries
-        ],
+        section="TEST",
+        config=SegmentConfig(audio=audio),
+        narration=narration,
     )
 
 
@@ -40,12 +48,11 @@ class TestCaptionSegment:
 
 class TestExtractCaptionSegments:
     def test_extracts_nar_entries(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO", [
-                ("This is the narrator speaking.", "NAR", None, None),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO",
+                          narration="This is the narrator speaking."),
+        ])
+        result = extract_caption_segments(parsed)
         assert len(result) == 1
         assert result[0].text == "This is the narrator speaking."
         assert result[0].start_ms == 0
@@ -53,55 +60,60 @@ class TestExtractCaptionSegments:
         assert result[0].style_name == "Narrator"
 
     def test_extracts_real_audio(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_10-0_20", "0:10", "0:20", "911", [
-                ("I need help!", "REAL_AUDIO", None, None),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_10-0_20", "0:10", "0:20", "911",
+                          audio_entries=[
+                              {"type": "REAL_AUDIO", "src": "I need help!"},
+                          ]),
+        ])
+        result = extract_caption_segments(parsed)
         assert len(result) == 1
         assert result[0].style_name == "RealAudio"
 
     def test_uses_time_range_if_present(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_30-0_40", "0:30", "0:40", "MIX", [
-                ("Deputy speaks here", "REAL_AUDIO", "0:30", "0:35"),
-                ("Narrator bridges", "NAR", "0:35", "0:40"),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_30-0_40", "0:30", "0:40", "MIX",
+                          narration="Narrator bridges",
+                          audio_entries=[
+                              {"type": "REAL_AUDIO", "src": "Deputy speaks here",
+                               "in": "0:30", "out": "0:35"},
+                          ]),
+        ])
+        result = extract_caption_segments(parsed)
         assert len(result) == 2
+        # Narration uses segment range
         assert result[0].start_ms == 30000
-        assert result[0].end_ms == 35000
-        assert result[1].start_ms == 35000
-        assert result[1].end_ms == 40000
+        assert result[0].end_ms == 40000
+        assert result[0].style_name == "Narrator"
+        # REAL_AUDIO uses entry-level range
+        assert result[1].start_ms == 30000
+        assert result[1].end_ms == 35000
+        assert result[1].style_name == "RealAudio"
 
     def test_strips_quotes_and_trailing_notes(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO", [
-                ('"This is quoted text" + dark ambient music', "NAR", None, None),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO",
+                          narration='"This is quoted text" + dark ambient music'),
+        ])
+        result = extract_caption_segments(parsed)
         assert result[0].text == "This is quoted text"
 
     def test_skips_empty_text(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO", [
-                ("", "NAR", None, None),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO", narration=""),
+        ])
+        result = extract_caption_segments(parsed)
         assert len(result) == 0
 
     def test_skips_non_caption_types(self):
-        sb = Storyboard(title="Test", segments=[
-            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO", [
-                ("Background music", "MUSIC", None, None),
-                ("Narrator line", "NAR", None, None),
-            ]),
-        ], production_rules=ProductionRules())
-        result = extract_caption_segments(sb)
+        parsed = _make_parsed([
+            _make_segment("0_00-0_10", "0:00", "0:10", "INTRO",
+                          narration="Narrator line",
+                          audio_entries=[
+                              {"type": "MUSIC", "src": "Background music"},
+                          ]),
+        ])
+        result = extract_caption_segments(parsed)
         assert len(result) == 1
         assert result[0].text == "Narrator line"
 

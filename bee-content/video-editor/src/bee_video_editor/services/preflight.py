@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from bee_video_editor.models_storyboard import Storyboard
+from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment
 
 
 @dataclass
@@ -82,16 +82,56 @@ def _is_modifier(code: str) -> bool:
     return code in PERSISTENT_MODIFIERS or code.startswith("TR-")
 
 
-def run_preflight(storyboard: Storyboard, project_dir: Path) -> PreflightReport:
+def run_preflight(parsed: ParsedStoryboard, project_dir: Path) -> PreflightReport:
     """Scan storyboard against project assets and report gaps."""
     report = PreflightReport()
 
-    for seg in storyboard.segments:
-        for layer_name in ("visual", "audio", "overlay"):
-            layer_entries = getattr(seg, layer_name, [])
-            for entry in layer_entries:
-                code = entry.content_type
-                qualifier = entry.content
+    for seg in parsed.segments:
+        # Walk all three config layers
+        layer_map = {
+            "visual": seg.config.visual,
+            "audio": seg.config.audio,
+            "overlay": seg.config.overlay,
+        }
+
+        # Also check narration as a synthetic NAR audio entry
+        if seg.narration:
+            code = "NAR"
+            qualifier = seg.narration
+
+            if not _is_modifier(code) and code != "UNKNOWN":
+                report.total += 1
+                if code in RESOLUTION_RULES:
+                    subdir, pattern, default_status = RESOLUTION_RULES[code]
+                    search_dir = project_dir / subdir
+                    found_files = list(search_dir.glob(pattern)) if search_dir.exists() else []
+                    if found_files:
+                        report.found += 1
+                        report.entries.append(AssetEntry(
+                            segment_id=seg.id, layer="audio",
+                            visual_code=code, qualifier=qualifier,
+                            status="found",
+                            file_path=str(found_files[0]),
+                        ))
+                    elif default_status == "needs-check":
+                        report.needs_check += 1
+                        report.entries.append(AssetEntry(
+                            segment_id=seg.id, layer="audio",
+                            visual_code=code, qualifier=qualifier,
+                            status="needs-check",
+                        ))
+                    else:
+                        report.missing += 1
+                        report.entries.append(AssetEntry(
+                            segment_id=seg.id, layer="audio",
+                            visual_code=code, qualifier=qualifier,
+                            status="missing",
+                        ))
+
+        for layer_name, entries in layer_map.items():
+            for entry in entries:
+                code = entry.type
+                qualifier = entry.src if hasattr(entry, "src") else (entry.text or "")
 
                 # Skip persistent modifiers and transitions
                 if _is_modifier(code) or code == "UNKNOWN":

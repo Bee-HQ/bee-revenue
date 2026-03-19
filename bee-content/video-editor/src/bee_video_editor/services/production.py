@@ -570,12 +570,7 @@ def run_full_pipeline(
     else:
         def do_captions():
             from bee_video_editor.processors.captions import extract_caption_segments, generate_captions_estimated
-            # extract_caption_segments still uses old Storyboard model (Task 6 migrates it).
-            # For now, skip if it fails due to type mismatch.
-            try:
-                segments = extract_caption_segments(parsed)
-            except (TypeError, AttributeError):
-                return "skipped (pending captions migration)"
+            segments = extract_caption_segments(parsed)
             if not segments:
                 return "no captionable segments"
             out = config.output_dir / "captions" / "captions.ass"
