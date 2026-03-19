@@ -2,9 +2,9 @@
 
 ## What This Is
 
-AI-assisted video production tool. Takes storyboard/assembly guide markdown → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
+AI-assisted video production tool. Takes a v2 storyboard markdown file → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.6.0
+**Version:** 0.8.0
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 
@@ -13,30 +13,34 @@ AI-assisted video production tool. Takes storyboard/assembly guide markdown → 
 ```bash
 cd bee-content/video-editor
 
-# CLI workflow
-uv run bee-video parse <guide.md>                           # Inspect
-uv run bee-video init <guide.md> --project-dir ./proj       # Create project
-uv run bee-video graphics <guide.md> -p ./proj              # Generate overlays
-uv run bee-video narration <guide.md> -p ./proj --tts edge  # Generate TTS
-uv run bee-video trim-footage <guide.md> -p ./proj          # Trim source clips
+# Core workflow
+uv run bee-video import-md storyboard.md -p ./proj          # Load storyboard → OTIO
+uv run bee-video scenes source.mp4 -p ./proj                # Detect shot boundaries
+uv run bee-video graphics storyboard.md -p ./proj           # Generate overlays
+uv run bee-video narration storyboard.md -p ./proj --tts edge  # Generate TTS
+uv run bee-video trim-footage storyboard.md -p ./proj       # Trim source clips
 uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
+uv run bee-video export -p ./proj --format md               # Export as markdown
+uv run bee-video export -p ./proj --format otio             # Export clean OTIO for NLE
 
-# v0.6.0 features
+# Stock + AI media
+uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
+uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video (stub/kling/veo)
+
+# Utilities
 uv run bee-video graphics-batch config.json -p ./proj       # Batch graphics from config
 uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for project
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
-uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
-uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
-uv run bee-video validate -p ./proj                            # Validate project structure
-uv run bee-video stock-list                                    # List tracked stock clips
-uv run bee-video stock-check "aerial farm"                     # Check for clip reuse
+uv run bee-video validate -p ./proj                         # Validate project structure
+uv run bee-video stock-list                                 # List tracked stock clips
+uv run bee-video stock-check "aerial farm"                  # Check for clip reuse
 
 # Web editor
 ./dev.sh        # Dev mode (backend :8420 + frontend :5173 hot reload)
 ./start.sh      # Production (single server :8420, built frontend)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # All tests
+uv run --extra dev pytest tests/ -v          # All tests (535)
 ./test.sh                                    # Backend tests + frontend type check
 uv run --extra dev pytest tests/FILE -v      # Single file
 ```
@@ -44,35 +48,59 @@ uv run --extra dev pytest tests/FILE -v      # Single file
 ## Architecture
 
 ```
-Adapters (CLI / Web UI / FastAPI)
+Adapters (CLI / FastAPI + React)
     │
-Services (production.py — orchestration, no business logic)
+Services (production, compositor, matcher, acquisition)
     │
 ┌───┴───┐
 Parsers    Processors
-└ storyboard.py        ├ ffmpeg.py   (17 functions, 657 lines)
-  (canonical)          ├ graphics.py (Pillow overlays)
-                       └ tts.py      (edge / kokoro / openai)
+└ formats/     ├ ffmpeg.py
+  (canonical)  ├ graphics.py
+               ├ tts.py
+               ├ captions.py
+               ├ maps.py
+               ├ scene_detect.py
+               ├ media_search.py
+               └ ai_video.py
 ```
 
 **Adapters** are thin protocol translators. CLI (Typer) and Web (FastAPI + React) both delegate to the same service functions.
 
 **Services** resolve targets, call processors, manage state. No FFmpeg commands, no Pillow drawing — just orchestration.
 
-**Parsers** convert markdown → dataclasses. Storyboard is the canonical format.
+**`formats/` package** is the canonical storyboard representation. `ParsedStoryboard` is the runtime model shared by all services and routes. Data flow: `.otio file → from_otio() → ParsedStoryboard → services → processors`.
 
 **Processors** are stateless functions wrapping external tools. All I/O, no orchestration.
 
-## Storyboard as Canonical Format
+## Storyboard Format (v2)
 
-The storyboard format (shot-by-shot with layers) is the single source of truth for all CLI and web UI workflows:
+The v2 storyboard format uses markdown with JSON code blocks tagged `bee-video:project` and `bee-video:segment`. It is the single source of truth for all CLI and web UI workflows.
 
-| Format | Parser | Model | Status |
-|--------|--------|-------|--------|
-| Storyboard (shot-by-shot with layers) | `parsers/storyboard.py` | `models_storyboard.Storyboard` | **Canonical** |
-| Assembly guide (flat time-coded table) | `parsers/assembly_guide.py` | `models.Project` | Deprecated |
+```markdown
+# My Video
 
-All CLI commands (`parse`, `init`, `segments`, `trim-footage`, `narration`, `graphics`, `assemble`, `rough-cut`, `produce`) accept a storyboard path. The assembly guide parser, `models.Project`, and the converter are deprecated and no longer imported by services.
+\`\`\`bee-video:project
+{"title": "My Video", "fps": 30, "resolution": [1920, 1080]}
+\`\`\`
+
+## Section Name
+
+### seg-01 | Scene description
+
+\`\`\`bee-video:segment
+{
+  "visual": [{"type": "footage", "src": "footage/clip.mp4", "trim": [0, 10]}],
+  "audio":  [{"type": "narration", "src": "narration/seg-01.mp3"}],
+  "overlay": [{"type": "lower_third", "name": "Alex Murdaugh", "role": "Defendant"}]
+}
+\`\`\`
+```
+
+The `formats/` package provides:
+- `ParsedStoryboard` — runtime model (Pydantic)
+- `to_otio()` / `from_otio()` — OTIO round-trip
+- `clean_otio()` — NLE-ready export (strips metadata)
+- `old_to_new()` — migrates old table-based storyboards
 
 ## Processor Capabilities
 
@@ -92,6 +120,29 @@ All CLI commands (`parse`, `init`, `segments`, `trim-footage`, `narration`, `gra
 
 **Transitions:** fade, dissolve, wipeleft/right/up/down, slideleft/right/up/down, smoothleft/right, circlecrop, rectcrop, pixelize, radial, diagtl/tr/bl/br, hlslice/hrslice, distance, zoomin, fadeblack, fadewhite, hblur, vuslice, vdslice
 
+### Scene Detection (`processors/scene_detect.py`)
+
+`detect_scenes(video_path, threshold)` — FFmpeg-based shot boundary detection. Returns list of `{start, end, duration}` dicts. Used by `bee-video scenes` CLI command.
+
+### Media Search (`processors/media_search.py`)
+
+Unified stock search across Pexels + Pixabay. `search_stock(query, providers, n)` returns normalized results with `download_url` / `pexels_url` metadata. Used by Acquire pipeline and the web stock search panel.
+
+### AI Video (`processors/ai_video.py`)
+
+Pluggable provider interface. Providers: `stub` (FFmpeg placeholder MP4), `kling` (stub), `veo` (stub). `generate_clip(prompt, provider, output_path)`.
+
+### Maps (`processors/maps.py`)
+
+| Function | Output |
+|----------|--------|
+| `map_flat(lat, lng, ...)` | PNG — flat OpenStreetMap style |
+| `map_tactical(lat, lng, ...)` | PNG — dark tactical overlay |
+| `map_pulse(lat, lng, ...)` | PNG — pulsing location marker |
+| `map_route(points, ...)` | PNG — route between coordinates |
+| `map_satellite(lat, lng, ...)` | PNG — Esri World Imagery satellite tiles |
+| `map_hybrid(lat, lng, ...)` | PNG — satellite + labels overlay |
+
 ### Graphics (`processors/graphics.py`)
 
 | Function | Output |
@@ -99,9 +150,16 @@ All CLI commands (`parse`, `init`, `segments`, `trim-footage`, `narration`, `gra
 | `lower_third(name, role)` | PNG — semi-transparent bar + name/role text |
 | `timeline_marker(date, desc)` | PNG — full-frame date stamp |
 | `financial_card(amount, desc)` | PNG — red dollar amount display |
-| `quote_card(quote, author)` | PNG — quote display |
+| `quote_card(quote, author)` | PNG — quote display (accent: red/teal/gold) |
 | `text_overlay(text)` | PNG — simple text |
 | `black_frame()` | PNG — solid black |
+| `mugshot_card(photo, charges, sentence)` | PNG — photo right, charges left |
+| `news_montage(headlines)` | PNG — stacked rotated headline cards |
+| `evidence_board(items)` | PNG — red-string corkboard |
+| `flow_diagram(nodes)` | PNG — directional arrows, red/teal colors |
+| `timeline_sequence(events)` | PNG — horizontal timeline with nodes |
+| `text_chat(messages)` | PNG — iMessage/SMS/generic platform |
+| `social_post(content)` | PNG — Facebook/Instagram/Twitter/Snapchat |
 
 All output 1920x1080 PNG. Colors follow Dr. Insanity palette (dark bg, red/teal accents).
 
@@ -112,9 +170,18 @@ All output 1920x1080 PNG. Colors follow Dr. Insanity palette (dark bg, red/teal 
 | Edge | Free (cloud) | Good | Default voice: en-US-GuyNeural |
 | Kokoro | Free (local) | Good | 24kHz WAV, needs `kokoro>=0.9.4` |
 | OpenAI | Paid | Best | gpt-4o-mini-tts, 1200-word chunking |
-| ElevenLabs | Free tier / Paid | Best | Default voice: Daniel. Needs `ELEVENLABS_API_KEY` env var. Formula-recommended engine. |
+| ElevenLabs | Free tier / Paid | Best | Default voice: Daniel. Needs `ELEVENLABS_API_KEY` env var. |
 
 `extract_narrator_sections(screenplay_path)` pulls `**NARRATOR:**` lines from screenplay markdown.
+
+## Services
+
+| Service | File | Responsibility |
+|---------|------|----------------|
+| Production | `services/production.py` | Full pipeline orchestration (init → graphics → narration → trim → composite → assemble) |
+| Compositor | `services/compositor.py` | Per-segment multi-layer composition: visual → trim → normalize → color grade → overlay → audio → mux |
+| Matcher | `services/matcher.py` | Auto-assign media to segments via keyword + src matching |
+| Acquisition | `services/acquisition.py` | Batch stock search + download for all storyboard queries |
 
 ## Web UI
 
@@ -122,26 +189,36 @@ React 18 + TypeScript + Vite + Tailwind + Zustand.
 
 **Layout:** 4-column NLE-style grid — segment list (left), timeline + segment detail (center-top), video player (center-bottom), media library + production bar (right).
 
-**Key flows:**
-- Load storyboard → segments populate the list
-- Browse media library → drag file onto segment layer → assignment saved to `.bee-video/assignments.json`
-- Click "Graphics" / "Narration" / "Assemble" → API calls to production endpoints
+**Key features:**
+- Load `.md` or `.otio` storyboard → segments populate with inline editing (transition picker, color grade selector, volume sliders, draggable trim handles)
+- Browse media library → drag file onto segment layer → saved via `PUT /projects/update-segment`
+- Stock search panel (Pexels) in MediaLibrary sidebar with per-result download buttons
+- Video player auto-loads selected segment's assigned media
+- Toast notifications (success/error/info/warning with auto-dismiss)
+- Keyboard shortcuts panel (press `?`)
+- Loading skeletons during initial load
+- Export menu: markdown or clean OTIO
+- Production bar: Graphics, Narration, Assemble, Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire
 
-**API routes:**
-- `POST /api/projects/load` — load storyboard + restore assignments
+**Key API routes:**
+- `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
+- `PUT /api/projects/update-segment` — update any segment property
 - `GET /api/media/list` — list project media by category
-- `POST /api/production/{graphics|narration|assemble}` — generate assets
+- `POST /api/production/{graphics|narration|assemble|composite|captions}` — generate assets
+- `POST /api/stock/search` / `POST /api/stock/download` — stock footage
 - `GET /api/production/status` — phase + file counts
 
-## Known Gaps & Issues
+## Known Gaps & Planned Work
 
-> **All gaps, issues, and planned work are tracked in `ROADMAP.md`** — that's the single source of truth. Summary below for quick reference.
+> Full tracking in `ROADMAP.md`. Summary of remaining items:
 
-**Formula alignment gaps** (graphics the formula needs that bee-video can't generate): text chat recreations, social media mockups, evidence boards, flow diagrams, animated timelines, news montages, subtitle generation, maps, asset preflight. See ROADMAP v0.4.0 through v0.5.0 for when each is planned.
-
-**v0.3.1 code issues — all resolved:** FFmpeg errors now surface via ProductionResult. Module globals replaced by SessionStore. API base URL configurable. Segment statuses tracked via track(). Mugshot cards and quote card colors implemented.
-
-**Scale issues** (v0.6.0+): stock footage repetition across videos, no LLM screenplay generation, no batch graphics from config, no FOIA pipeline tracking.
+**Planned:**
+- Responsive layout — collapse sidebars to tabs on screens < 1024px
+- Dark/light theme toggle
+- Real AI video providers (Kling, Veo) — infra is built, API wiring pending
+- LLM screenplay generation from case research doc + formula
+- WebSocket progress test coverage (zero coverage currently)
+- FOIA pipeline tracker
 
 ## Project Directory Structure (after init)
 
@@ -150,29 +227,35 @@ my-project/
 ├── output/
 │   ├── segments/       # Trimmed source clips
 │   ├── normalized/     # 1080p/30fps standardized
-│   ├── composited/     # With overlays applied
+│   ├── composited/     # Per-segment composited outputs (visual + overlay + audio)
 │   ├── graphics/       # Generated PNGs
 │   ├── narration/      # TTS audio files
+│   ├── previews/       # 360p thumbnails per segment
+│   ├── rough/          # rough_cut.mp4
 │   └── final/          # final_assembled.mp4
-├── .bee-video/
-│   └── assignments.json  # Media assignments (sidecar)
-└── production_state.json # Pipeline state
+├── stock/              # Downloaded stock footage
+├── generated/          # AI-generated clips
+└── production_state.json # Pipeline state (OTIO)
 ```
+
+Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are deprecated — all state lives in the OTIO file.
 
 ## Test Patterns
 
-- **Parsers:** Inline markdown fixtures → assert on parsed structure
+- **Parsers/formats:** Inline markdown + OTIO fixtures → assert on `ParsedStoryboard` structure
 - **Graphics:** Mock Pillow → verify function calls + output paths
 - **FFmpeg:** Mock subprocess.run → verify filter strings (no real video)
-- **Production:** Temp directories → integration-style pipeline calls
+- **Services:** Temp directories → integration-style pipeline calls
+- **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
 
-113 tests across 7 files. Run with `uv run --extra dev pytest tests/ -v`.
+535 tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`.
 
 ## Dependencies
 
-**Core:** typer, rich, pillow, edge-tts
+**Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
 **Web:** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
-**TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`)
+**TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
+**Maps:** py-staticmaps (`--extra maps`)
 **Dev:** pytest (`--extra dev`)
 **System:** FFmpeg must be installed and on PATH
 
@@ -199,9 +282,8 @@ Each generation skill reads the formula + visual bible as context. Each review s
 
 | Doc | Purpose |
 |-----|---------|
-| `CHANGELOG.md` | Version history (v0.1.0 → v0.3.1) |
-| `ROADMAP.md` | Planned features (v0.3.1 → v0.5.0) |
-| `PLAN.md` | Original v0.2.0 web editor design doc |
+| `CHANGELOG.md` | Version history (v0.1.0 → v0.8.0) |
+| `ROADMAP.md` | Planned features and known gaps |
 | `README.md` | User-facing usage docs |
 | `../research/screenplay-storyboard-formula.md` | The production formula this tool serves |
 | `../research/visual-storyboard-bible.md` | Visual element specs the graphics processor should implement |

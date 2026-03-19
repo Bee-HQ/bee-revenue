@@ -7,29 +7,68 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-
-- **Storyboard is now the single source of truth** — all CLI commands use storyboard format
-- `init_project()` accepts storyboard path instead of assembly guide
-- `trim_source_footage()` reads source layers from storyboard instead of trim notes
-- `ProductionState.assembly_guide_path` renamed to `storyboard_path`
-- CLI argument `assembly_guide` renamed to `storyboard` in all commands
-
-### Deprecated
-
-- Assembly guide parser (`parsers/assembly_guide.py`) — no longer imported
-- Assembly guide model (`models.py` Project/Segment) — no longer imported
-- Converter (`converters.py`) — removed
-- Streamlit dashboard (`adapters/dashboard.py`) — use web editor instead
+## [0.8.0] — 2026-03-19
 
 ### Added
 
-- **Stock footage API** — `bee-video fetch-stock "aerial farm dusk" -n 3` searches Pexels for stock video, downloads HD clips to project's `stock/` directory. Streaming download (no OOM on large files). API endpoints: `POST /stock/search`, `POST /stock/download` with SSRF protection
-- **AI video generation infra** — pluggable provider interface for text-to-video generation. `bee-video generate-clip --prompt "..." --provider stub`. Ships with stub provider for testing; real providers (Runway, Kling, Luma) registered automatically when their packages are installed. API endpoint: `POST /generate-clip`
-- **"generated" media category** — AI-generated clips in `generated/` directory appear in the media library automatically
-- **Stub → FFmpeg video** — stub video generation provider now produces real playable MP4 (black frame + drawtext prompt) instead of JSON metadata, enabling full pipeline testing without an AI API
-- **Project validator** — `bee-video validate` checks project directory structure (expected dirs, output subdirs, sidecar JSON validity) and media filename conventions (no spaces, lowercase)
-- **Stock footage library** — SQLite tracker at `~/.bee-video/stock-library.db` records which Pexels clips have been used in which projects. `bee-video stock-list` shows all tracked clips, `bee-video stock-check "query"` warns about reuse. Auto-registers clips on `fetch-stock` download
+- **Multi-layer compositor** — per-segment composition: visual → trim → normalize → color grade → overlay → audio mix → muxed output
+- **Auto-assign media matcher** — keyword + src matching to auto-assign media files to segments
+- **Batch media acquisition** — orchestrated stock search + download for all storyboard queries
+- **Scene detection** — FFmpeg-based shot boundary detection with `bee-video scenes` CLI command
+- **Multi-provider stock search** — unified Pexels + Pixabay search with query extraction
+- **AI video providers** — Kling + Veo stubs alongside existing FFmpeg stub
+- **Satellite maps** — `map_satellite()` + `map_hybrid()` using Esri World Imagery tiles
+- **Toast notifications** — success/error/info/warning with auto-dismiss
+- **Stock search panel** — Pexels search in MediaLibrary sidebar
+- **Keyboard shortcuts panel** — press `?` to show all shortcuts
+- **Loading skeletons** — skeleton cards during initial load
+- **Per-entry download buttons** — `download_url`/`pexels_url` fields + inline download
+- **Production bar buttons** — Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire
+
+### Changed
+
+- Compositor integrated into `run_full_pipeline` as Step 6
+- `assemble_final()` prefers composited segments over raw normalized
+
+### Security
+
+- SSRF validation with DNS resolution on all download paths
+- YouTube URL validation via `urlparse` hostname check
+- Path sanitization for segment IDs in download paths
+- FFmpeg drawtext escaping hardened
+- Centralized download validation across all paths
+
+## [0.7.0] — 2026-03-19
+
+### Added
+
+- **OTIO project format** — new storyboard format with JSON code blocks, bidirectional OTIO conversion
+- **Pydantic models** — `ProjectConfig`, `SegmentConfig`, `VisualEntry`, `AudioEntry`, `OverlayEntry`
+- **Markdown parser/writer** — reads/writes v2 format with round-trip fidelity
+- **OTIO converters** — `to_otio()`, `from_otio()`, `clean_otio()` for NLE interchange
+- **Migration converter** — `old_to_new()` converts old table-based storyboards
+- **CLI commands** — `bee-video import-md`, `bee-video export`
+- **Export menu** — markdown + clean OTIO export from web UI
+- **Inline segment editing** — transition picker, color grade selector, volume sliders, draggable trim handles
+- **`PUT /projects/update-segment`** — endpoint for all property changes
+
+### Changed
+
+- **SessionStore rewritten** — OTIO persistence, `ParsedStoryboard` as runtime model
+- **All services migrated** — graphics, narration, trim, captions, preflight, previews, rough cut accept `ParsedStoryboard`
+- **All API routes migrated** — `parsed_to_schema()` maintains backward-compatible response shape
+- **LoadProject accepts `.otio`** files
+- `pydantic` and `opentimelineio` moved to core dependencies
+- `REAL_AUDIO` enum value normalized (space → underscore)
+- `GENERATED` visual type added
+
+### Removed
+
+- Assembly guide parser (`parsers/assembly_guide.py`)
+- Old `Project`/`Segment` model (`models.py`)
+- Old OTIO exporter (`exporters/otio_export.py`)
+- Streamlit dashboard adapter
+- Sidecar files deprecated (assignments.json, voice.json, segment-order.json)
 
 ## [0.6.0] - 2026-03-17
 

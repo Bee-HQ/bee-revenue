@@ -1,39 +1,37 @@
 # bee-video-editor
 
-AI-assisted video production tool. Takes assembly guide / storyboard markdown files and produces final videos through CLI commands, a web UI, or the Python API.
+AI-assisted video production tool. Takes a v2 storyboard markdown file and produces final videos through CLI commands, a web UI, or the Python API. v0.8.0.
 
 ## Quick Start
 
 ```bash
 cd bee-content/video-editor
 
-# Parse and inspect an assembly guide
-uv run bee-video parse /path/to/assembly-guide.md
+# Load a storyboard into a project
+uv run bee-video import-md storyboard.md --project-dir ./my-project
 
-# List all segments
-uv run bee-video segments /path/to/assembly-guide.md
-
-# Initialize a production project
-uv run bee-video init /path/to/assembly-guide.md --project-dir ./my-project
+# Detect shot boundaries in source footage
+uv run bee-video scenes source.mp4 -p ./my-project
 
 # Generate assets
-uv run bee-video graphics /path/to/assembly-guide.md -p ./my-project
-uv run bee-video narration /path/to/assembly-guide.md -p ./my-project --tts edge
-uv run bee-video trim-footage /path/to/assembly-guide.md -p ./my-project
+uv run bee-video graphics storyboard.md -p ./my-project
+uv run bee-video narration storyboard.md -p ./my-project --tts edge
+uv run bee-video trim-footage storyboard.md -p ./my-project
 
 # Assemble final video
 uv run bee-video assemble -p ./my-project
-
-# Assemble with transitions between segments
 uv run bee-video assemble -p ./my-project --transition fade --transition-duration 1.0
 
-# Batch graphics from a config file
+# Or run the full pipeline at once
+uv run bee-video produce storyboard.md -p ./my-project --tts edge
+
+# Export for NLE (DaVinci Resolve / Premiere)
+uv run bee-video export -p ./my-project --format otio
+uv run bee-video export -p ./my-project --format md
+
+# Other utilities
 uv run bee-video graphics-batch graphics.json -p ./my-project
-
-# Lock TTS voice for the project
 uv run bee-video voice-lock elevenlabs --voice Daniel -p ./my-project
-
-# Quick 720p rough cut (no grading, for structure review)
 uv run bee-video rough-cut storyboard.md -p ./my-project
 
 # Launch web editor
@@ -111,21 +109,31 @@ For `image_to_video` and image-based segments:
 
 ## Production Pipeline
 
-The full pipeline for producing a video from an assembly guide:
+The full pipeline for producing a video from a v2 storyboard:
 
 ```
-1. parse       → Parse assembly guide markdown into structured Project
+1. import-md   → Load storyboard markdown → OTIO project file
 2. init        → Create output directories and production state
 3. graphics    → Generate lower thirds, timeline markers, quote/financial cards
 4. narration   → Generate TTS narration (edge / kokoro / openai / elevenlabs)
-5. trim        → Trim source footage per assembly guide notes
-6. assemble    → Concatenate segments into final video (with optional transitions)
+5. trim        → Trim source footage per storyboard notes
+6. composite   → Per-segment: visual → normalize → color grade → overlay → audio → mux
+7. assemble    → Concatenate composited segments into final video (with optional transitions)
 ```
 
 Or run everything at once:
 
 ```bash
 uv run bee-video produce storyboard.md -p ./my-project --tts edge
+```
+
+### Scene Detection
+
+Detect shot boundaries in source footage before editing:
+
+```bash
+uv run bee-video scenes source_footage.mp4 -p ./my-project
+# Outputs a JSON list of detected scenes with start/end/duration
 ```
 
 ### Batch Graphics
@@ -198,23 +206,23 @@ Downloads go to `stock/` with Pexels-attributed filenames.
 Generate video clips from text prompts using pluggable AI providers:
 
 ```bash
-# Stub provider (for testing — writes metadata JSON)
+# Stub provider (for testing — generates real placeholder MP4 via FFmpeg)
 uv run bee-video generate-clip "aerial shot of farm at dusk" -p ./my-project
 
-# With a real provider (when installed)
-uv run bee-video generate-clip "dramatic courtroom scene" --provider runway -p ./my-project
+# With a real provider
+uv run bee-video generate-clip "dramatic courtroom scene" --provider kling -p ./my-project
 
 # With reference images
-uv run bee-video generate-clip "match this style" --reference photo.jpg --provider kling -p ./my-project
+uv run bee-video generate-clip "match this style" --reference photo.jpg --provider veo -p ./my-project
 ```
 
 Available providers:
-| Provider | Status | Install |
-|----------|--------|---------|
-| `stub` | Built-in | — (writes placeholder JSON) |
+| Provider | Status | Notes |
+|----------|--------|-------|
+| `stub` | Built-in | Generates real placeholder MP4 via FFmpeg |
+| `kling` | Stub (API pending) | Needs `KLING_API_KEY` |
+| `veo` | Stub (API pending) | Needs Google Cloud credentials |
 | `runway` | Planned | `pip install runwayml` |
-| `kling` | Planned | TBD |
-| `luma` | Planned | TBD |
 
 Output goes to `generated/` directory and appears in the media library.
 
@@ -280,7 +288,7 @@ cd web && npm run build
 uv run bee-video serve
 ```
 
-The web UI provides drag-and-drop media assignment, storyboard timeline view, video preview, and one-click asset generation.
+The web UI provides drag-and-drop media assignment, storyboard timeline view, video preview, stock footage search, inline segment editing (transition picker, color grade, volume, trim handles), toast notifications, keyboard shortcuts (`?`), and one-click asset generation via the production bar.
 
 ### Screenshots
 
@@ -349,13 +357,22 @@ Use `bee-video voice-lock` to persist your preferred engine/voice per project.
 ## Architecture
 
 ```
-Adapters (CLI / Web API) → Services → Parsers + Processors
+Adapters (CLI / FastAPI + React)
+    │
+Services (production, compositor, matcher, acquisition)
+    │
+┌───┴───┐
+formats/    Processors
+(OTIO)      ├ ffmpeg.py, graphics.py, tts.py
+            ├ captions.py, maps.py
+            ├ scene_detect.py, media_search.py
+            └ ai_video.py
 ```
 
-- **Parsers**: Assembly guide & storyboard markdown → structured models
-- **Processors**: FFmpeg (trim/effects/transitions/concat), Pillow (graphics), TTS (edge/kokoro/openai)
-- **Services**: Production pipeline orchestration with persistent state
-- **Adapters**: Typer CLI, FastAPI + React web UI
+- **`formats/`**: `ParsedStoryboard` — the runtime model. Bidirectional `.md` ↔ OTIO conversion.
+- **Processors**: Stateless functions wrapping FFmpeg, Pillow, TTS, stock APIs, scene detection.
+- **Services**: Production pipeline orchestration (no business logic — calls processors, manages state).
+- **Adapters**: Typer CLI, FastAPI + React web UI. Both delegate to the same service functions.
 
 ## Development
 

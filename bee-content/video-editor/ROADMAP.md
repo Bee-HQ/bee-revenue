@@ -90,29 +90,63 @@ Features needed when producing 2+ videos/month consistently.
 
 ### Pipeline Automation
 - [x] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" -n 3` searches Pexels, downloads HD clips to stock/ dir. Needs `PEXELS_API_KEY` env var
-- [x] **AI video generation infra** — `bee-video generate-clip --prompt "..." --provider stub` with pluggable provider interface. Ships with stub provider; real providers (Runway, Kling, Luma) as optional extras
+- [x] **AI video generation infra** — `bee-video generate-clip --prompt "..." --provider stub` with pluggable provider interface. Ships with stub provider; real providers auto-register on import
+- [x] **Multi-provider stock search** — unified Pexels + Pixabay search with query extraction
+- [x] **Batch media acquisition** — `Acquire` button searches + downloads all storyboard stock queries in one shot
 
-### Video Generation Providers (planned)
+### Video Generation Providers
 
-Wire up real AI providers for `generate-clip`. The infra is built — each provider is a single file (`_videogen_<name>.py`) that implements `generate_<name>(request, output_path) -> GenerationResult` and auto-registers on import.
+Wire up real AI providers for `generate-clip`. The infra is built — stubs exist for kling and veo.
 
-- [ ] **Runway Gen-4** — text-to-video + image-to-video. Supports reference images for style/content guidance. Needs `RUNWAY_API_KEY` env var. Add as `video-gen-runway = ["runwayml"]` extra in pyproject.toml
-- [ ] **Kling** — text-to-video + image-to-video. Strong at realistic motion. Needs API key. Add as `video-gen-kling` extra
-- [ ] **Luma Dream Machine** — text-to-video + image-to-video. Good at cinematic shots. Needs API key. Add as `video-gen-luma` extra
-- [x] **Stub → FFmpeg placeholder** — stub provider now generates a real playable MP4 (black frame + drawtext prompt) via FFmpeg instead of JSON metadata
+- [ ] **Kling** — wire up real Kling API (stub exists, needs `KLING_API_KEY`)
+- [ ] **Veo** — wire up real Veo API (stub exists, needs Google Cloud credentials)
+- [ ] **Runway Gen-4** — text-to-video + image-to-video. Add as `video-gen-runway = ["runwayml"]` extra in pyproject.toml
+- [x] **Stub → FFmpeg placeholder** — stub provider generates a real playable MP4 (black frame + drawtext) via FFmpeg
 
 ### Pipeline Automation (continued)
-- [ ] **LLM screenplay → assembly guide** — accept a case-research doc + formula, generate an assembly guide draft. Human review required but saves 2-3 hours per video
-- [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file. Supports lower_third, timeline_marker, quote_card, financial_card, text_overlay, black_frame, mugshot_card, news_montage
+- [ ] **LLM screenplay → storyboard** — accept a case-research doc + formula, generate a v2 storyboard draft. Human review required but saves 2-3 hours per video
+- [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file
 
 ### Quality
 - [x] **Stock footage library** — SQLite tracker at `~/.bee-video/stock-library.db`. `bee-video stock-list` / `stock-check`. Auto-registers clips on `fetch-stock`
-- [x] **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project in `.bee-video/voice.json`; narration uses locked voice unless explicitly overridden
-- [x] **Rough cut review** — `bee-video rough-cut` exports a fast 720p concatenation (no grading, no transitions) for structure review before investing in final assembly
+- [x] **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project; narration uses locked voice unless explicitly overridden
+- [x] **Rough cut review** — `bee-video rough-cut` exports a fast 720p concatenation for structure review before full assembly
 
 ### Infrastructure
-- [ ] **FOIA pipeline tracker** — not a bee-video feature per se, but the production pipeline stalls on footage acquisition. At minimum: a structured template for tracking FOIA requests per case (filed date, jurisdiction, expected response, received date, status)
-- [x] **Naming convention enforcement** — `bee-video validate` checks project structure (expected dirs, output subdirs, sidecar JSON validity, filename conventions)
+- [ ] **FOIA pipeline tracker** — structured template for tracking FOIA requests per case (filed date, jurisdiction, expected response, received date, status)
+- [x] **Naming convention enforcement** — `bee-video validate` checks project structure and filename conventions
+
+---
+
+## v0.7.0 — OTIO Project Format (complete)
+
+- [x] **OTIO project format** — v2 storyboard with JSON blocks, bidirectional OTIO conversion
+- [x] **Pydantic models** — `ProjectConfig`, `SegmentConfig`, `VisualEntry`, `AudioEntry`, `OverlayEntry`
+- [x] **Markdown parser/writer** — round-trip fidelity
+- [x] **OTIO converters** — `to_otio()`, `from_otio()`, `clean_otio()`
+- [x] **Migration converter** — `old_to_new()` for old table-based storyboards
+- [x] **CLI** — `bee-video import-md`, `bee-video export`
+- [x] **Export menu** — markdown + clean OTIO from web UI
+- [x] **Inline segment editing** — transition picker, color grade, volume, trim handles
+- [x] **SessionStore rewritten** — OTIO persistence, all services use `ParsedStoryboard`
+- [x] **Sidecar files removed** — assignments.json, voice.json, segment-order.json → OTIO
+
+## v0.8.0 — Compositor + Search (complete)
+
+- [x] **Multi-layer compositor** — per-segment visual → trim → normalize → color → overlay → audio → mux
+- [x] **Auto-assign matcher** — keyword + src matching
+- [x] **Batch acquisition** — search + download all stock from storyboard queries
+- [x] **Scene detection** — FFmpeg shot boundary detection, `bee-video scenes`
+- [x] **Multi-provider stock search** — Pexels + Pixabay unified
+- [x] **AI video providers** — Kling + Veo stubs
+- [x] **Satellite maps** — Esri World Imagery tiles
+- [x] **Toast notifications** — auto-dismiss success/error/info/warning
+- [x] **Stock search panel** — Pexels search in MediaLibrary sidebar
+- [x] **Keyboard shortcuts panel** — `?` to show all shortcuts
+- [x] **Loading skeletons** — during initial load
+- [x] **Per-entry download buttons** — `download_url`/`pexels_url` metadata
+- [x] **Production bar** — Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire buttons
+- [x] **Security hardening** — SSRF validation, YouTube URL check, path sanitization, drawtext escaping
 
 ---
 
@@ -120,9 +154,6 @@ Wire up real AI providers for `generate-clip`. The infra is built — each provi
 
 UX refinements to add when touching nearby code.
 
-- [ ] Keyboard shortcuts panel (`?` to show overlay with all shortcuts)
-- [ ] Toast notifications (replace inline status strings in ProductionBar)
-- [ ] Loading skeletons for segment list, media library, player during initial load
 - [ ] Responsive layout — collapse sidebars to tabs on screens < 1024px
 - [ ] Dark/light theme toggle
 - [ ] Retry logic in production.py for transient FFmpeg failures
