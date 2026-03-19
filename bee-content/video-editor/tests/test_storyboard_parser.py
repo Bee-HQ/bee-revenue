@@ -213,6 +213,120 @@ class TestParseStoryboard:
         assert summary["production_rules"] == 3
 
 
+class TestParseMetadata:
+    def test_header_metadata(self, tmp_path):
+        sb_file = tmp_path / "sb.md"
+        sb_file.write_text(textwrap.dedent("""\
+            # Shot-by-Shot Storyboard: "Meta Test"
+
+            **Total Duration:** 12:30
+            **Resolution:** 1920x1080
+            **Format:** 16:9 YouTube
+
+            ---
+
+            ## COLD OPEN (0:00 - 0:30)
+
+            ### 0:00 - 0:10 | HOOK
+            | Layer | Content |
+            |-------|---------|
+            | Visual | `STOCK:` test |
+        """))
+        sb = parse_storyboard(str(sb_file))
+        assert sb.total_duration == "12:30"
+        assert sb.resolution == "1920x1080"
+        assert sb.format == "16:9 YouTube"
+
+    def test_missing_metadata_defaults_to_none(self, tmp_path):
+        sb_file = tmp_path / "sb.md"
+        sb_file.write_text(textwrap.dedent("""\
+            # Shot-by-Shot Storyboard: "No Meta"
+
+            ## COLD OPEN (0:00 - 0:30)
+
+            ### 0:00 - 0:10 | HOOK
+            | Layer | Content |
+            |-------|---------|
+            | Visual | `STOCK:` test |
+        """))
+        sb = parse_storyboard(str(sb_file))
+        assert sb.total_duration is None
+        assert sb.resolution is None
+        assert sb.format is None
+
+    def test_pre_production_parsing(self, tmp_path):
+        sb_file = tmp_path / "sb.md"
+        sb_file.write_text(textwrap.dedent("""\
+            # Shot-by-Shot Storyboard: "Pre-Production Test"
+
+            ## PRE-PRODUCTION
+
+            ### Audio
+            - [ ] Record narrator tracks
+            - [x] Mix ambient music
+
+            ### Graphics
+            - [ ] Create lower thirds
+            - [x] Export title card
+
+            ---
+
+            ## COLD OPEN (0:00 - 0:10)
+
+            ### 0:00 - 0:10 | HOOK
+            | Layer | Content |
+            |-------|---------|
+            | Visual | `STOCK:` test |
+        """))
+        sb = parse_storyboard(str(sb_file))
+        assert len(sb.pre_production) == 4
+
+        audio_items = [i for i in sb.pre_production if i.category == "audio"]
+        assert len(audio_items) == 2
+        assert audio_items[0].text == "Record narrator tracks"
+        assert audio_items[0].checked is False
+        assert audio_items[1].text == "Mix ambient music"
+        assert audio_items[1].checked is True
+
+        graphics_items = [i for i in sb.pre_production if i.category == "graphics"]
+        assert len(graphics_items) == 2
+        assert graphics_items[0].text == "Create lower thirds"
+        assert graphics_items[0].checked is False
+        assert graphics_items[1].checked is True
+
+    def test_post_assembly_parsing(self, tmp_path):
+        sb_file = tmp_path / "sb.md"
+        sb_file.write_text(textwrap.dedent("""\
+            # Shot-by-Shot Storyboard: "Post Test"
+
+            ## COLD OPEN (0:00 - 0:10)
+
+            ### 0:00 - 0:10 | HOOK
+            | Layer | Content |
+            |-------|---------|
+            | Visual | `STOCK:` test |
+
+            ---
+
+            ## POST-ASSEMBLY
+
+            - [x] Color grade complete
+            - [ ] Add end card
+            - [x] Upload to YouTube
+
+            ---
+        """))
+        sb = parse_storyboard(str(sb_file))
+        assert len(sb.post_checklist) == 3
+        assert sb.post_checklist[0].text == "Color grade complete"
+        assert sb.post_checklist[0].checked is True
+        assert sb.post_checklist[0].category == "post"
+        assert sb.post_checklist[1].text == "Add end card"
+        assert sb.post_checklist[1].checked is False
+        assert sb.post_checklist[2].text == "Upload to YouTube"
+        assert sb.post_checklist[2].checked is True
+
+
 class TestStoryboardParserResilience:
     def test_malformed_segment_header_skipped(self):
         md = """# Test Storyboard

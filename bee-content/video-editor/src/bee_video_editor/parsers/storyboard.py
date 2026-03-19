@@ -27,6 +27,7 @@ import re
 from pathlib import Path
 
 from bee_video_editor.models_storyboard import (
+    ChecklistItem,
     LayerEntry,
     MapNeeded,
     PhotoNeeded,
@@ -47,12 +48,20 @@ def parse_storyboard(path: str | Path) -> Storyboard:
     text = Path(path).read_text(encoding="utf-8")
     lines = text.split("\n")
 
-    storyboard = Storyboard(title=_extract_title(lines))
+    metadata = _parse_header_metadata(lines)
+    storyboard = Storyboard(
+        title=_extract_title(lines),
+        total_duration=metadata.get("total_duration"),
+        resolution=metadata.get("resolution"),
+        format=metadata.get("format"),
+    )
     storyboard.segments = _parse_segments(lines)
     storyboard.stock_footage = _parse_stock_footage(lines)
     storyboard.photos_needed = _parse_photos(lines)
     storyboard.maps_needed = _parse_maps(lines)
     storyboard.production_rules = _parse_production_rules(lines)
+    storyboard.pre_production = _parse_checklists(lines, "PRE-PRODUCTION")
+    storyboard.post_checklist = _parse_checklists(lines, "POST-ASSEMBLY", default_category="post")
 
     return storyboard
 
@@ -65,6 +74,95 @@ def _extract_title(lines: list[str]) -> str:
             title = title.strip('"').strip('\u201c').strip('\u201d')
             return title
     return "Untitled Storyboard"
+
+
+def _parse_header_metadata(lines: list[str]) -> dict[str, str]:
+    """Parse **Key:** value metadata lines before the first ## section.
+
+    Recognized keys:
+        total duration → total_duration
+        resolution     → resolution
+        format         → format
+    """
+    key_map = {
+        "total duration": "total_duration",
+        "resolution": "resolution",
+        "format": "format",
+    }
+    result: dict[str, str] = {}
+
+    for line in lines:
+        stripped = line.strip()
+        # Stop at the first ## heading (section start)
+        if stripped.startswith("##"):
+            break
+        # Match **Key:** value
+        m = re.match(r'^\*\*(.+?):\*\*\s*(.+)', stripped)
+        if m:
+            key_raw = m.group(1).strip().lower()
+            value = m.group(2).strip()
+            if key_raw in key_map:
+                result[key_map[key_raw]] = value
+
+    return result
+
+
+def _parse_checklists(
+    lines: list[str],
+    section_header: str,
+    default_category: str = "",
+) -> list[ChecklistItem]:
+    """Parse a checklist section (e.g. PRE-PRODUCTION or POST-ASSEMBLY).
+
+    Finds the ## section whose text contains *section_header* (case-insensitive),
+    then collects:
+        ### Subcategory   → sets the current category
+        - [ ] text        → ChecklistItem(checked=False)
+        - [x] text        → ChecklistItem(checked=True)
+
+    Stops at the next ## heading or --- separator.
+    """
+    items: list[ChecklistItem] = []
+    in_section = False
+    current_category = default_category
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Detect our target section
+        if stripped.startswith("##") and not stripped.startswith("###"):
+            if in_section:
+                # Hit next ## — we're done
+                break
+            section_text = re.sub(r'^#+\s*', '', stripped)
+            if section_header.upper() in section_text.upper():
+                in_section = True
+            continue
+
+        if not in_section:
+            continue
+
+        # Stop at horizontal rule
+        if stripped.startswith("---"):
+            break
+
+        # ### Subcategory heading sets the category
+        if stripped.startswith("###"):
+            current_category = re.sub(r'^#+\s*', '', stripped).strip().lower()
+            continue
+
+        # Checkbox items
+        checked_match = re.match(r'^-\s+\[( |x|X)\]\s+(.*)', stripped)
+        if checked_match:
+            checked = checked_match.group(1).lower() == "x"
+            text = checked_match.group(2).strip()
+            items.append(ChecklistItem(
+                text=text,
+                checked=checked,
+                category=current_category,
+            ))
+
+    return items
 
 
 def _parse_segments(lines: list[str]) -> list[StoryboardSegment]:
@@ -83,6 +181,16 @@ def _parse_segments(lines: list[str]) -> list[StoryboardSegment]:
             r'^##\s+(?!#)(.+?)\s*(?:\((\d+:\d+\s*-\s*\d+:\d+)\))?\s*$', line
         )
         if section_match:
+            section_name = section_match.group(1).strip().upper()
+            # Skip non-segment sections (metadata/checklist/asset sections)
+            _NON_SEGMENT_SECTIONS = (
+                "PRE-PRODUCTION", "POST-ASSEMBLY", "POST ASSEMBLY",
+                "STOCK FOOTAGE", "PHOTOS NEEDED", "MAP IMAGES", "MAP IMAGE",
+                "PRODUCTION RULES",
+            )
+            if any(section_name.startswith(ns) for ns in _NON_SEGMENT_SECTIONS):
+                i += 1
+                continue
             current_section = section_match.group(1).strip()
             current_section_time = section_match.group(2) or ""
             current_subsection = ""
