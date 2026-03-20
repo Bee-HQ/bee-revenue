@@ -35,9 +35,6 @@ function SegmentRow({
 }: SegmentRowProps) {
   const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
   const toggleSegmentSelection = useProjectStore(s => s.toggleSegmentSelection);
-  const draggedMedia = useProjectStore(s => s.draggedMedia);
-  const assignMedia = useProjectStore(s => s.assignMedia);
-  const assignMediaBatch = useProjectStore(s => s.assignMediaBatch);
 
   const isSelected = selectedSegmentIds.includes(segment.id);
   const hasAssignments = Object.keys(segment.assigned_media).length > 0;
@@ -47,44 +44,15 @@ function SegmentRow({
     toggleSegmentSelection(segment.id, e.shiftKey);
   };
 
-  const handleMediaDrop = (e: React.DragEvent) => {
-    // Only handle media drops (not segment reorder drops) when draggedMedia is set
-    if (!draggedMedia) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (selectedSegmentIds.length > 1 && isSelected) {
-      assignMediaBatch('visual', draggedMedia.path);
-    } else {
-      assignMedia(segment.id, 'visual', draggedMedia.path);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!draggedMedia) {
-      // Segment reorder drag
-      onDragOver(e, index);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    if (draggedMedia) {
-      handleMediaDrop(e);
-    } else {
-      onDrop(e, index);
-    }
-  };
-
   return (
     <div
       draggable
       onDragStart={e => {
-        // Only start segment reorder if no media is being dragged
         e.dataTransfer.effectAllowed = 'move';
         onDragStart(index);
       }}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      onDragOver={e => { e.preventDefault(); onDragOver(e, index); }}
+      onDrop={e => onDrop(e, index)}
       onDragEnd={onDragEnd}
       onClick={handleClick}
       className={`px-3 py-2 cursor-pointer border-l-2 transition-colors select-none ${
