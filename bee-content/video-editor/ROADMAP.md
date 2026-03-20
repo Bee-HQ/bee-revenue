@@ -210,13 +210,16 @@ Node.js (Express/Fastify)
     └── OTIO save/load
 ```
 
+---
+
+## v1.0.1 — AI Deep Dive + Platform Features
+
 ### Inspired by IMG.LY CE.SDK
 - [ ] **Model-agnostic AI plugin system** — register AI providers by category (text2video, text2speech, text2image, stock_video). Each provider shows up as a tool in the AI panel. Users pick which to use. Proxy server injects API keys. Pattern: `{ category: "text2video", providers: [{ name: "kling", apiKey: env.KLING_API_KEY }, { name: "veo", ... }] }`
 - [ ] **In-browser MP4 export via WebCodecs** — export video entirely in the browser without Node.js render script. Uses WebCodecs API (Chromium-only). Faster than Remotion headless Chrome. Could be offered as "Fast Export" alongside Remotion's "Quality Export"
 - [ ] **AI provider proxy server** — lightweight backend that injects API keys for AI providers. Browser → proxy → AI provider. Keeps keys server-side, allows rate limiting and cost tracking per provider
 
 ### Inspired by Descript
-- [ ] **Transcript-driven editing** — edit narration text directly and the video auto-adjusts. Change words in the transcript → segment boundaries/timing update, TTS re-generates for the changed section. Our storyboard already has `seg.narration` per segment — extending this to live editing is the natural next step
 - [ ] **AI voice cloning (Overdub-style)** — clone the narrator's voice from a sample, then generate any text in that voice. Would use ElevenLabs voice cloning API or similar. Record a 30-second sample → generate unlimited narration in that voice
 - [ ] **AI co-editor (Underlord-style)** — LLM-powered assistant that can: rewrite narration, suggest cuts, generate B-roll queries, fix pacing — all from natural language instructions. "Make the opening more dramatic" → LLM rewrites narration + suggests darker color grade + faster cuts
 
