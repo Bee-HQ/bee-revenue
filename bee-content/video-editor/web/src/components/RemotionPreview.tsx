@@ -3,12 +3,14 @@ import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
 import { useProjectStore } from '../stores/project';
 import { BeeComposition } from './BeeComposition';
-import { formatTimecode, framesToTime } from '../adapters/time-utils';
+import { formatTimecode, framesToTime, timeToFrames } from '../adapters/time-utils';
 
 const FPS = 30;
 
 export function RemotionPreview() {
   const storyboard = useProjectStore((s) => s.storyboard);
+  const currentTimeMs = useProjectStore((s) => s.currentTimeMs);
+  const setPlayerRef = useProjectStore((s) => s.setPlayerRef);
   const playerRef = useRef<PlayerRef>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -16,13 +18,23 @@ export function RemotionPreview() {
   const totalDuration = storyboard?.total_duration_seconds ?? 0;
   const totalFrames = Math.max(1, Math.round(totalDuration * FPS));
 
+  // Register playerRef in the store on mount so other components can seek
+  useEffect(() => {
+    setPlayerRef(playerRef);
+  }, [setPlayerRef]);
+
   // Listen to player frame updates
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
 
     const onFrameChange = (e: { detail: { frame: number } }) => {
-      setCurrentTime(framesToTime(e.detail.frame, FPS));
+      const seconds = framesToTime(e.detail.frame, FPS);
+      setCurrentTime(seconds);
+      // Only update the store while playing — avoids a seek→framechange→setCurrentTimeMs→seekTo loop
+      if (playing) {
+        useProjectStore.getState().setCurrentTimeMs(e.detail.frame * (1000 / FPS));
+      }
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
@@ -36,7 +48,15 @@ export function RemotionPreview() {
       player.removeEventListener('play', onPlay);
       player.removeEventListener('pause', onPause);
     };
-  }, [storyboard]);
+  }, [storyboard, playing]);
+
+  // When currentTimeMs changes externally (e.g. from segment click), seek the player
+  useEffect(() => {
+    if (playerRef.current && !playing) {
+      const frame = timeToFrames(currentTimeMs / 1000, FPS);
+      playerRef.current.seekTo(frame);
+    }
+  }, [currentTimeMs, playing]);
 
   const togglePlay = useCallback(() => {
     if (playing) playerRef.current?.pause();

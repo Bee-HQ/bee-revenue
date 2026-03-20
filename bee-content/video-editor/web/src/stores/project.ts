@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import type { RefObject } from 'react';
+import type { PlayerRef } from '@remotion/player';
 import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';
@@ -25,7 +27,11 @@ interface ProjectState {
   redoStack: HistoryEntry[];
   segmentOrder: string[] | null;
   effects: Effects | null;
+  currentTimeMs: number;
+  playerRef: RefObject<PlayerRef | null> | null;
 
+  setCurrentTimeMs: (ms: number) => void;
+  setPlayerRef: (ref: RefObject<PlayerRef | null>) => void;
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
   toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
@@ -76,6 +82,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   redoStack: [],
   segmentOrder: null,
   effects: null,
+  currentTimeMs: 0,
+  playerRef: null,
+
+  setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
+  setPlayerRef: (ref) => set({ playerRef: ref }),
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });
