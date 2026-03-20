@@ -76,6 +76,10 @@ export function ClipProperties() {
         )}
 
         {clipType === 'v' && layerIndex >= 0 && (
+          <KenBurnsSection segmentId={segmentId} visualIndex={layerIndex} segment={segment} />
+        )}
+
+        {clipType === 'v' && layerIndex >= 0 && (
           <TrimSection segmentId={segmentId} visualIndex={layerIndex} segment={segment} />
         )}
 
@@ -132,6 +136,41 @@ function ColorGradeSection({ segmentId, visualIndex, segment }: {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+const KEN_BURNS_EFFECTS = ['none', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right', 'pan_up', 'pan_down', 'zoom_in_pan_right'];
+
+function KenBurnsSection({ segmentId, visualIndex, segment }: {
+  segmentId: string; visualIndex: number; segment: any;
+}) {
+  const visual = segment.visual[visualIndex];
+  const currentEffect = visual?.metadata?.ken_burns || 'none';
+
+  const handleSelect = async (effect: string) => {
+    try {
+      await api.updateSegment(segmentId, {
+        visual_updates: [{ index: visualIndex, ken_burns: effect === 'none' ? null : effect }],
+      });
+      toast.success(effect === 'none' ? 'Ken Burns cleared' : `Ken Burns: ${effect}`);
+      const sb = await api.getCurrentProject();
+      useProjectStore.setState({ storyboard: sb });
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  return (
+    <div>
+      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Ken Burns</div>
+      <select
+        value={currentEffect}
+        onChange={e => handleSelect(e.target.value)}
+        className="w-full bg-editor-bg border border-editor-border rounded px-2 py-1 text-[10px] text-gray-300"
+      >
+        {KEN_BURNS_EFFECTS.map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}
+      </select>
     </div>
   );
 }
