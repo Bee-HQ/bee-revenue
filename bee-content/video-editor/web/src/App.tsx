@@ -21,6 +21,11 @@ export default function App() {
         e.preventDefault();
         dcDispatch('history:redo', {});
       }
+      if (e.key === 's' && !mod) {
+        e.preventDefault();
+        const currentMs = useProjectStore.getState().currentTimeMs;
+        dcDispatch('active:split', { payload: { time: currentMs } });
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
