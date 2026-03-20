@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import { storyboardToDesignCombo, designComboToStoryboard } from '../adapters/timeline-adapter';
 import { ProductionDropdown } from './ProductionDropdown';
+import { TimelineRuler } from './TimelineRuler';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
 import StateManager from '@designcombo/state';
@@ -9,6 +10,7 @@ import Timeline from '@designcombo/timeline';
 import { dispatch as dcDispatch } from '@designcombo/events';
 
 const SCALE = { unit: 300, zoom: 1 / 300, segments: 5, index: 7 };
+const FPS = 30;
 
 export function TimelineEditor() {
   const storyboard = useProjectStore((s) => s.storyboard);
@@ -18,6 +20,19 @@ export function TimelineEditor() {
   const stateManagerRef = useRef<StateManager | null>(null);
   const [zoom, setZoom] = useState(SCALE.index);
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  // Ruler zoom: pixels per millisecond, derived from zoom slider index
+  const rulerZoom = 1 / (zoom * 75);
+
+  const handleRulerSeek = useCallback((ms: number) => {
+    useProjectStore.getState().setCurrentTimeMs(ms);
+    const player = useProjectStore.getState().playerRef?.current;
+    if (player) {
+      const frame = Math.round(ms / (1000 / FPS));
+      player.seekTo(frame);
+    }
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current || !storyboard || !containerRef.current) return;
@@ -56,6 +71,17 @@ export function TimelineEditor() {
 
       stateManagerRef.current = sm;
       timelineRef.current = tl;
+
+      // Track viewport scroll for ruler sync
+      try {
+        if (typeof tl.onViewportChange === 'function') {
+          tl.onViewportChange(({ scrollLeft: sl }: { scrollLeft: number }) => {
+            setScrollLeft(sl || 0);
+          });
+        }
+      } catch {
+        // onViewportChange may not be available in all versions
+      }
 
       // Track clip selection: sync DesignCombo activeIds -> Zustand store
       const activeIdsSub = sm.subscribeToActiveIds(({ activeIds }) => {
@@ -286,6 +312,14 @@ export function TimelineEditor() {
           Redo
         </button>
       </div>
+
+      {/* Time ruler with draggable scrubber */}
+      <TimelineRuler
+        durationMs={storyboard ? storyboard.total_duration_seconds * 1000 : 1000}
+        zoom={rulerZoom}
+        scrollLeft={scrollLeft}
+        onSeek={handleRulerSeek}
+      />
 
       {/* Timeline canvas container */}
       <div ref={containerRef} className="flex-1 overflow-hidden relative">
