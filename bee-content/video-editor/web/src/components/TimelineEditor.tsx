@@ -55,6 +55,12 @@ export function TimelineEditor() {
       stateManagerRef.current = sm;
       timelineRef.current = tl;
 
+      // Track clip selection: sync DesignCombo activeIds -> Zustand store
+      const activeIdsSub = sm.subscribeToActiveIds(({ activeIds }) => {
+        const selected = activeIds.length > 0 ? activeIds[0] : null;
+        useProjectStore.getState().setActiveClipId(selected);
+      });
+
       // Convert storyboard to DesignCombo state and load
       const dcState = storyboardToDesignCombo(storyboard);
       dcDispatch('design:load', {
@@ -70,6 +76,9 @@ export function TimelineEditor() {
     }
 
     return () => {
+      // Cleanup active ID subscription
+      activeIdsSub.unsubscribe();
+      useProjectStore.getState().setActiveClipId(null);
       // Cleanup
       if (timelineRef.current) {
         try {

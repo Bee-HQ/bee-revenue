@@ -2,6 +2,7 @@ import { useProjectStore } from '../stores/project';
 import { RemotionPreview } from './RemotionPreview';
 import { TimelineEditor } from './TimelineEditor';
 import { MediaLibrary } from './MediaLibrary';
+import { ClipProperties } from './ClipProperties';
 import { SegmentList } from './SegmentList';
 import { ExportMenu } from './ExportMenu';
 
@@ -39,7 +40,10 @@ export function Layout() {
         </main>
 
         <aside className="w-56 border-l border-editor-border flex flex-col shrink-0">
-          <MediaLibrary />
+          <div className="flex-1 overflow-hidden">
+            <MediaLibrary />
+          </div>
+          <ClipProperties />
         </aside>
       </div>
     </div>
