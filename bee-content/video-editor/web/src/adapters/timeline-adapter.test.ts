@@ -161,4 +161,16 @@ describe('designComboToStoryboard', () => {
     expect(result.title).toBe('Test');
     expect(result.sections).toEqual(['Act 1']);
   });
+
+  test('reverse maps changed video src to assigned_media', () => {
+    const dc = storyboardToDesignCombo(mockStoryboard);
+    // Modify the V1 item's src
+    const v1ItemId = dc.tracks[0].items[0];
+    dc.trackItemsMap[v1ItemId] = {
+      ...dc.trackItemsMap[v1ItemId],
+      details: { ...dc.trackItemsMap[v1ItemId].details, src: '/api/media/file?path=footage%2Fnew-clip.mp4' },
+    };
+    const result = designComboToStoryboard(dc, mockStoryboard);
+    expect(result.segments[0].assigned_media['visual:0']).toBe('footage/new-clip.mp4');
+  });
 });

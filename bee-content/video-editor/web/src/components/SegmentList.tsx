@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
 import { SkeletonList } from './SkeletonCard';
-import { parseTimecode, timeToFrames, timeToMs } from '../adapters/time-utils';
+import { parseTimecode, timeToMs } from '../adapters/time-utils';
 
 const VISUAL_TYPE_DOT: Record<string, string> = {
   FOOTAGE: 'bg-yellow-400',
@@ -44,14 +44,10 @@ function SegmentRow({
   const handleClick = (e: React.MouseEvent) => {
     toggleSegmentSelection(segment.id, e.shiftKey);
 
-    // Seek Remotion player to segment start
+    // Seek Remotion player to segment start via store — RemotionPreview handles the actual seekTo
     const startSeconds = parseTimecode(segment.start);
     const ms = timeToMs(startSeconds);
-    const store = useProjectStore.getState();
-    store.setCurrentTimeMs(ms);
-    if (store.playerRef?.current) {
-      store.playerRef.current.seekTo(timeToFrames(startSeconds, 30));
-    }
+    useProjectStore.getState().setCurrentTimeMs(ms);
   };
 
   return (

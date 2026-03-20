@@ -179,7 +179,7 @@ export function storyboardToDesignCombo(storyboard: Storyboard): DCState {
         id,
         name: `${entry.content_type}: ${entry.content || ''}`.substring(0, 40),
         type: 'text',
-        display: { from: fromMs, to: fromMs + 4000 }, // overlays default 4s
+        display: { from: fromMs, to: Math.min(fromMs + 4000, toMs) }, // overlays default 4s, capped to segment end
         metadata: {
           segmentId: seg.id,
           layerIndex: i,

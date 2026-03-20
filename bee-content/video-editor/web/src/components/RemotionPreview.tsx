@@ -12,6 +12,7 @@ export function RemotionPreview() {
   const currentTimeMs = useProjectStore((s) => s.currentTimeMs);
   const setPlayerRef = useProjectStore((s) => s.setPlayerRef);
   const playerRef = useRef<PlayerRef>(null);
+  const playingRef = useRef(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -32,12 +33,13 @@ export function RemotionPreview() {
       const seconds = framesToTime(e.detail.frame, FPS);
       setCurrentTime(seconds);
       // Only update the store while playing — avoids a seek→framechange→setCurrentTimeMs→seekTo loop
-      if (playing) {
+      // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
+      if (playingRef.current) {
         useProjectStore.getState().setCurrentTimeMs(e.detail.frame * (1000 / FPS));
       }
     };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPlay = () => { playingRef.current = true; setPlaying(true); };
+    const onPause = () => { playingRef.current = false; setPlaying(false); };
 
     player.addEventListener('framechange', onFrameChange as never);
     player.addEventListener('play', onPlay);
@@ -48,15 +50,15 @@ export function RemotionPreview() {
       player.removeEventListener('play', onPlay);
       player.removeEventListener('pause', onPause);
     };
-  }, [storyboard, playing]);
+  }, [storyboard]);
 
   // When currentTimeMs changes externally (e.g. from segment click), seek the player
   useEffect(() => {
-    if (playerRef.current && !playing) {
+    if (playerRef.current && !playingRef.current) {
       const frame = timeToFrames(currentTimeMs / 1000, FPS);
       playerRef.current.seekTo(frame);
     }
-  }, [currentTimeMs, playing]);
+  }, [currentTimeMs]);
 
   const togglePlay = useCallback(() => {
     if (playing) playerRef.current?.pause();
