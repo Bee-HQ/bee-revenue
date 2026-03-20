@@ -1,0 +1,104 @@
+import { useCallback, useRef, useState, useEffect } from 'react';
+import { Player } from '@remotion/player';
+import type { PlayerRef } from '@remotion/player';
+import { useProjectStore } from '../stores/project';
+import { BeeComposition } from './BeeComposition';
+import { formatTimecode, framesToTime } from '../adapters/time-utils';
+
+const FPS = 30;
+
+export function RemotionPreview() {
+  const storyboard = useProjectStore((s) => s.storyboard);
+  const playerRef = useRef<PlayerRef>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  const totalDuration = storyboard?.total_duration_seconds ?? 0;
+  const totalFrames = Math.max(1, Math.round(totalDuration * FPS));
+
+  // Listen to player frame updates
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    const onFrameChange = (e: { detail: { frame: number } }) => {
+      setCurrentTime(framesToTime(e.detail.frame, FPS));
+    };
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+
+    player.addEventListener('framechange', onFrameChange as never);
+    player.addEventListener('play', onPlay);
+    player.addEventListener('pause', onPause);
+
+    return () => {
+      player.removeEventListener('framechange', onFrameChange as never);
+      player.removeEventListener('play', onPlay);
+      player.removeEventListener('pause', onPause);
+    };
+  }, [storyboard]);
+
+  const togglePlay = useCallback(() => {
+    if (playing) playerRef.current?.pause();
+    else playerRef.current?.play();
+  }, [playing]);
+
+  if (!storyboard) return null;
+
+  return (
+    <div className="flex-1 flex flex-col bg-black min-h-0">
+      {/* Player area */}
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <Player
+          ref={playerRef}
+          component={BeeComposition}
+          inputProps={{ storyboard }}
+          durationInFrames={totalFrames}
+          fps={FPS}
+          compositionWidth={1920}
+          compositionHeight={1080}
+          style={{ width: '100%', height: '100%' }}
+          controls={false}
+          autoPlay={false}
+        />
+      </div>
+
+      {/* Playback controls bar */}
+      <div className="bg-editor-surface border-t border-editor-border px-4 py-1.5 flex items-center gap-3 shrink-0">
+        <span className="text-[10px] font-mono text-gray-500 w-16">
+          {formatTimecode(currentTime)}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <button
+            className="text-xs text-gray-400 hover:text-white px-1"
+            onClick={() => playerRef.current?.seekTo(0)}
+            title="Go to start"
+          >
+            {'|<'}
+          </button>
+          <button
+            className="text-sm text-white hover:text-blue-400 px-1"
+            onClick={togglePlay}
+            title={playing ? 'Pause' : 'Play'}
+          >
+            {playing ? '||' : '>'}
+          </button>
+          <button
+            className="text-xs text-gray-400 hover:text-white px-1"
+            onClick={() => playerRef.current?.seekTo(totalFrames - 1)}
+            title="Go to end"
+          >
+            {'>|'}
+          </button>
+        </div>
+
+        <div className="flex-1" />
+
+        <span className="text-[10px] font-mono text-gray-500 w-16 text-right">
+          {formatTimecode(totalDuration)}
+        </span>
+      </div>
+    </div>
+  );
+}
