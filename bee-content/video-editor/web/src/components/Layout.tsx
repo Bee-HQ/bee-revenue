@@ -1,13 +1,22 @@
+import { useState, useEffect } from 'react';
 import { useProjectStore } from '../stores/project';
 import { RemotionPreview } from './RemotionPreview';
 import { TimelineEditor } from './TimelineEditor';
 import { MediaLibrary } from './MediaLibrary';
 import { ClipProperties } from './ClipProperties';
+import { AIPanel } from './AIPanel';
 import { SegmentList } from './SegmentList';
 import { ExportMenu } from './ExportMenu';
 
 export function Layout() {
   const storyboard = useProjectStore(s => s.storyboard);
+  const activeClipId = useProjectStore(s => s.activeClipId);
+  const [rightTab, setRightTab] = useState<'media' | 'properties' | 'ai'>('media');
+
+  // Auto-switch to Properties tab when a clip is selected
+  useEffect(() => {
+    if (activeClipId) setRightTab('properties');
+  }, [activeClipId]);
   if (!storyboard) return null;
 
   const totalMins = Math.floor(storyboard.total_duration_seconds / 60);
@@ -40,10 +49,29 @@ export function Layout() {
         </main>
 
         <aside className="w-56 border-l border-editor-border flex flex-col shrink-0">
-          <div className="flex-1 overflow-hidden">
-            <MediaLibrary />
+          {/* Tab bar */}
+          <div className="flex border-b border-editor-border shrink-0">
+            {(['media', 'properties', 'ai'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setRightTab(tab)}
+                className={`flex-1 px-2 py-1.5 text-[9px] uppercase tracking-wider ${
+                  rightTab === tab
+                    ? 'text-blue-400 border-b-2 border-blue-400 bg-editor-surface'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {tab === 'media' ? 'Media' : tab === 'properties' ? 'Props' : 'AI'}
+              </button>
+            ))}
           </div>
-          <ClipProperties />
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-hidden">
+            {rightTab === 'media' && <MediaLibrary />}
+            {rightTab === 'properties' && <ClipProperties />}
+            {rightTab === 'ai' && <AIPanel />}
+          </div>
         </aside>
       </div>
     </div>
