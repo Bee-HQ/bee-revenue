@@ -1,6 +1,6 @@
 # bee-video-editor
 
-AI-assisted video production tool. Takes a v2 storyboard markdown file and produces final videos through CLI commands, a web UI, or the Python API. v0.8.0.
+AI-assisted video production tool. Takes a v2 storyboard markdown file and produces final videos through CLI commands, a web UI, or the Python API. v0.9.0.
 
 ## Quick Start
 
@@ -36,6 +36,9 @@ uv run bee-video rough-cut storyboard.md -p ./my-project
 
 # Launch web editor
 uv run bee-video serve --dev
+
+# Render final video via Remotion (pixel-perfect MP4 with all overlays)
+node web/render.mjs
 ```
 
 ## Effects & Transitions
@@ -288,7 +291,7 @@ cd web && npm run build
 uv run bee-video serve
 ```
 
-The web UI provides drag-and-drop media assignment, storyboard timeline view, video preview, stock footage search, inline segment editing (transition picker, color grade, volume, trim handles), toast notifications, keyboard shortcuts (`?`), and one-click asset generation via the production bar.
+The web UI features a full NLE timeline (DesignCombo SDK, V1/A1/A2/A3/OV1 tracks), Remotion Player for composited video preview with real-time overlay rendering, a tabbed right sidebar (Media / Properties / AI), drag-and-drop media assignment, stock footage search, clip property editing (color grade, volume, trim, transitions), JKL shuttle playback, split at playhead (S key), and pipeline actions via the production dropdown.
 
 ### Screenshots
 

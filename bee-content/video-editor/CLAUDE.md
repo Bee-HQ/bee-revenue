@@ -4,7 +4,7 @@
 
 AI-assisted video production tool. Takes a v2 storyboard markdown file → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.8.0
+**Version:** 0.9.0
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 
@@ -40,9 +40,10 @@ uv run bee-video stock-check "aerial farm"                  # Check for clip reu
 ./start.sh      # Production (single server :8420, built frontend)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # All tests (535)
+uv run --extra dev pytest tests/ -v          # All backend tests (536)
 ./test.sh                                    # Backend tests + frontend type check
 uv run --extra dev pytest tests/FILE -v      # Single file
+cd web && npm test                           # Frontend vitest (24 tests)
 ```
 
 ## Architecture
@@ -185,20 +186,24 @@ All output 1920x1080 PNG. Colors follow Dr. Insanity palette (dark bg, red/teal 
 
 ## Web UI
 
-React 18 + TypeScript + Vite + Tailwind + Zustand.
+React 18 + TypeScript + Vite + Tailwind + Zustand + DesignCombo + Remotion.
 
-**Layout:** 4-column NLE-style grid — segment list (left), timeline + segment detail (center-top), video player (center-bottom), media library + production bar (right).
+**Layout:** Left sidebar (segment list) + center (Remotion Player above DesignCombo NLE timeline) + right tabbed sidebar (Media / Properties / AI).
 
 **Key features:**
-- Load `.md` or `.otio` storyboard → segments populate with inline editing (transition picker, color grade selector, volume sliders, draggable trim handles)
-- Browse media library → drag file onto segment layer → saved via `PUT /projects/update-segment`
-- Stock search panel (Pexels) in MediaLibrary sidebar with per-result download buttons
-- Video player auto-loads selected segment's assigned media
+- Load `.md` or `.otio` storyboard → DesignCombo multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
+- Remotion Player shows composited video preview with real-time overlays (LowerThird, CaptionOverlay, color grades as CSS filters, timeline markers)
+- Clip property panel (right sidebar Props tab): color grade picker, volume slider, trim inputs, transition picker
+- AI panel (right sidebar AI tab): B-Roll stock search from narration, caption generation, auto color grade suggestions
+- Timeline interactions: drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle
+- Playback controls: JKL shuttle, speed (0.5-2x), frame step, Space/Arrow shortcuts
+- Production dropdown: consolidated pipeline actions (Graphics, Narration, Assemble, Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire)
+- Stock search panel (Pexels) in Media tab with per-result download buttons
 - Toast notifications (success/error/info/warning with auto-dismiss)
 - Keyboard shortcuts panel (press `?`)
 - Loading skeletons during initial load
 - Export menu: markdown or clean OTIO
-- Production bar: Graphics, Narration, Assemble, Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire
+- Remotion-based render: `POST /render-remotion` or `node web/render.mjs` for pixel-perfect MP4
 
 **Key API routes:**
 - `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
@@ -206,6 +211,7 @@ React 18 + TypeScript + Vite + Tailwind + Zustand.
 - `GET /api/media/list` — list project media by category
 - `POST /api/production/{graphics|narration|assemble|composite|captions}` — generate assets
 - `POST /api/stock/search` / `POST /api/stock/download` — stock footage
+- `POST /render-remotion` — Remotion-based pixel-perfect MP4 render
 - `GET /api/production/status` — phase + file counts
 
 ## Known Gaps & Planned Work
@@ -248,12 +254,13 @@ Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are depre
 - **Services:** Temp directories → integration-style pipeline calls
 - **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
 
-535 tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`.
+536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 24 frontend vitest tests (`cd web && npm test`).
 
 ## Dependencies
 
 **Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
-**Web:** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
+**Web (backend):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
+**Web (frontend):** @designcombo/state, @designcombo/timeline, @designcombo/types, @designcombo/events, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
 **TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
 **Maps:** py-staticmaps (`--extra maps`)
 **Dev:** pytest (`--extra dev`)
@@ -282,7 +289,7 @@ Each generation skill reads the formula + visual bible as context. Each review s
 
 | Doc | Purpose |
 |-----|---------|
-| `CHANGELOG.md` | Version history (v0.1.0 → v0.8.0) |
+| `CHANGELOG.md` | Version history (v0.1.0 → v0.9.0) |
 | `ROADMAP.md` | Planned features and known gaps |
 | `README.md` | User-facing usage docs |
 | `../research/screenplay-storyboard-formula.md` | The production formula this tool serves |

@@ -7,6 +7,33 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-03-20
+
+### Added
+- **NLE multi-track timeline** — DesignCombo SDK canvas with V1/A1/A2/A3/OV1 tracks, clips as colored blocks proportional to duration
+- **Remotion Player** — composited video preview with real-time overlay rendering
+- **Remotion overlay components** — animated LowerThird (slide-in), CaptionOverlay (karaoke/phrase word highlighting), color grades as CSS filters, timeline markers
+- **Remotion-based export** — `POST /render-remotion` endpoint, Node.js render script for pixel-perfect MP4 with all overlays
+- **Clip property panel** — tabbed right sidebar (Media/Props/AI) with color grade picker, volume slider, trim inputs, transition picker
+- **Timeline interactions** — drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle
+- **Playback controls** — JKL shuttle, playback speed (0.5-2x), frame step, Space/Arrow keyboard shortcuts
+- **AI panel** — B-Roll stock search from narration, caption generation, auto color grade suggestions
+- **Timeline adapter** — bidirectional Storyboard ↔ DesignCombo state conversion (24 vitest tests)
+- **Time utilities** — timecode ↔ frames ↔ milliseconds conversions
+- **Production dropdown** — consolidated pipeline actions into single dropdown menu
+
+### Changed
+- Layout restructured: sidebars kept, center replaced with Remotion Player + DesignCombo timeline
+- Right sidebar now tabbed: Media / Properties / AI
+- Undo/redo dispatches to DesignCombo StateManager instead of Zustand stack
+
+### Removed
+- StoryboardTimeline, VideoPlayer, ProductionBar, SegmentCard (replaced by NLE timeline)
+- TransitionPicker, ColorGradePicker, VolumeSlider, TrimControls (replaced by ClipProperties panel)
+
+### Dependencies
+- Added: @designcombo/state, @designcombo/timeline, @designcombo/types, @designcombo/events, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
+
 ## [0.8.0] — 2026-03-19
 
 ### Added
