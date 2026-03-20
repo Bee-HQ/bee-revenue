@@ -175,6 +175,41 @@ CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
 - [ ] **FOIA pipeline tracker** — structured FOIA request tracking per case
 - [ ] **Auth option** — optional token-based auth for non-local deployments
 
+### Backend Migration: Python → Node.js (gradual)
+
+With Remotion handling preview AND export, many Python processors are now redundant (graphics, captions, color grades, compositor, assembly). The architecture should shift the center of gravity from Python to Node.js while keeping Python for what it uniquely provides.
+
+**What Remotion already replaced (Python processors now redundant):**
+- Graphics (Pillow PNGs) → React components in Remotion
+- Captions (ASS file + FFmpeg burn) → CaptionOverlay React component
+- Color grades (FFmpeg filters) → CSS filters in Remotion
+- Compositor (multi-layer FFmpeg) → Remotion composition
+- Assembly (FFmpeg concat) → Remotion render
+
+**What Python still uniquely provides:**
+- TTS generation — `edge-tts` (free, cloud) and `kokoro` (free, local) are Python-only libraries
+- OTIO persistence — `opentimelineio` is a Python library with no JS equivalent
+- Storyboard format — parser, writer, Pydantic models, OTIO converters (2000+ lines tested)
+
+**Migration phases:**
+- [ ] **Phase 1: Add Node.js server** — thin Express/Fastify alongside Python. Serve media files, handle Remotion rendering directly (no Python subprocess hop), stock search (Pexels/Pixabay are just HTTP APIs)
+- [ ] **Phase 2: Move APIs to Node.js** — timeline state, media management, stock search, auto-assign matcher. Frontend talks to Node.js for most things. Python becomes a downstream service.
+- [ ] **Phase 3: Python as TTS + OTIO service** — Node.js calls Python only for TTS generation and OTIO save/load. Everything else is Node.js/TypeScript.
+- [ ] **Phase 4: Python optional** — if using only HTTP-based TTS (ElevenLabs, OpenAI) and a custom JSON format instead of OTIO, Python is no longer needed. Full TypeScript stack.
+
+**Target architecture:**
+```
+Frontend (React)
+    ↓
+Node.js (Express/Fastify)
+├── Remotion (preview + export) — no more subprocess hop
+├── Media serving, stock search, auto-assign
+├── Timeline state, storyboard JSON
+└── Calls Python service for:
+    ├── TTS (edge-tts, kokoro)
+    └── OTIO save/load
+```
+
 ### Inspired by IMG.LY CE.SDK
 - [ ] **Model-agnostic AI plugin system** — register AI providers by category (text2video, text2speech, text2image, stock_video). Each provider shows up as a tool in the AI panel. Users pick which to use. Proxy server injects API keys. Pattern: `{ category: "text2video", providers: [{ name: "kling", apiKey: env.KLING_API_KEY }, { name: "veo", ... }] }`
 - [ ] **In-browser MP4 export via WebCodecs** — export video entirely in the browser without Node.js render script. Uses WebCodecs API (Chromium-only). Faster than Remotion headless Chrome. Could be offered as "Fast Export" alongside Remotion's "Quality Export"
