@@ -65,66 +65,80 @@ Replace the segment-list editor with a real NLE-style timeline using DesignCombo
 
 ### v0.9.0-beta — Editing + Export (next)
 
-**P0 — Clip property panel** (restores editing removed in alpha):
-- [ ] **Click clip → properties panel** — select a clip on the timeline, show its properties in a side panel or popover
-- [ ] **Color grade picker** — 12 presets (was inline, now in properties panel)
-- [ ] **Volume slider** — per-clip volume control with fade in/out for music
-- [ ] **Trim in/out inputs** — timecode fields for precise trim points
-- [ ] **Transition picker** — type dropdown + duration slider for segment transitions
+**P0 — Clip property panel (complete):**
+- [x] Click clip → properties panel with color grade, volume, trim, transitions
+- [x] Auto-switch to Properties tab on clip selection
 
-**P1 — Remotion overlay rendering:**
-- [ ] **Lower thirds as React components** — replace Pillow PNGs with animated React `<LowerThird>` in BeeComposition
-- [ ] **Caption overlay component** — `<CaptionOverlay>` with karaoke/phrase modes rendered live in Remotion
-- [ ] **Color grade as CSS filter** — apply color presets via CSS filters in Remotion preview
+**P1 — Remotion overlay rendering (complete):**
+- [x] Lower thirds as animated React components (slide-in, red accent bar)
+- [x] Caption overlay with karaoke (word-by-word highlight) and phrase modes
+- [x] Color grade as CSS filter (12 presets) applied live in preview
+- [x] Timeline markers as red badge overlays
 - [ ] **Ken Burns as CSS animation** — zoom/pan effects on images/video in Remotion
 
-**P2 — Remotion-based export:**
-- [ ] **Render to MP4 via Remotion** — replace FFmpeg pipeline with Remotion render for final export
+**P2 — Remotion-based export (complete):**
+- [x] Render to MP4 via Remotion (Node.js render script + Python API endpoint)
 - [ ] **Export progress** — show render progress (frame N/total, ETA)
+- [ ] **Export presets** — YouTube 1080p, 4K, Reels, TikTok
 
-**Core timeline features (P3):**
+**P3 — Timeline interactions (complete):**
+- [x] Drag/resize clips (DesignCombo native), state syncs back to backend
+- [x] Split at playhead (button + 'S' keyboard shortcut)
+- [x] Zoom slider wired to DesignCombo scale
+- [x] Snap toggle (magnetic on/off)
 - [ ] **Time ruler + scrubber** — horizontal ruler with frame/timecode markings, draggable playhead
-- [ ] **Drag to reposition** — move clips within and between tracks
-- [ ] **Drag edges to trim** — drag left/right edge of a clip to adjust in/out points
-- [ ] **Transitions between clips** — shown as overlapping regions on V1, click to change type/duration
-- [ ] **Zoom in/out** — scroll to zoom timeline (frame-level → full project view)
-- [ ] **Snap-to-grid** — clips snap to other clip edges, playhead position, markers
+- [ ] **Transitions on timeline** — shown as overlapping regions on V1, click to change type/duration
 
-**Playback improvements (P4):**
-- [ ] **Sequential playback** — play through multiple segments in order (not just single segment)
-- [ ] **JKL shuttle** — J=reverse, K=pause, L=forward, tap multiple times to increase speed
-- [ ] **Playback speed control** — 0.5x, 1x, 1.5x, 2x
+**P4 — Playback polish (complete):**
+- [x] JKL shuttle (J=step back, K=pause, L=play)
+- [x] Playback speed (0.5x/1x/1.5x/2x)
+- [x] Frame step buttons (◀/▶)
+- [x] Space=play/pause, Arrow keys=±1s skip
+- [x] Shortcuts panel updated with all keys
 - [ ] **Loop range** — set in/out points and loop just that section
 - [ ] **Audio waveforms** — render waveform visualization on audio tracks
 - [ ] **Thumbnail scrubbing** — hover over timeline to see frame thumbnails
 
-### Phase B: AI Features Panel (P5)
+**P5 — AI features (basic shell complete, deep dive needed):**
+- [x] AI panel with tabs (Media / Props / AI) in right sidebar
+- [x] Basic B-Roll stock search from narration text
+- [x] Basic caption generation (karaoke/phrase style picker + generate button)
+- [x] Basic color grade suggestion (keyword lookup)
 
-CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
+### AI Features Deep Dive (future — needs dedicated design cycle)
 
-**B-Roll generation (OpusClip-style):**
-- [ ] **Select narration → "Generate B-Roll"** — highlight a sentence/segment in the transcript, AI generates or finds matching stock footage
-- [ ] **Stock B-Roll** — uses `media_search.py` to find Pexels/Pixabay clips matching narration text
-- [ ] **AI-generated B-Roll** — uses `ai_video.py` (Kling/Veo) for abstract/custom visuals
-- [ ] **B-Roll drops onto V2 track** — auto-placed on a second video track over the narration segment
-- [ ] **B-Roll preview** — preview the B-roll clip before accepting
+The current P5 AI panel is a thin wrapper over existing endpoints. A proper AI features implementation needs:
 
-**Caption templates (CapCut-style):**
-- [ ] **Caption template picker** — visual grid of caption styles (font, color, position, animation)
-- [ ] **Active word highlighting** — words highlight as they're spoken (upgrade from current `\kf` tags)
-- [ ] **Live caption preview** — see captions rendered on the video in real-time
-- [ ] **Filler word removal** — auto-remove "um", "uh", "like" from transcript
-- [ ] **Multi-language captions** — generate captions in multiple languages
+**B-Roll generation — real AI:**
+- [ ] **Smart query extraction** — LLM-powered analysis of narration text to extract the key visual concept, not just substring. "On the night of June 7th, a 911 call shattered the silence" → "rural property night emergency lights"
+- [ ] **AI-generated B-Roll** — wire real Kling/Veo APIs to generate custom video from prompts. Current stub only makes black frames with text.
+- [ ] **B-Roll drops onto V2 track** — auto-placed on a second video track layered over the narration segment, not replacing V1
+- [ ] **B-Roll preview before accepting** — show the clip in a mini player, accept/reject/regenerate
+- [ ] **Context-aware suggestions** — analyze surrounding segments to avoid repetitive B-roll (e.g., don't use "courthouse" for 5 segments in a row)
 
-**Smart suggestions:**
-- [ ] **Auto color grade** — suggest color preset based on segment content (night → "surveillance", courtroom → "cold_blue")
-- [ ] **Transition suggestions** — suggest transition type based on segment pair (same scene → dissolve, scene change → fade)
-- [ ] **Music matching** — suggest background music mood based on narration tone
+**Caption templates — visual design system:**
+- [ ] **Caption template picker** — visual grid showing 10+ caption styles rendered as previews (different fonts, sizes, colors, positions, background shapes, animations)
+- [ ] **Active word highlighting** — Remotion component that highlights the current word with scale/color animation, not just color change. Multiple highlight styles (underline, box, scale, glow)
+- [ ] **Live template preview** — select a template → see it applied in real-time in the Remotion Player before committing
+- [ ] **Custom template editor** — adjust font, size, color, position, background, animation per template
+- [ ] **Filler word removal** — detect and auto-strip "um", "uh", "like", "you know" from narration text before caption generation
+- [ ] **Multi-language captions** — generate captions in multiple languages (translation API integration)
 
-### Phase C: Playback & Preview (P6)
+**Smart suggestions — beyond keyword lookup:**
+- [ ] **LLM-powered color grading** — analyze narration tone/content with an LLM to suggest color presets. "The bodies were found at dusk" → "golden_hour" not "dark_crime"
+- [ ] **Transition suggestions** — analyze consecutive segment pairs: same scene → dissolve, time jump → fade to black, location change → wipe
+- [ ] **Music mood matching** — analyze narration tone to suggest music mood (tense, somber, neutral, dramatic). Could use sentiment analysis or LLM.
+- [ ] **Pacing analysis** — flag segments that are too long/short for their content type. Suggest splits or merges.
 
-- [ ] **Real-time preview rendering** — preview composited output (visual + overlay + color) in the player without backend round-trip
-- [ ] **Canvas-based preview** — use HTML5 Canvas or WebGL for client-side effect preview
+### Remaining Polish
+
+- [ ] **Audio waveforms** — render waveform visualization on audio tracks (canvas-based, from Web Audio API)
+- [ ] **Thumbnail scrubbing** — hover over timeline to see frame thumbnails
+- [ ] **Loop range** — set in/out and loop playback
+- [ ] **Time ruler + draggable scrubber** — proper frame-accurate ruler on the timeline
+- [ ] **Ken Burns in Remotion** — zoom/pan CSS animations on images
+- [ ] **Export progress bar** — frame N/total with ETA
+- [ ] **Real-time preview rendering** — preview composited output without backend round-trip (already done via Remotion)
 - [ ] **Audio meters** — real-time loudness visualization during playback
 - [ ] **Source monitor** — second player for browsing source clips before placing on timeline
 
