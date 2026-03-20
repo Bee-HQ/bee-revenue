@@ -46,32 +46,51 @@ Prioritized improvements for bee-video-editor, organized by effort and impact.
 
 ---
 
-## v0.9.0 — NLE Timeline (next)
+## v0.9.0 — NLE Timeline
 
-Replace the segment-list editor with a real NLE-style timeline. This is the biggest UI overhaul since the project started.
+Replace the segment-list editor with a real NLE-style timeline using DesignCombo SDK + Remotion Player.
 
-### Phase A: Timeline Component
+> **Decision:** DesignCombo for timeline canvas + Remotion for preview/export. Research at `docs/research/2026-03-20-nle-timeline-research.md`.
 
-Build a horizontal multi-track timeline replacing `StoryboardTimeline.tsx`.
+### v0.9.0-alpha — Foundation (complete)
 
-**Evaluate open-source bases:**
-- [ ] **Evaluate [Twick](https://github.com/ncounterspecialist/twick)** — React video editor SDK with canvas timeline, multi-track, AI captions, MP4 export. Most aligned with our stack.
-- [ ] **Evaluate [@cloudgpt/timeline-editor](https://www.npmjs.com/package/@cloudgpt/timeline-editor)** — multi-track with themes, grid snapping, drag handles, waveforms
-- [ ] **Evaluate [react-timeline-editor](https://github.com/xzdarcy/react-timeline-editor)** — lightweight timeline with multi-layer support
-- [ ] **Pick one and integrate** or build custom if none fit
+- [x] **Evaluate libraries** — researched Twick, DesignCombo, react-timeline-editor, Remotion, OpenCut, WebCut. Chose DesignCombo + Remotion.
+- [x] **Multi-track timeline** — DesignCombo canvas with V1/A1/A2/A3/OV1 tracks, clips as colored blocks
+- [x] **Remotion Player** — composited preview replacing HTML5 video player
+- [x] **Timeline adapter** — bidirectional Storyboard ↔ DesignCombo state conversion (24 tests)
+- [x] **Scrubber sync** — segment click → player seeks to position
+- [x] **Production dropdown** — consolidated 13-button bar into toolbar + dropdown
+- [x] **Layout restructured** — sidebars kept, center replaced with Remotion + timeline
+- [x] **8 old components removed** — StoryboardTimeline, VideoPlayer, ProductionBar, SegmentCard, TransitionPicker, ColorGradePicker, VolumeSlider, TrimControls
 
-**Core timeline features:**
+### v0.9.0-beta — Editing + Export (next)
+
+**P0 — Clip property panel** (restores editing removed in alpha):
+- [ ] **Click clip → properties panel** — select a clip on the timeline, show its properties in a side panel or popover
+- [ ] **Color grade picker** — 12 presets (was inline, now in properties panel)
+- [ ] **Volume slider** — per-clip volume control with fade in/out for music
+- [ ] **Trim in/out inputs** — timecode fields for precise trim points
+- [ ] **Transition picker** — type dropdown + duration slider for segment transitions
+
+**P1 — Remotion overlay rendering:**
+- [ ] **Lower thirds as React components** — replace Pillow PNGs with animated React `<LowerThird>` in BeeComposition
+- [ ] **Caption overlay component** — `<CaptionOverlay>` with karaoke/phrase modes rendered live in Remotion
+- [ ] **Color grade as CSS filter** — apply color presets via CSS filters in Remotion preview
+- [ ] **Ken Burns as CSS animation** — zoom/pan effects on images/video in Remotion
+
+**P2 — Remotion-based export:**
+- [ ] **Render to MP4 via Remotion** — replace FFmpeg pipeline with Remotion render for final export
+- [ ] **Export progress** — show render progress (frame N/total, ETA)
+
+**Core timeline features (P3):**
 - [ ] **Time ruler + scrubber** — horizontal ruler with frame/timecode markings, draggable playhead
-- [ ] **Multi-track lanes** — V1 (video), V2 (B-roll), A1 (narration), A2 (real audio), A3 (music), OV1 (overlays). Map directly from OTIO tracks.
-- [ ] **Clip blocks** — each clip shown as a colored rectangle proportional to duration. Show thumbnail for video, waveform for audio.
 - [ ] **Drag to reposition** — move clips within and between tracks
 - [ ] **Drag edges to trim** — drag left/right edge of a clip to adjust in/out points
 - [ ] **Transitions between clips** — shown as overlapping regions on V1, click to change type/duration
-- [ ] **Scrubber ↔ player sync** — moving scrubber updates video player position and vice versa
 - [ ] **Zoom in/out** — scroll to zoom timeline (frame-level → full project view)
 - [ ] **Snap-to-grid** — clips snap to other clip edges, playhead position, markers
 
-**Playback improvements:**
+**Playback improvements (P4):**
 - [ ] **Sequential playback** — play through multiple segments in order (not just single segment)
 - [ ] **JKL shuttle** — J=reverse, K=pause, L=forward, tap multiple times to increase speed
 - [ ] **Playback speed control** — 0.5x, 1x, 1.5x, 2x
@@ -79,7 +98,7 @@ Build a horizontal multi-track timeline replacing `StoryboardTimeline.tsx`.
 - [ ] **Audio waveforms** — render waveform visualization on audio tracks
 - [ ] **Thumbnail scrubbing** — hover over timeline to see frame thumbnails
 
-### Phase B: AI Features Panel
+### Phase B: AI Features Panel (P5)
 
 CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
 
@@ -102,7 +121,7 @@ CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
 - [ ] **Transition suggestions** — suggest transition type based on segment pair (same scene → dissolve, scene change → fade)
 - [ ] **Music matching** — suggest background music mood based on narration tone
 
-### Phase C: Playback & Preview
+### Phase C: Playback & Preview (P6)
 
 - [ ] **Real-time preview rendering** — preview composited output (visual + overlay + color) in the player without backend round-trip
 - [ ] **Canvas-based preview** — use HTML5 Canvas or WebGL for client-side effect preview
