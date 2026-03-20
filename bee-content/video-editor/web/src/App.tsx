@@ -6,13 +6,17 @@ import { ToastContainer } from './components/ToastContainer';
 import { ShortcutsPanel } from './components/ShortcutsPanel';
 import { dispatch as dcDispatch } from '@designcombo/events';
 
+const FPS = 30;
+
 export default function App() {
   const storyboard = useProjectStore(s => s.storyboard);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
       const mod = e.metaKey || e.ctrlKey;
+
+      // Undo / Redo
       if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         dcDispatch('history:undo', {});
@@ -21,10 +25,66 @@ export default function App() {
         e.preventDefault();
         dcDispatch('history:redo', {});
       }
+
+      // Split at playhead
       if (e.key === 's' && !mod) {
         e.preventDefault();
         const currentMs = useProjectStore.getState().currentTimeMs;
         dcDispatch('active:split', { payload: { time: currentMs } });
+      }
+
+      // Space — play/pause
+      if (e.key === ' ' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        player?.toggle();
+      }
+
+      // J — step back 5 frames
+      if (e.key === 'j' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player) {
+          player.pause();
+          const frame = player.getCurrentFrame();
+          player.seekTo(Math.max(0, frame - 5));
+        }
+      }
+
+      // K — pause
+      if (e.key === 'k' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        player?.pause();
+      }
+
+      // L — play forward
+      if (e.key === 'l' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player && !player.isPlaying()) {
+          player.play();
+        }
+      }
+
+      // Arrow left — skip back 1 second
+      if (e.key === 'ArrowLeft' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player) {
+          const frame = player.getCurrentFrame();
+          player.seekTo(Math.max(0, frame - FPS));
+        }
+      }
+
+      // Arrow right — skip forward 1 second
+      if (e.key === 'ArrowRight' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player) {
+          const frame = player.getCurrentFrame();
+          player.seekTo(frame + FPS);
+        }
       }
     };
     window.addEventListener('keydown', handler);

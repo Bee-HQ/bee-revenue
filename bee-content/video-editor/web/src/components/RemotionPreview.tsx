@@ -15,6 +15,9 @@ export function RemotionPreview() {
   const playingRef = useRef(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+
+  const SPEEDS = [0.5, 1, 1.5, 2];
 
   const totalDuration = storyboard?.total_duration_seconds ?? 0;
   const totalFrames = Math.max(1, Math.round(totalDuration * FPS));
@@ -82,16 +85,14 @@ export function RemotionPreview() {
           style={{ width: '100%', height: '100%' }}
           controls={false}
           autoPlay={false}
+          playbackRate={playbackRate}
         />
       </div>
 
       {/* Playback controls bar */}
       <div className="bg-editor-surface border-t border-editor-border px-4 py-1.5 flex items-center gap-3 shrink-0">
-        <span className="text-[10px] font-mono text-gray-500 w-16">
-          {formatTimecode(currentTime)}
-        </span>
-
-        <div className="flex items-center gap-2">
+        {/* Transport buttons */}
+        <div className="flex items-center gap-1">
           <button
             className="text-xs text-gray-400 hover:text-white px-1"
             onClick={() => playerRef.current?.seekTo(0)}
@@ -100,11 +101,33 @@ export function RemotionPreview() {
             {'|<'}
           </button>
           <button
-            className="text-sm text-white hover:text-blue-400 px-1"
-            onClick={togglePlay}
-            title={playing ? 'Pause' : 'Play'}
+            className="text-xs text-gray-400 hover:text-white px-1"
+            onClick={() => {
+              const frame = playerRef.current?.getCurrentFrame() ?? 0;
+              playerRef.current?.pause();
+              playerRef.current?.seekTo(Math.max(0, frame - 1));
+            }}
+            title="Step back 1 frame"
           >
-            {playing ? '||' : '>'}
+            ◀
+          </button>
+          <button
+            className="text-sm text-white hover:text-blue-400 px-1.5"
+            onClick={togglePlay}
+            title={playing ? 'Pause (Space)' : 'Play (Space)'}
+          >
+            {playing ? '||' : '▶'}
+          </button>
+          <button
+            className="text-xs text-gray-400 hover:text-white px-1"
+            onClick={() => {
+              const frame = playerRef.current?.getCurrentFrame() ?? 0;
+              playerRef.current?.pause();
+              playerRef.current?.seekTo(Math.min(totalFrames - 1, frame + 1));
+            }}
+            title="Step forward 1 frame"
+          >
+            ▶
           </button>
           <button
             className="text-xs text-gray-400 hover:text-white px-1"
@@ -115,11 +138,27 @@ export function RemotionPreview() {
           </button>
         </div>
 
-        <div className="flex-1" />
-
-        <span className="text-[10px] font-mono text-gray-500 w-16 text-right">
+        {/* Timecode */}
+        <span className="text-[10px] font-mono text-gray-400">
+          {formatTimecode(currentTime)}
+          <span className="text-gray-600 mx-1">/</span>
           {formatTimecode(totalDuration)}
         </span>
+
+        <div className="flex-1" />
+
+        {/* Speed selector */}
+        <button
+          onClick={() => {
+            const currentIdx = SPEEDS.indexOf(playbackRate);
+            const nextIdx = (currentIdx + 1) % SPEEDS.length;
+            setPlaybackRate(SPEEDS[nextIdx]);
+          }}
+          className="text-[10px] text-gray-400 hover:text-white px-1.5 py-0.5 font-mono border border-editor-border rounded hover:border-gray-500"
+          title="Playback speed"
+        >
+          {playbackRate}x
+        </button>
       </div>
     </div>
   );
