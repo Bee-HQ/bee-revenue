@@ -192,12 +192,51 @@ export function storyboardToDesignCombo(storyboard: Storyboard): DCState {
     });
   }
 
+  // Build transitions from storyboard segment transition entries
+  const transitionIds: string[] = [];
+  const transitionsMap: Record<string, any> = {};
+
+  for (let segIndex = 0; segIndex < storyboard.segments.length; segIndex++) {
+    const seg = storyboard.segments[segIndex];
+    if (seg.transition.length === 0 || segIndex === 0) continue;
+
+    const trans = seg.transition[0];
+    const transType = trans.content_type?.toLowerCase() || 'fade';
+    const duration =
+      parseFloat(trans.content?.replace('s', '') || '1') * 1000; // ms
+
+    // Find the V1 item IDs for current and previous segments
+    const currentV1Id =
+      seg.visual.length > 0 ? `${seg.id}-v-0` : `${seg.id}-v-empty`;
+    const prevSeg = storyboard.segments[segIndex - 1];
+    const prevV1Id =
+      prevSeg.visual.length > 0
+        ? `${prevSeg.id}-v-0`
+        : `${prevSeg.id}-v-empty`;
+
+    if (trackItemsMap[currentV1Id] && trackItemsMap[prevV1Id]) {
+      const transId = `trans-${seg.id}`;
+      transitionIds.push(transId);
+      transitionsMap[transId] = {
+        id: transId,
+        trackId: 'V1',
+        fromId: prevV1Id,
+        toId: currentV1Id,
+        type: transType,
+        duration: duration,
+        kind: 'transition',
+      };
+    }
+  }
+
+  // TODO: Real waveform rendering via Web Audio API
+
   return {
     tracks,
     trackItemIds,
     trackItemsMap,
-    transitionIds: [],
-    transitionsMap: {},
+    transitionIds,
+    transitionsMap,
     duration: storyboard.total_duration_seconds * 1000,
   };
 }

@@ -92,6 +92,24 @@ export default function App() {
         }
       }
 
+      // I — set loop in
+      if (e.key === 'i' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player) {
+          useProjectStore.getState().setLoopIn(player.getCurrentFrame());
+        }
+      }
+
+      // O — set loop out
+      if (e.key === 'o' && !mod) {
+        e.preventDefault();
+        const player = useProjectStore.getState().playerRef?.current;
+        if (player) {
+          useProjectStore.getState().setLoopOut(player.getCurrentFrame());
+        }
+      }
+
       // Home — go to start
       if (e.key === 'Home' && !mod) {
         e.preventDefault();

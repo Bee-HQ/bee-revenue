@@ -12,6 +12,8 @@ const SHORTCUTS = [
   { keys: ['Home'], desc: 'Go to start' },
   { keys: ['End'], desc: 'Go to end' },
   { keys: ['S'], desc: 'Split at playhead' },
+  { keys: ['I'], desc: 'Set loop in' },
+  { keys: ['O'], desc: 'Set loop out' },
   { keys: ['Esc'], desc: 'Close panel' },
   { keys: ['?'], desc: 'Toggle this panel' },
 ];

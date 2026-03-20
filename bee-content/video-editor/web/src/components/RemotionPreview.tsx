@@ -11,11 +11,22 @@ export function RemotionPreview() {
   const storyboard = useProjectStore((s) => s.storyboard);
   const currentTimeMs = useProjectStore((s) => s.currentTimeMs);
   const setPlayerRef = useProjectStore((s) => s.setPlayerRef);
+  const loopIn = useProjectStore((s) => s.loopIn);
+  const loopOut = useProjectStore((s) => s.loopOut);
+  const setLoopIn = useProjectStore((s) => s.setLoopIn);
+  const setLoopOut = useProjectStore((s) => s.setLoopOut);
   const playerRef = useRef<PlayerRef>(null);
   const playingRef = useRef(false);
+  const loopInRef = useRef<number | null>(null);
+  const loopOutRef = useRef<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+
+  // Keep refs in sync with store state for use in event handlers
+  useEffect(() => { loopInRef.current = loopIn; }, [loopIn]);
+  useEffect(() => { loopOutRef.current = loopOut; }, [loopOut]);
 
   const SPEEDS = [0.5, 1, 1.5, 2];
 
@@ -33,12 +44,20 @@ export function RemotionPreview() {
     if (!player) return;
 
     const onFrameChange = (e: { detail: { frame: number } }) => {
-      const seconds = framesToTime(e.detail.frame, FPS);
+      const frame = e.detail.frame;
+      const seconds = framesToTime(frame, FPS);
       setCurrentTime(seconds);
-      // Only update the store while playing — avoids a seek→framechange→setCurrentTimeMs→seekTo loop
+      // Only update the store while playing — avoids a seek->framechange->setCurrentTimeMs->seekTo loop
       // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
       if (playingRef.current) {
-        useProjectStore.getState().setCurrentTimeMs(e.detail.frame * (1000 / FPS));
+        useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
+
+        // Loop range enforcement: seek back to loopIn when playback reaches loopOut
+        const li = loopInRef.current;
+        const lo = loopOutRef.current;
+        if (li !== null && lo !== null && frame >= lo) {
+          playerRef.current?.seekTo(li);
+        }
       }
     };
     const onPlay = () => { playingRef.current = true; setPlaying(true); };
@@ -67,6 +86,8 @@ export function RemotionPreview() {
     if (playing) playerRef.current?.pause();
     else playerRef.current?.play();
   }, [playing]);
+
+  const getCurrentFrame = () => playerRef.current?.getCurrentFrame() ?? 0;
 
   if (!storyboard) return null;
 
@@ -103,31 +124,31 @@ export function RemotionPreview() {
           <button
             className="text-xs text-gray-400 hover:text-white px-1"
             onClick={() => {
-              const frame = playerRef.current?.getCurrentFrame() ?? 0;
+              const frame = getCurrentFrame();
               playerRef.current?.pause();
               playerRef.current?.seekTo(Math.max(0, frame - 1));
             }}
             title="Step back 1 frame"
           >
-            ◀
+            &#9664;
           </button>
           <button
             className="text-sm text-white hover:text-blue-400 px-1.5"
             onClick={togglePlay}
             title={playing ? 'Pause (Space)' : 'Play (Space)'}
           >
-            {playing ? '||' : '▶'}
+            {playing ? '||' : '\u25B6'}
           </button>
           <button
             className="text-xs text-gray-400 hover:text-white px-1"
             onClick={() => {
-              const frame = playerRef.current?.getCurrentFrame() ?? 0;
+              const frame = getCurrentFrame();
               playerRef.current?.pause();
               playerRef.current?.seekTo(Math.min(totalFrames - 1, frame + 1));
             }}
             title="Step forward 1 frame"
           >
-            ▶
+            &#9654;
           </button>
           <button
             className="text-xs text-gray-400 hover:text-white px-1"
@@ -138,6 +159,33 @@ export function RemotionPreview() {
           </button>
         </div>
 
+        {/* Loop controls */}
+        <div className="flex items-center gap-0.5 border-l border-editor-border pl-2 ml-1">
+          <button
+            onClick={() => setLoopIn(getCurrentFrame())}
+            title="Set loop in (I)"
+            className={`text-[9px] px-1 py-0.5 rounded ${loopIn !== null ? 'text-yellow-400' : 'text-gray-500 hover:text-yellow-400'}`}
+          >
+            {loopIn !== null ? `I:${formatTimecode(framesToTime(loopIn, FPS))}` : '['}
+          </button>
+          <button
+            onClick={() => setLoopOut(getCurrentFrame())}
+            title="Set loop out (O)"
+            className={`text-[9px] px-1 py-0.5 rounded ${loopOut !== null ? 'text-yellow-400' : 'text-gray-500 hover:text-yellow-400'}`}
+          >
+            {loopOut !== null ? `O:${formatTimecode(framesToTime(loopOut, FPS))}` : ']'}
+          </button>
+          {(loopIn !== null || loopOut !== null) && (
+            <button
+              onClick={() => { setLoopIn(null); setLoopOut(null); }}
+              title="Clear loop"
+              className="text-[9px] text-gray-600 hover:text-gray-400 px-0.5"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
         {/* Timecode */}
         <span className="text-[10px] font-mono text-gray-400">
           {formatTimecode(currentTime)}
@@ -145,9 +193,15 @@ export function RemotionPreview() {
           {formatTimecode(totalDuration)}
         </span>
 
-        {/* Seek bar */}
+        {/* Seek bar with hover tooltip */}
         <div
-          className="flex-1 h-1.5 bg-editor-border rounded cursor-pointer mx-2"
+          className="flex-1 h-1.5 bg-editor-border rounded cursor-pointer mx-2 relative"
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            setHoverTime(pct * totalDuration);
+          }}
+          onMouseLeave={() => setHoverTime(null)}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
@@ -155,10 +209,29 @@ export function RemotionPreview() {
             playerRef.current?.seekTo(Math.max(0, Math.min(totalFrames - 1, frame)));
           }}
         >
+          {/* Loop range indicator */}
+          {loopIn !== null && loopOut !== null && totalFrames > 1 && (
+            <div
+              className="absolute h-full bg-yellow-500/20 rounded"
+              style={{
+                left: `${(loopIn / totalFrames) * 100}%`,
+                width: `${((loopOut - loopIn) / totalFrames) * 100}%`,
+              }}
+            />
+          )}
           <div
-            className="h-full bg-blue-500 rounded"
+            className="h-full bg-blue-500 rounded relative z-10"
             style={{ width: `${totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0}%` }}
           />
+          {/* Hover tooltip */}
+          {hoverTime !== null && (
+            <div
+              className="absolute -top-6 bg-editor-surface border border-editor-border rounded px-1.5 py-0.5 text-[9px] text-gray-300 font-mono pointer-events-none z-20"
+              style={{ left: `${(hoverTime / totalDuration) * 100}%`, transform: 'translateX(-50%)' }}
+            >
+              {formatTimecode(hoverTime)}
+            </div>
+          )}
         </div>
 
         {/* Speed selector */}

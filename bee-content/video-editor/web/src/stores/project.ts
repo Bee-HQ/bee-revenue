@@ -30,10 +30,14 @@ interface ProjectState {
   currentTimeMs: number;
   playerRef: RefObject<PlayerRef | null> | null;
   activeClipId: string | null;
+  loopIn: number | null;  // frame number
+  loopOut: number | null; // frame number
 
   setCurrentTimeMs: (ms: number) => void;
   setPlayerRef: (ref: RefObject<PlayerRef | null>) => void;
   setActiveClipId: (id: string | null) => void;
+  setLoopIn: (frame: number | null) => void;
+  setLoopOut: (frame: number | null) => void;
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
   toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
@@ -87,10 +91,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   currentTimeMs: 0,
   playerRef: null,
   activeClipId: null,
+  loopIn: null,
+  loopOut: null,
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
   setActiveClipId: (id) => set({ activeClipId: id }),
+  setLoopIn: (frame) => set({ loopIn: frame }),
+  setLoopOut: (frame) => set({ loopOut: frame }),
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });
