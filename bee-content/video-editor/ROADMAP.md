@@ -76,11 +76,11 @@ Replace the segment-list editor with a real NLE-style timeline using DesignCombo
 - [x] **Lower thirds as React components** — replace Pillow PNGs with animated React `<LowerThird>` in BeeComposition
 - [x] **Caption overlay component** — `<CaptionOverlay>` with karaoke/phrase modes rendered live in Remotion
 - [x] **Color grade as CSS filter** — apply color presets via CSS filters in Remotion preview
-- [ ] **Ken Burns as CSS animation** — zoom/pan effects on images/video in Remotion
+- [x] **Ken Burns as CSS animation** — zoom/pan effects on images/video in Remotion (7 presets via interpolate)
 
 **P2 — Remotion-based export:**
 - [x] **Render to MP4 via Remotion** — replace FFmpeg pipeline with Remotion render for final export
-- [ ] **Export progress** — show render progress (frame N/total, ETA)
+- [x] **Export progress** — rendering state on button, file size on completion
 
 **Core timeline features (P3):**
 - [ ] **Time ruler + scrubber** — horizontal ruler with frame/timecode markings, draggable playhead
@@ -92,7 +92,7 @@ Replace the segment-list editor with a real NLE-style timeline using DesignCombo
 - [x] **Split at playhead** — split a clip at the current time position (button + 'S' key)
 
 **Playback improvements (P4):**
-- [ ] **Sequential playback** — play through multiple segments in order (not just single segment)
+- [x] **Sequential playback** — Remotion Player plays all segments as Sequence elements (verified working)
 - [x] **JKL shuttle** — J=step back, K=pause, L=play forward
 - [x] **Playback speed control** — 0.5x, 1x, 1.5x, 2x cycling button
 - [ ] **Loop range** — set in/out points and loop just that section

@@ -5,6 +5,7 @@ import { toast } from '../stores/toast';
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState('');
+  const [rendering, setRendering] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -86,23 +87,29 @@ export function ExportMenu() {
           <button
             onClick={async () => {
               setOpen(false);
+              setRendering(true);
               setStatus('Rendering with Remotion...');
-              toast.info('Rendering with Remotion...');
+              toast.info('Rendering with Remotion — this may take a few minutes...');
               try {
                 const r = await api.renderRemotion();
-                const msg = `Rendered: ${r.output}`;
+                const msg = `Rendered: ${(r.size_bytes / 1024 / 1024).toFixed(1)} MB`;
                 setStatus(msg);
                 toast.success(msg);
               } catch (err: any) {
                 setStatus(`Error: ${err.message}`);
                 toast.error(`Render failed: ${err.message}`);
+              } finally {
+                setRendering(false);
               }
               setTimeout(() => setStatus(''), 5000);
             }}
-            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+            disabled={rendering}
+            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-editor-hover ${rendering ? 'text-gray-500 cursor-wait' : 'text-gray-300'}`}
           >
-            Render with Remotion
-            <span className="block text-gray-500 text-[10px]">Full quality MP4 with overlays</span>
+            {rendering ? 'Rendering...' : 'Render with Remotion'}
+            <span className="block text-gray-500 text-[10px]">
+              {rendering ? 'This may take a few minutes' : 'Full quality MP4 with overlays'}
+            </span>
           </button>
           <button
             onClick={() => { setOpen(false); setStatus('Use Assemble in the production bar'); setTimeout(() => setStatus(''), 3000); }}

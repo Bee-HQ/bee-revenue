@@ -3,6 +3,7 @@ import type { Storyboard } from '../types';
 import { parseTimecode, timeToFrames } from '../adapters/time-utils';
 import { LowerThird } from './remotion/LowerThird';
 import { CaptionOverlay } from './remotion/CaptionOverlay';
+import { KenBurns } from './remotion/KenBurns';
 
 // Remotion renders inside an iframe — media URLs must be same-origin accessible.
 // In dev, Vite proxies /api to the backend.
@@ -63,6 +64,9 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard }> = ({
         const colorPreset = seg.visual[0]?.metadata?.color;
         const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
 
+        // Ken Burns effect
+        const kenBurns = seg.visual[0]?.metadata?.ken_burns;
+
         // Overlays
         const lowerThirds = seg.overlay.filter(
           (o) => o.content_type === 'LOWER_THIRD',
@@ -82,32 +86,32 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard }> = ({
             durationInFrames={duration}
             name={seg.title}
           >
-            {/* Base visual with color grade */}
+            {/* Base visual with color grade + Ken Burns */}
             {!src ? (
               <BlackFrame />
-            ) : (
-              <AbsoluteFill style={{ filter: colorFilter }}>
-                {isImage ? (
-                  <Img
-                    src={mediaUrl(src)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  <Video
-                    src={mediaUrl(src)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                )}
-              </AbsoluteFill>
-            )}
+            ) : (() => {
+              const visualContent = isImage ? (
+                <Img
+                  src={mediaUrl(src)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <Video
+                  src={mediaUrl(src)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              );
+
+              const graded = (
+                <AbsoluteFill style={{ filter: colorFilter }}>
+                  {visualContent}
+                </AbsoluteFill>
+              );
+
+              return kenBurns ? (
+                <KenBurns effect={kenBurns}>{graded}</KenBurns>
+              ) : graded;
+            })()}
 
             {/* Lower thirds */}
             {lowerThirds.map((lt, i) => {

@@ -91,6 +91,22 @@ export default function App() {
           player.seekTo(Math.min(maxFrame - 1, frame + FPS));
         }
       }
+
+      // Home — go to start
+      if (e.key === 'Home' && !mod) {
+        e.preventDefault();
+        useProjectStore.getState().playerRef?.current?.seekTo(0);
+      }
+
+      // End — go to end
+      if (e.key === 'End' && !mod) {
+        e.preventDefault();
+        const sb = useProjectStore.getState().storyboard;
+        if (sb) {
+          const maxFrame = Math.round(sb.total_duration_seconds * FPS);
+          useProjectStore.getState().playerRef?.current?.seekTo(Math.max(0, maxFrame - 1));
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);

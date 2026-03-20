@@ -9,7 +9,10 @@ const SHORTCUTS = [
   { keys: ['L'], desc: 'Play forward' },
   { keys: ['←'], desc: 'Skip back 1s' },
   { keys: ['→'], desc: 'Skip forward 1s' },
+  { keys: ['Home'], desc: 'Go to start' },
+  { keys: ['End'], desc: 'Go to end' },
   { keys: ['S'], desc: 'Split at playhead' },
+  { keys: ['Esc'], desc: 'Close panel' },
   { keys: ['?'], desc: 'Toggle this panel' },
 ];
 
