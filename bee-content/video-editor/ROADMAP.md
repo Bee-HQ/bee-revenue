@@ -2,151 +2,144 @@
 
 Prioritized improvements for bee-video-editor, organized by effort and impact.
 
-> **This is the single source of truth** for what needs to be built. Formula alignment gaps, code-level issues, and scalability concerns are all tracked here — not scattered across CLAUDE.md, the formula's Appendix C, or other docs.
+> **This is the single source of truth** for what needs to be built.
 
 ---
 
-## v0.3.1 — Quick Wins
+## Completed Milestones
 
-Small, targeted fixes that improve daily usage.
+<details>
+<summary>v0.3.1 — v0.8.0 (click to expand)</summary>
 
-### Code Quality
-- [x] **Surface FFmpeg errors** — ProductionResult returns succeeded/failed/skipped (shipped in production foundation)
-- [x] **Fix version in server.py** — bumped to 0.3.1
-- [x] **Input validation on API routes** — validate tts_engine, transition names, project_dir existence
-- [x] **Update segment status tracking** — track() context manager on ProductionState (shipped in production foundation)
+### v0.3.1 — Quick Wins
+- [x] Surface FFmpeg errors, input validation, segment status tracking
+- [x] Configurable API base URL, media search, CORS, TTS progress
+- [x] Mugshot card, quote card completion
 
-### Web UI
-- [x] **Configurable API base URL** — `import.meta.env.VITE_API_BASE || '/api'`
-- [x] **Media library search** — text filter by filename in MediaLibrary.tsx
-- [x] **CORS env var** — `CORS_ORIGINS` env var, comma-separated, default `*`
-- [x] **TTS progress** — async narration with background thread, frontend polls showing "Narration 3/12"
+### v0.4.0 — Core Improvements
+- [x] Persistent sessions, undo/redo, segment reordering, batch assignment
+- [x] Unified data models, parser resilience, bible visual codes
+- [x] Preflight, ASS captions, text chat, social post, news montage, evidence board, Lottie overlays
 
-### Graphics (formula alignment)
-- [x] **Mugshot card** — `mugshot_card(photo_path, charges, sentence, output)` in graphics.py with photo right, charges left
-- [x] **Quote card completion** — `quote_card()` supports `accent` param: red (threats), teal (info), gold (victim)
+### v0.5.0 — Big Features
+- [x] One-command production (`bee-video produce`), preview generation, parallel narration
+- [x] WebSocket progress, flow diagram, timeline sequence, OTIO export, map generation
+
+### v0.6.0 — Scale
+- [x] Stock footage API (Pexels), AI video generation infra, batch graphics
+- [x] Stock library tracker, TTS voice lock, rough cut, project validator
+
+### v0.7.0 — OTIO Project Format
+- [x] v2 storyboard format (JSON blocks), Pydantic models, OTIO converters
+- [x] SessionStore rewrite, all services on ParsedStoryboard, sidecar files removed
+- [x] Export menu, inline segment editing (transition, color, volume, trim)
+
+### v0.8.0 — Compositor + Search + UI Polish
+- [x] Multi-layer compositor, auto-assign matcher, batch acquisition
+- [x] Scene detection, multi-provider stock search (Pexels + Pixabay)
+- [x] AI video stubs (Kling + Veo), satellite maps (Esri)
+- [x] Toast notifications, stock search panel, keyboard shortcuts, loading skeletons
+- [x] Per-entry download buttons, production bar (Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire)
+- [x] SSRF validation, YouTube URL check, path sanitization, drawtext escaping
+
+</details>
 
 ---
 
-## v0.4.0 — Core Improvements
+## v0.9.0 — NLE Timeline (next)
 
-Features that meaningfully change the editing workflow.
+Replace the segment-list editor with a real NLE-style timeline. This is the biggest UI overhaul since the project started.
 
-### Editor
-- [x] **Persistent session state** — auto-reload last project on restart via `~/.bee-video/last-session.json`
-- [x] **Undo/redo** — Zustand history stack for media assignments, Ctrl+Z / Ctrl+Shift+Z, undo/redo buttons in ProductionBar
-- [x] **Segment reordering** — HTML5 drag-drop in segment list, persisted to `.bee-video/segment-order.json`
-- [x] **Batch media assignment** — shift-click multi-select, drop assigns to all selected segments
+### Phase A: Timeline Component
+
+Build a horizontal multi-track timeline replacing `StoryboardTimeline.tsx`.
+
+**Evaluate open-source bases:**
+- [ ] **Evaluate [Twick](https://github.com/ncounterspecialist/twick)** — React video editor SDK with canvas timeline, multi-track, AI captions, MP4 export. Most aligned with our stack.
+- [ ] **Evaluate [@cloudgpt/timeline-editor](https://www.npmjs.com/package/@cloudgpt/timeline-editor)** — multi-track with themes, grid snapping, drag handles, waveforms
+- [ ] **Evaluate [react-timeline-editor](https://github.com/xzdarcy/react-timeline-editor)** — lightweight timeline with multi-layer support
+- [ ] **Pick one and integrate** or build custom if none fit
+
+**Core timeline features:**
+- [ ] **Time ruler + scrubber** — horizontal ruler with frame/timecode markings, draggable playhead
+- [ ] **Multi-track lanes** — V1 (video), V2 (B-roll), A1 (narration), A2 (real audio), A3 (music), OV1 (overlays). Map directly from OTIO tracks.
+- [ ] **Clip blocks** — each clip shown as a colored rectangle proportional to duration. Show thumbnail for video, waveform for audio.
+- [ ] **Drag to reposition** — move clips within and between tracks
+- [ ] **Drag edges to trim** — drag left/right edge of a clip to adjust in/out points
+- [ ] **Transitions between clips** — shown as overlapping regions on V1, click to change type/duration
+- [ ] **Scrubber ↔ player sync** — moving scrubber updates video player position and vice versa
+- [ ] **Zoom in/out** — scroll to zoom timeline (frame-level → full project view)
+- [ ] **Snap-to-grid** — clips snap to other clip edges, playhead position, markers
+
+**Playback improvements:**
+- [ ] **Sequential playback** — play through multiple segments in order (not just single segment)
+- [ ] **JKL shuttle** — J=reverse, K=pause, L=forward, tap multiple times to increase speed
+- [ ] **Playback speed control** — 0.5x, 1x, 1.5x, 2x
+- [ ] **Loop range** — set in/out points and loop just that section
+- [ ] **Audio waveforms** — render waveform visualization on audio tracks
+- [ ] **Thumbnail scrubbing** — hover over timeline to see frame thumbnails
+
+### Phase B: AI Features Panel
+
+CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
+
+**B-Roll generation (OpusClip-style):**
+- [ ] **Select narration → "Generate B-Roll"** — highlight a sentence/segment in the transcript, AI generates or finds matching stock footage
+- [ ] **Stock B-Roll** — uses `media_search.py` to find Pexels/Pixabay clips matching narration text
+- [ ] **AI-generated B-Roll** — uses `ai_video.py` (Kling/Veo) for abstract/custom visuals
+- [ ] **B-Roll drops onto V2 track** — auto-placed on a second video track over the narration segment
+- [ ] **B-Roll preview** — preview the B-roll clip before accepting
+
+**Caption templates (CapCut-style):**
+- [ ] **Caption template picker** — visual grid of caption styles (font, color, position, animation)
+- [ ] **Active word highlighting** — words highlight as they're spoken (upgrade from current `\kf` tags)
+- [ ] **Live caption preview** — see captions rendered on the video in real-time
+- [ ] **Filler word removal** — auto-remove "um", "uh", "like" from transcript
+- [ ] **Multi-language captions** — generate captions in multiple languages
+
+**Smart suggestions:**
+- [ ] **Auto color grade** — suggest color preset based on segment content (night → "surveillance", courtroom → "cold_blue")
+- [ ] **Transition suggestions** — suggest transition type based on segment pair (same scene → dissolve, scene change → fade)
+- [ ] **Music matching** — suggest background music mood based on narration tone
+
+### Phase C: Playback & Preview
+
+- [ ] **Real-time preview rendering** — preview composited output (visual + overlay + color) in the player without backend round-trip
+- [ ] **Canvas-based preview** — use HTML5 Canvas or WebGL for client-side effect preview
+- [ ] **Audio meters** — real-time loudness visualization during playback
+- [ ] **Source monitor** — second player for browsing source clips before placing on timeline
+
+---
+
+## v1.0.0 — Production Ready
+
+### Export & Delivery
+- [ ] **Export presets** — YouTube 1080p, YouTube 4K, Instagram Reels, TikTok, custom
+- [ ] **Selective export** — choose subset of segments to export
+- [ ] **Render queue** — queue multiple exports, run in background
+- [ ] **Export progress** — detailed progress (segment N/total, ETA)
+
+### Project Management
+- [ ] **Recent projects list** — show last 10 projects on load screen
+- [ ] **Project templates** — start from a template (true crime, documentary, vlog)
+- [ ] **Settings UI** — TTS voice, render quality, default color preset, API keys
+
+### Media Management
+- [ ] **Bins/folders** — organize media library into custom folders
+- [ ] **Media tagging** — add keywords/tags to clips
+- [ ] **Proxy workflow** — generate low-res proxies for smooth playback, link back for final render
+- [ ] **Used/unused indicators** — mark which clips are placed on timeline
+
+### Wire Real AI Providers
+- [ ] **Kling API** — wire real Kling video generation (stub exists, needs `KLING_API_KEY`)
+- [ ] **Google Veo API** — wire real Veo generation (stub exists, needs credentials)
+- [ ] **Runway Gen-4** — add as new provider
+- [ ] **Whisper-based captions** — precise word-level timing from actual audio (vs current estimation)
 
 ### Architecture
-- [x] **Unify data models** — `assembly_guide_to_storyboard()` converter, `_ensure_storyboard()` in production service, both input formats work
-- [x] **Parser resilience** — whitespace normalization, missing section handling, malformed row skipping in both parsers
-- [x] **Parse bible visual codes** — parser recognizes `[CODE]` and `[CODE: qualifier]` bracket syntax (shipped in v0.3.1)
-
-### Pipeline
-- [x] **Asset preflight command** — `bee-video preflight` scans storyboard against project files, reports found/missing/needs-check, writes JSON manifest
-- [x] **ASS caption generation** — `bee-video captions` generates styled ASS with karaoke (word-by-word) and phrase modes via pysubs2. Burns into final video via FFmpeg `ass` filter.
-- [x] **Asset generation time estimate** — formula checklist updated from 3-4 hours to 6-8 hours
-
-### Graphics (formula alignment)
-- [x] **Text chat recreation** — `text_chat()` with iMessage/SMS/generic platforms, highlight support
-- [x] **Social media post mockup** — `social_post()` for Facebook/Instagram/Twitter/Snapchat
-- [x] **News headline montage** — `news_montage()` stacked rotated headline cards
-- [x] **Evidence board** — `evidence_board()` red-string corkboard with circle/grid layout
-- [x] **Lottie animated overlays (lower-third POC)** — `--animated` CLI flag produces WebM overlays with draw-in/slide/fade animation via Lottie + Cairo + FFmpeg VP9. Proof of concept for `[LOWER-THIRD]`; other overlays remain static PNGs for now
-
----
-
-## v0.5.0 — Big Features
-
-Architectural work that unlocks new capabilities.
-
-### Production
-- [x] **One-command production** — `bee-video produce` runs init → graphics → captions → narration → trim → assemble with auto-skip and progress
-- [x] **Preview generation** — 360p thumbnails per segment from assigned media, per-segment + batch, cached in `output/previews/`
-- [x] **Parallel narration processing** — `--workers N` flag for concurrent TTS via ThreadPoolExecutor (default: sequential)
-
-### Real-time
-- [x] **WebSocket progress** — real-time progress via `/ws/progress` for narration and produce pipeline (replaces polling)
-
-### Graphics (formula alignment)
-- [x] **Flow diagram** — `flow_diagram()` with directional arrows, red/teal colors, arrowheads, auto-layout
-- [x] **Timeline sequence** — `timeline_sequence()` horizontal timeline with active/current/future nodes, red/grey line segments, date+label per node
-
-### Interop
-- [x] **OTIO timeline export** — `bee-video export` compiles storyboard to OTIO with visual code metadata, section markers, media references. NLE interchange for Resolve/Premiere.
-
-### Maps
-- [x] **Map generation** — `bee-video map` generates `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-PULSE]`, `[MAP-ROUTE]` from lat/lng via py-staticmaps + dark grade + vignette post-processing
-
-### Security
-- [ ] **Auth option** — optional `--auth` flag with token-based auth for non-local deployments (deferred — low priority, tool is designed for local use)
-
----
-
-## v0.6.0+ — Scale
-
-Features needed when producing 2+ videos/month consistently.
-
-### Pipeline Automation
-- [x] **Stock footage API** — `bee-video fetch-stock --query "aerial farm dusk" -n 3` searches Pexels, downloads HD clips to stock/ dir. Needs `PEXELS_API_KEY` env var
-- [x] **AI video generation infra** — `bee-video generate-clip --prompt "..." --provider stub` with pluggable provider interface. Ships with stub provider; real providers auto-register on import
-- [x] **Multi-provider stock search** — unified Pexels + Pixabay search with query extraction
-- [x] **Batch media acquisition** — `Acquire` button searches + downloads all storyboard stock queries in one shot
-
-### Video Generation Providers
-
-Wire up real AI providers for `generate-clip`. The infra is built — stubs exist for kling and veo.
-
-- [ ] **Kling** — wire up real Kling API (stub exists, needs `KLING_API_KEY`)
-- [ ] **Veo** — wire up real Veo API (stub exists, needs Google Cloud credentials)
-- [ ] **Runway Gen-4** — text-to-video + image-to-video. Add as `video-gen-runway = ["runwayml"]` extra in pyproject.toml
-- [x] **Stub → FFmpeg placeholder** — stub provider generates a real playable MP4 (black frame + drawtext) via FFmpeg
-
-### Pipeline Automation (continued)
-- [ ] **LLM screenplay → storyboard** — accept a case-research doc + formula, generate a v2 storyboard draft. Human review required but saves 2-3 hours per video
-- [x] **Batch graphics from config** — `bee-video graphics-batch config.json` generates all graphics from a single JSON config file
-
-### Quality
-- [x] **Stock footage library** — SQLite tracker at `~/.bee-video/stock-library.db`. `bee-video stock-list` / `stock-check`. Auto-registers clips on `fetch-stock`
-- [x] **TTS voice lock** — `bee-video voice-lock elevenlabs --voice Daniel` persists TTS settings per project; narration uses locked voice unless explicitly overridden
-- [x] **Rough cut review** — `bee-video rough-cut` exports a fast 720p concatenation for structure review before full assembly
-
-### Infrastructure
-- [ ] **FOIA pipeline tracker** — structured template for tracking FOIA requests per case (filed date, jurisdiction, expected response, received date, status)
-- [x] **Naming convention enforcement** — `bee-video validate` checks project structure and filename conventions
-
----
-
-## v0.7.0 — OTIO Project Format (complete)
-
-- [x] **OTIO project format** — v2 storyboard with JSON blocks, bidirectional OTIO conversion
-- [x] **Pydantic models** — `ProjectConfig`, `SegmentConfig`, `VisualEntry`, `AudioEntry`, `OverlayEntry`
-- [x] **Markdown parser/writer** — round-trip fidelity
-- [x] **OTIO converters** — `to_otio()`, `from_otio()`, `clean_otio()`
-- [x] **Migration converter** — `old_to_new()` for old table-based storyboards
-- [x] **CLI** — `bee-video import-md`, `bee-video export`
-- [x] **Export menu** — markdown + clean OTIO from web UI
-- [x] **Inline segment editing** — transition picker, color grade, volume, trim handles
-- [x] **SessionStore rewritten** — OTIO persistence, all services use `ParsedStoryboard`
-- [x] **Sidecar files removed** — assignments.json, voice.json, segment-order.json → OTIO
-
-## v0.8.0 — Compositor + Search (complete)
-
-- [x] **Multi-layer compositor** — per-segment visual → trim → normalize → color → overlay → audio → mux
-- [x] **Auto-assign matcher** — keyword + src matching
-- [x] **Batch acquisition** — search + download all stock from storyboard queries
-- [x] **Scene detection** — FFmpeg shot boundary detection, `bee-video scenes`
-- [x] **Multi-provider stock search** — Pexels + Pixabay unified
-- [x] **AI video providers** — Kling + Veo stubs
-- [x] **Satellite maps** — Esri World Imagery tiles
-- [x] **Toast notifications** — auto-dismiss success/error/info/warning
-- [x] **Stock search panel** — Pexels search in MediaLibrary sidebar
-- [x] **Keyboard shortcuts panel** — `?` to show all shortcuts
-- [x] **Loading skeletons** — during initial load
-- [x] **Per-entry download buttons** — `download_url`/`pexels_url` metadata
-- [x] **Production bar** — Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire buttons
-- [x] **Security hardening** — SSRF validation, YouTube URL check, path sanitization, drawtext escaping
+- [ ] **LLM screenplay → storyboard** — generate v2 storyboard from case research + formula
+- [ ] **FOIA pipeline tracker** — structured FOIA request tracking per case
+- [ ] **Auth option** — optional token-based auth for non-local deployments
 
 ---
 
@@ -154,51 +147,22 @@ Wire up real AI providers for `generate-clip`. The infra is built — stubs exis
 
 UX refinements to add when touching nearby code.
 
-- [ ] Responsive layout — collapse sidebars to tabs on screens < 1024px
+- [ ] Responsive layout — collapse sidebars to tabs on < 1024px
 - [ ] Dark/light theme toggle
-- [ ] Retry logic in production.py for transient FFmpeg failures
-- [ ] Configurable codec/CRF in FFmpeg processor (currently hardcoded libx264 CRF 23)
+- [ ] Fullscreen mode for player and timeline
+- [ ] Right-click context menus on segments/clips
+- [ ] Configurable codec/CRF in FFmpeg processor
+- [ ] Retry logic for transient FFmpeg failures
+- [ ] ARIA accessibility attributes on all interactive elements
 
-### Code cleanup (from v0.5.0 review)
-
-- [x] **Unbounded `_download_tasks` dict** — prune completed tasks to last 20 on new task creation, tracked via `finished_at` timestamp
-- [x] **`_narration_task` global state** — scoped to project_dir so stale state from a different project is ignored; REST path now delegates to service layer (same as WS)
-- [x] **Remove dead `PreviewPanel` component** — deleted `PreviewPanel.tsx`
-- [x] **Deduplicate narration codepaths** — REST `POST /narration` now uses `generate_narration_for_project` from the service layer, same as the WebSocket handler
-- [x] **Remove `selectedSegmentId` shim** — migrated `VideoPlayer` and `StoryboardTimeline` to `selectedSegmentIds[0]`, removed shim from store
-- [x] **`POST /produce` ignores TTS engine** — added `tts_engine` and `tts_voice` params, forwarded to `ProductionConfig`
-- [x] **`duration_seconds` precision loss** — changed `SegmentSchema.duration_seconds` from `int` to `float`
-- [x] **Undo/redo silently swallows API errors** — API call now happens before stack mutation; on failure, stacks stay untouched and error is logged
-- [x] **API smoke tests** — `test_api.py` with 42 FastAPI TestClient tests covering project load, assign/unassign, reorder, media list, upload path traversal, script execution, category validation, symlink traversal, preview session reads, task pruning
-
-### Future API test coverage (from v0.5.0 review)
-
-Untested endpoints and edge cases to add when touching nearby code.
+### Test Coverage Gaps
 
 **WebSocket progress (zero coverage)**
-- [ ] `ws/progress` narration action — connect, send `{action: "narration"}`, verify step messages stream back and end with `{step: "complete"}`
-- [ ] `ws/progress` produce action — same pattern, verify step-by-step pipeline messages
-- [ ] `ws/progress` unknown action — verify error response, clean disconnect
-- [ ] `ws/progress` malformed JSON — verify error handling, no server crash
+- [ ] `ws/progress` narration, produce, unknown action, malformed JSON
 
-**Production endpoints (partial coverage)**
-- [ ] `POST /graphics` with storyboard containing lower-thirds — verify PNGs generated, count matches
-- [ ] `POST /graphics` with no overlays — verify ok with count=0
-- [ ] `POST /captions` — verify ASS file generated, segment count returned
-- [ ] `POST /captions` with no NAR segments — verify count=0 response
-- [ ] `GET /preflight` — verify report structure, found/missing counts against known project layout
-- [ ] `POST /export/otio` — verify OTIO file created, segment count returned
-- [ ] `POST /narration` then `GET /narration/status` — verify running=true immediately, then poll to completion (needs mock TTS)
-- [ ] Concurrent `POST /narration` while one is running — verify 409
-
-**State integrity**
-- [ ] Load project A, assign media, load project B — verify A's assignments don't leak into B
-- [ ] Assign → reload same project — verify assignments restore from disk
-- [ ] Multiple assign/unassign cycles on same key — verify assignments.json stays consistent (no duplicate keys, no orphan entries)
-- [ ] Upload file with same name twice — verify overwrite behavior (currently silently overwrites)
+**Production endpoints (partial)**
+- [ ] Graphics with overlays, captions with/without NAR, preflight report, export OTIO
+- [ ] Concurrent narration, state isolation across projects
 
 **Media edge cases**
-- [ ] Media list with files in nested subdirs — scanner uses `rglob`, verify deep files appear
-- [ ] Serve file with special characters in path (spaces, unicode) — verify URL encoding roundtrips
-- [ ] `POST /download/yt-dlp` with invalid category — verify 400 (matches upload validation)
-- [ ] Download scripts listing — verify only .sh files in project tree returned, not arbitrary files
+- [ ] Nested subdirs, special characters, yt-dlp category validation, download script listing
