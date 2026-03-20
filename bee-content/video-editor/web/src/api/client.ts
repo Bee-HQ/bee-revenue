@@ -128,6 +128,10 @@ export const api = {
     return request<StatusResponse>('/production/rough-cut', { method: 'POST' });
   },
 
+  renderRemotion(): Promise<{ status: string; output: string; size_bytes: number }> {
+    return request('/production/render-remotion', { method: 'POST' });
+  },
+
   getPreflight(): Promise<{ total: number; found: number; missing: number; needs_check: number }> {
     return request('/production/preflight');
   },

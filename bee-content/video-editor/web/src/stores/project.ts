@@ -29,9 +29,11 @@ interface ProjectState {
   effects: Effects | null;
   currentTimeMs: number;
   playerRef: RefObject<PlayerRef | null> | null;
+  activeClipId: string | null;
 
   setCurrentTimeMs: (ms: number) => void;
   setPlayerRef: (ref: RefObject<PlayerRef | null>) => void;
+  setActiveClipId: (id: string | null) => void;
   loadProject: (storyboardPath: string, projectDir: string) => Promise<void>;
   selectSegment: (id: string | null) => void;
   toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
@@ -84,9 +86,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   effects: null,
   currentTimeMs: 0,
   playerRef: null,
+  activeClipId: null,
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
+  setActiveClipId: (id) => set({ activeClipId: id }),
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });

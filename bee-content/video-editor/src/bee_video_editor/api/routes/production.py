@@ -674,3 +674,70 @@ def rough_cut(session: SessionStore = Depends(get_session)):
         raise HTTPException(400, "No assigned media found. Assign media to segments first.")
 
     return {"status": "ok", "output": str(result)}
+
+
+@router.post("/render-remotion")
+def render_remotion(session: SessionStore = Depends(get_session)):
+    """Render video via Remotion (Node.js server-side rendering)."""
+    import json
+    import os
+    import pathlib
+    import shutil
+    import subprocess
+    import tempfile
+
+    parsed, project_dir = session.require_project()
+
+    if not shutil.which("node"):
+        raise HTTPException(400, "Node.js is required for Remotion rendering")
+
+    # Convert ParsedStoryboard to the frontend Storyboard schema
+    from bee_video_editor.api.schema_compat import parsed_to_schema
+
+    schema = parsed_to_schema(parsed)
+
+    # Write storyboard JSON to temp file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(schema.model_dump(), f)
+        json_path = f.name
+
+    output_dir = project_dir / "output" / "final"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "remotion_render.mp4"
+
+    # Find web directory by searching upward from this file
+    web_dir = None
+    search = pathlib.Path(__file__).parent
+    for _ in range(10):  # max 10 levels up
+        candidate = search / "web"
+        if (candidate / "render.mjs").exists():
+            web_dir = candidate
+            break
+        search = search.parent
+
+    if web_dir is None:
+        os.unlink(json_path)
+        raise HTTPException(500, "Render script not found — web/render.mjs missing")
+
+    render_script = web_dir / "render.mjs"
+
+    try:
+        result = subprocess.run(
+            ["node", str(render_script), json_path, str(output_path)],
+            capture_output=True,
+            text=True,
+            timeout=600,
+            cwd=str(web_dir),
+        )
+        if result.returncode != 0:
+            raise HTTPException(500, f"Remotion render failed: {result.stderr[:500]}")
+
+        return {
+            "status": "ok",
+            "output": str(output_path),
+            "size_bytes": output_path.stat().st_size if output_path.exists() else 0,
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "Render timed out (10 min limit)")
+    finally:
+        os.unlink(json_path)

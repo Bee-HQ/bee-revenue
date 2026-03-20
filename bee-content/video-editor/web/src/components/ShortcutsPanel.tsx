@@ -4,9 +4,12 @@ const SHORTCUTS = [
   { keys: ['Ctrl', 'Z'], desc: 'Undo' },
   { keys: ['Ctrl', 'Shift', 'Z'], desc: 'Redo' },
   { keys: ['Space'], desc: 'Play / Pause' },
-  { keys: ['←'], desc: 'Seek back 5s' },
-  { keys: ['→'], desc: 'Seek forward 5s' },
-  { keys: ['M'], desc: 'Mute / Unmute' },
+  { keys: ['J'], desc: 'Step back 5 frames' },
+  { keys: ['K'], desc: 'Pause' },
+  { keys: ['L'], desc: 'Play forward' },
+  { keys: ['←'], desc: 'Skip back 1s' },
+  { keys: ['→'], desc: 'Skip forward 1s' },
+  { keys: ['S'], desc: 'Split at playhead' },
   { keys: ['?'], desc: 'Toggle this panel' },
 ];
 
