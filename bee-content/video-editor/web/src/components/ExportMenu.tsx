@@ -84,6 +84,27 @@ export function ExportMenu() {
           </button>
           <div className="border-t border-editor-border my-1" />
           <button
+            onClick={async () => {
+              setOpen(false);
+              setStatus('Rendering with Remotion...');
+              toast.info('Rendering with Remotion...');
+              try {
+                const r = await api.renderRemotion();
+                const msg = `Rendered: ${r.output}`;
+                setStatus(msg);
+                toast.success(msg);
+              } catch (err: any) {
+                setStatus(`Error: ${err.message}`);
+                toast.error(`Render failed: ${err.message}`);
+              }
+              setTimeout(() => setStatus(''), 5000);
+            }}
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+          >
+            Render with Remotion
+            <span className="block text-gray-500 text-[10px]">Full quality MP4 with overlays</span>
+          </button>
+          <button
             onClick={() => { setOpen(false); setStatus('Use Assemble in the production bar'); setTimeout(() => setStatus(''), 3000); }}
             className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
           >
