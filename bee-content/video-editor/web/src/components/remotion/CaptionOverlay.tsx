@@ -1,4 +1,4 @@
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 
 interface Props {
   text: string;
@@ -68,12 +68,6 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
           const isActive = frame >= wordStart && frame <= wordEnd;
           const isPast = frame > wordEnd;
 
-          // Keep interpolate call for potential future use (e.g. partial highlight)
-          interpolate(frame, [wordStart, wordEnd], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-
           return (
             <span
               key={i}
@@ -85,7 +79,6 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
                 textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
                 opacity: isPast || isActive ? 1 : 0.6,
                 transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                transition: 'transform 0.1s',
               }}
             >
               {word}

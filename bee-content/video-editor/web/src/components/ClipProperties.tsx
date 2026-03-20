@@ -83,7 +83,7 @@ export function ClipProperties() {
           <VolumeSection segmentId={segmentId} clipType={clipType} layerIndex={layerIndex} segment={segment} />
         )}
 
-        {segment.transition.length > 0 && (
+        {clipType === 'v' && (
           <TransitionSection segmentId={segmentId} segment={segment} />
         )}
       </div>
@@ -218,6 +218,12 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
     setFadeOut(currentFadeOut);
   }, [currentVolume, currentFadeIn, currentFadeOut]);
 
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
+
   const handleVolumeChange = (val: number) => {
     setVolume(val);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -241,6 +247,8 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
       await api.updateSegment(segmentId, {
         audio_updates: [{ index: layerIndex, [field]: val }],
       });
+      const sb = await api.getCurrentProject();
+      useProjectStore.setState({ storyboard: sb });
     } catch (e: any) {
       toast.error(e.message);
     }

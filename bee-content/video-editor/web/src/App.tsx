@@ -37,7 +37,10 @@ export default function App() {
       if (e.key === ' ' && !mod) {
         e.preventDefault();
         const player = useProjectStore.getState().playerRef?.current;
-        player?.toggle();
+        if (player) {
+          if (player.isPlaying()) player.pause();
+          else player.play();
+        }
       }
 
       // J — step back 5 frames
@@ -83,7 +86,9 @@ export default function App() {
         const player = useProjectStore.getState().playerRef?.current;
         if (player) {
           const frame = player.getCurrentFrame();
-          player.seekTo(frame + FPS);
+          const sb = useProjectStore.getState().storyboard;
+          const maxFrame = sb ? Math.round(sb.total_duration_seconds * FPS) : Infinity;
+          player.seekTo(Math.min(maxFrame - 1, frame + FPS));
         }
       }
     };

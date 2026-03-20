@@ -705,13 +705,21 @@ def render_remotion(session: SessionStore = Depends(get_session)):
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "remotion_render.mp4"
 
-    # Find the web directory (relative to this file)
-    web_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent / "web"
-    render_script = web_dir / "render.mjs"
+    # Find web directory by searching upward from this file
+    web_dir = None
+    search = pathlib.Path(__file__).parent
+    for _ in range(10):  # max 10 levels up
+        candidate = search / "web"
+        if (candidate / "render.mjs").exists():
+            web_dir = candidate
+            break
+        search = search.parent
 
-    if not render_script.exists():
+    if web_dir is None:
         os.unlink(json_path)
-        raise HTTPException(500, f"Render script not found: {render_script}")
+        raise HTTPException(500, "Render script not found — web/render.mjs missing")
+
+    render_script = web_dir / "render.mjs"
 
     try:
         result = subprocess.run(
