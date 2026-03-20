@@ -175,6 +175,31 @@ CapCut/OpusClip-style AI tools as a dedicated panel or right-click context menu.
 - [ ] **FOIA pipeline tracker** — structured FOIA request tracking per case
 - [ ] **Auth option** — optional token-based auth for non-local deployments
 
+### Inspired by IMG.LY CE.SDK
+- [ ] **Model-agnostic AI plugin system** — register AI providers by category (text2video, text2speech, text2image, stock_video). Each provider shows up as a tool in the AI panel. Users pick which to use. Proxy server injects API keys. Pattern: `{ category: "text2video", providers: [{ name: "kling", apiKey: env.KLING_API_KEY }, { name: "veo", ... }] }`
+- [ ] **In-browser MP4 export via WebCodecs** — export video entirely in the browser without Node.js render script. Uses WebCodecs API (Chromium-only). Faster than Remotion headless Chrome. Could be offered as "Fast Export" alongside Remotion's "Quality Export"
+- [ ] **AI provider proxy server** — lightweight backend that injects API keys for AI providers. Browser → proxy → AI provider. Keeps keys server-side, allows rate limiting and cost tracking per provider
+
+### Inspired by Descript
+- [ ] **Transcript-driven editing** — edit narration text directly and the video auto-adjusts. Change words in the transcript → segment boundaries/timing update, TTS re-generates for the changed section. Our storyboard already has `seg.narration` per segment — extending this to live editing is the natural next step
+- [ ] **AI voice cloning (Overdub-style)** — clone the narrator's voice from a sample, then generate any text in that voice. Would use ElevenLabs voice cloning API or similar. Record a 30-second sample → generate unlimited narration in that voice
+- [ ] **AI co-editor (Underlord-style)** — LLM-powered assistant that can: rewrite narration, suggest cuts, generate B-roll queries, fix pacing — all from natural language instructions. "Make the opening more dramatic" → LLM rewrites narration + suggests darker color grade + faster cuts
+
+### Inspired by Captions.ai
+- [ ] **AI keyword highlighting in captions** — auto-detect important words (names, places, numbers, emotions) and apply scale/color emphasis. LLM analyzes narration and marks keywords. In Remotion, highlighted words get `scale(1.2)` + accent color
+- [ ] **Chat-based style editor** — describe the visual style you want ("dark, cinematic, true crime feel") and the AI applies matching color grade, font, caption style, lower third design across all segments
+- [ ] **AI Highlight & Enlarge** — important words in captions automatically get larger/bolder/colored. Multiple highlight modes: underline, box, scale, glow, color change
+
+### Inspired by Shotstack / Creatomate
+- [ ] **JSON video template system** — define reusable video templates as JSON (intro sequence, outro, lower third animation, transition package). Apply templates to any storyboard. Share templates between projects
+- [ ] **Batch video generation** — produce multiple video variants from one storyboard (different narrators, languages, aspect ratios, color schemes). Queue renders with parameter variations
+- [ ] **Cloud rendering API** — offload renders to cloud workers (AWS Lambda via Remotion Lambda, or custom). Parallel rendering for faster output. Could complement local Remotion render
+
+### AI Video Generation Providers (2026 landscape)
+- [ ] **Seedance 2.0 (ByteDance)** — latest text-to-video, cinematic quality. Add as provider alongside Kling/Veo
+- [ ] **Sora 2.0 (OpenAI)** — OpenAI's video generation. Add as provider
+- [ ] **Kling 3.0 (Kuaishou)** — upgraded from current Kling stub. Better quality, longer duration support
+
 ---
 
 ## Polish (any version)
