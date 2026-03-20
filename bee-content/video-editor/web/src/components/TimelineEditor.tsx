@@ -6,7 +6,7 @@ import { TimelineRuler } from './TimelineRuler';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
 import StateManager from '@designcombo/state';
-import Timeline from '@designcombo/timeline';
+import Timeline, { Trimmable } from '@designcombo/timeline';
 import { dispatch as dcDispatch } from '@designcombo/events';
 
 const SCALE = { unit: 300, zoom: 1 / 300, segments: 5, index: 7 };
@@ -37,12 +37,40 @@ export function TimelineEditor() {
   useEffect(() => {
     if (!canvasRef.current || !storyboard || !containerRef.current) return;
 
+    // Tear down any previous instance first (React strict mode double-mounts)
+    if (timelineRef.current) {
+      try { timelineRef.current.dispose(); } catch {}
+      timelineRef.current = null;
+    }
+    if (stateManagerRef.current) {
+      try { stateManagerRef.current.destroyListeners(); stateManagerRef.current.purge(); } catch {}
+      stateManagerRef.current = null;
+    }
+
     // Set canvas dimensions from container
     const rect = containerRef.current.getBoundingClientRect();
     canvasRef.current.width = rect.width;
     canvasRef.current.height = rect.height;
 
+    // Declare outside try so cleanup can always reach them
+    let activeIdsSub: { unsubscribe: () => void } | null = null;
+    let trackItemSub: { unsubscribe: () => void } | null = null;
+    let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
     try {
+      // Register item classes so Timeline can deserialize track items by type.
+      // Trimmable is the base Fabric.js class for all timeline track items.
+      try {
+        Timeline.registerItems({
+          video: Trimmable,
+          audio: Trimmable,
+          image: Trimmable,
+          text: Trimmable,
+        });
+      } catch {
+        // registerItems may throw if classes are already registered — safe to ignore
+      }
+
       // Initialize StateManager
       const sm = new StateManager(
         {
@@ -84,15 +112,13 @@ export function TimelineEditor() {
       }
 
       // Track clip selection: sync DesignCombo activeIds -> Zustand store
-      const activeIdsSub = sm.subscribeToActiveIds(({ activeIds }) => {
+      activeIdsSub = sm.subscribeToActiveIds(({ activeIds }) => {
         const selected = activeIds.length > 0 ? activeIds[0] : null;
         useProjectStore.getState().setActiveClipId(selected);
       });
 
       // Debounced sync: when clips are dragged/resized, update backend
-      let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-
-      const trackItemSub = sm.subscribeToUpdateTrackItemTiming(({ trackItemsMap }) => {
+      trackItemSub = sm.subscribeToUpdateTrackItemTiming(({ trackItemsMap }) => {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(async () => {
           try {
@@ -140,27 +166,20 @@ export function TimelineEditor() {
     }
 
     return () => {
-      // Cleanup subscriptions
-      activeIdsSub.unsubscribe();
-      trackItemSub.unsubscribe();
+      // Cleanup subscriptions (declared outside try, so always reachable)
+      activeIdsSub?.unsubscribe();
+      trackItemSub?.unsubscribe();
       if (syncTimeout) clearTimeout(syncTimeout);
       useProjectStore.getState().setActiveClipId(null);
-      // Cleanup
+      // Cleanup timeline and state manager
       if (timelineRef.current) {
-        try {
-          // Timeline extends Fabric.js Canvas which has dispose()
-          timelineRef.current.dispose();
-        } catch {
-          // ignore cleanup errors
-        }
+        try { timelineRef.current.dispose(); } catch {}
       }
       if (stateManagerRef.current) {
         try {
           stateManagerRef.current.destroyListeners();
           stateManagerRef.current.purge();
-        } catch {
-          // ignore cleanup errors
-        }
+        } catch {}
       }
       timelineRef.current = null;
       stateManagerRef.current = null;

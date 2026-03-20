@@ -43,35 +43,61 @@ export function RemotionPreview() {
     const player = playerRef.current;
     if (!player) return;
 
-    const onFrameChange = (e: { detail: { frame: number } }) => {
-      const frame = e.detail.frame;
-      const seconds = framesToTime(frame, FPS);
-      setCurrentTime(seconds);
-      // Only update the store while playing — avoids a seek->framechange->setCurrentTimeMs->seekTo loop
-      // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
-      if (playingRef.current) {
-        useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
+    // Guard: addEventListener may not be available in all Remotion/React versions
+    if (typeof player.addEventListener !== 'function') {
+      console.warn('[RemotionPreview] player.addEventListener not available, falling back to polling');
+      const interval = setInterval(() => {
+        try {
+          const frame = player.getCurrentFrame() ?? 0;
+          setCurrentTime(framesToTime(frame, FPS));
+          if (playingRef.current) {
+            useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
+            const li = loopInRef.current;
+            const lo = loopOutRef.current;
+            if (li !== null && lo !== null && frame >= lo) {
+              playerRef.current?.seekTo(li);
+            }
+          }
+        } catch {}
+      }, 100);
+      return () => clearInterval(interval);
+    }
 
-        // Loop range enforcement: seek back to loopIn when playback reaches loopOut
-        const li = loopInRef.current;
-        const lo = loopOutRef.current;
-        if (li !== null && lo !== null && frame >= lo) {
-          playerRef.current?.seekTo(li);
+    try {
+      const onFrameChange = (e: { detail: { frame: number } }) => {
+        const frame = e?.detail?.frame ?? 0;
+        const seconds = framesToTime(frame, FPS);
+        setCurrentTime(seconds);
+        // Only update the store while playing — avoids a seek->framechange->setCurrentTimeMs->seekTo loop
+        // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
+        if (playingRef.current) {
+          useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
+
+          // Loop range enforcement: seek back to loopIn when playback reaches loopOut
+          const li = loopInRef.current;
+          const lo = loopOutRef.current;
+          if (li !== null && lo !== null && frame >= lo) {
+            playerRef.current?.seekTo(li);
+          }
         }
-      }
-    };
-    const onPlay = () => { playingRef.current = true; setPlaying(true); };
-    const onPause = () => { playingRef.current = false; setPlaying(false); };
+      };
+      const onPlay = () => { playingRef.current = true; setPlaying(true); };
+      const onPause = () => { playingRef.current = false; setPlaying(false); };
 
-    player.addEventListener('framechange', onFrameChange as never);
-    player.addEventListener('play', onPlay);
-    player.addEventListener('pause', onPause);
+      player.addEventListener('framechange', onFrameChange as never);
+      player.addEventListener('play', onPlay as never);
+      player.addEventListener('pause', onPause as never);
 
-    return () => {
-      player.removeEventListener('framechange', onFrameChange as never);
-      player.removeEventListener('play', onPlay);
-      player.removeEventListener('pause', onPause);
-    };
+      return () => {
+        try {
+          player.removeEventListener('framechange', onFrameChange as never);
+          player.removeEventListener('play', onPlay as never);
+          player.removeEventListener('pause', onPause as never);
+        } catch {}
+      };
+    } catch (err) {
+      console.error('[RemotionPreview] event listener setup failed:', err);
+    }
   }, [storyboard]);
 
   // When currentTimeMs changes externally (e.g. from segment click), seek the player
@@ -107,6 +133,7 @@ export function RemotionPreview() {
           controls={false}
           autoPlay={false}
           playbackRate={playbackRate}
+          acknowledgeRemotionLicense
         />
       </div>
 
