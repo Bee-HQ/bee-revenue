@@ -4,20 +4,22 @@ import { Layout } from './components/Layout';
 import { LoadProject } from './components/LoadProject';
 import { ToastContainer } from './components/ToastContainer';
 import { ShortcutsPanel } from './components/ShortcutsPanel';
+import { dispatch as dcDispatch } from '@designcombo/events';
 
 export default function App() {
   const storyboard = useProjectStore(s => s.storyboard);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        useProjectStore.getState().undo();
+        dcDispatch('history:undo', {});
       }
       if (mod && e.key === 'z' && e.shiftKey) {
         e.preventDefault();
-        useProjectStore.getState().redo();
+        dcDispatch('history:redo', {});
       }
     };
     window.addEventListener('keydown', handler);

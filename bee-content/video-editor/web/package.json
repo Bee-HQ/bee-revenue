@@ -7,11 +7,22 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@designcombo/events": "^1.0.2",
+    "@designcombo/state": "^5.5.8",
+    "@designcombo/timeline": "^5.5.8",
+    "@designcombo/types": "^5.5.8",
+    "@remotion/cli": "^4.0.438",
+    "@remotion/player": "^4.0.438",
+    "@types/lodash-es": "^4.17.12",
+    "lodash-es": "^4.17.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "remotion": "^4.0.438",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -29,6 +40,7 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^3.2.4"
   }
 }
