@@ -145,7 +145,21 @@ export function RemotionPreview() {
           {formatTimecode(totalDuration)}
         </span>
 
-        <div className="flex-1" />
+        {/* Seek bar */}
+        <div
+          className="flex-1 h-1.5 bg-editor-border rounded cursor-pointer mx-2"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            const frame = Math.round(pct * totalFrames);
+            playerRef.current?.seekTo(Math.max(0, Math.min(totalFrames - 1, frame)));
+          }}
+        >
+          <div
+            className="h-full bg-blue-500 rounded"
+            style={{ width: `${totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0}%` }}
+          />
+        </div>
 
         {/* Speed selector */}
         <button
