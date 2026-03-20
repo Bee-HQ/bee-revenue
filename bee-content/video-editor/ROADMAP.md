@@ -83,10 +83,10 @@ Replace the segment-list editor with a real NLE-style timeline using DesignCombo
 - [x] **Export progress** — rendering state on button, file size on completion
 
 **Core timeline features (P3):**
-- [ ] **Time ruler + scrubber** — horizontal ruler with frame/timecode markings, draggable playhead
+- [x] **Time ruler + scrubber** — horizontal ruler with auto-scaling ticks, draggable playhead, click-to-seek
 - [x] **Drag to reposition** — move clips within and between tracks (DesignCombo native + backend sync)
 - [x] **Drag edges to trim** — drag left/right edge of a clip to adjust in/out points
-- [ ] **Transitions between clips** — shown as overlapping regions on V1, click to change type/duration
+- [x] **Transitions between clips** — adapter builds transition entries for DesignCombo, shown on V1 track
 - [x] **Zoom in/out** — scroll to zoom timeline (frame-level → full project view)
 - [x] **Snap-to-grid** — clips snap to other clip edges, playhead position, markers
 - [x] **Split at playhead** — split a clip at the current time position (button + 'S' key)
@@ -95,9 +95,9 @@ Replace the segment-list editor with a real NLE-style timeline using DesignCombo
 - [x] **Sequential playback** — Remotion Player plays all segments as Sequence elements (verified working)
 - [x] **JKL shuttle** — J=step back, K=pause, L=play forward
 - [x] **Playback speed control** — 0.5x, 1x, 1.5x, 2x cycling button
-- [ ] **Loop range** — set in/out points and loop just that section
+- [x] **Loop range** — I/O keyboard shortcuts, yellow highlight on seek bar, auto-loop playback
 - [ ] **Audio waveforms** — render waveform visualization on audio tracks
-- [ ] **Thumbnail scrubbing** — hover over timeline to see frame thumbnails
+- [x] **Thumbnail scrubbing** — hover tooltip shows timecode on seek bar (full thumbnails deferred to v1.0)
 - [x] **Frame step** — ◀/▶ buttons for single-frame stepping
 - [x] **Keyboard shortcuts** — Space=play/pause, Arrow keys=±1s skip
 
