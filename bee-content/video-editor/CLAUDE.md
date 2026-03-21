@@ -186,18 +186,19 @@ All output 1920x1080 PNG. Colors follow Dr. Insanity palette (dark bg, red/teal 
 
 ## Web UI
 
-React 18 + TypeScript + Vite + Tailwind + Zustand + DesignCombo + Remotion.
+React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remotion.
 
-**Layout:** Left sidebar (segment list) + center (Remotion Player above DesignCombo NLE timeline) + right tabbed sidebar (Media / Properties / AI).
+**Layout:** Left sidebar (segment list) + center (Remotion Player above react-timeline-editor NLE timeline) + right tabbed sidebar (Media / Properties / AI).
 
 **Key features:**
-- Load `.md` or `.otio` storyboard → DesignCombo multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
+- Load `.md` or `.otio` storyboard → react-timeline-editor multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
 - Remotion Player shows composited video preview with real-time overlays (LowerThird, CaptionOverlay, color grades as CSS filters, timeline markers)
 - Clip property panel (right sidebar Props tab): color grade picker, volume slider, trim inputs, transition picker
 - AI panel (right sidebar AI tab): B-Roll stock search from narration, caption generation, auto color grade suggestions
-- Timeline interactions: drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle
+- Timeline interactions: drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle, undo/redo history (50 snapshots)
+- Drag-drop media: internal (Media Library → timeline), external (Finder → timeline with upload), paste (Cmd+V file path)
 - Playback controls: JKL shuttle, speed (0.5-2x), frame step, Space/Arrow shortcuts
-- Production dropdown: consolidated pipeline actions (Graphics, Narration, Assemble, Captions, Rough Cut, Preflight, Composite, Auto-Assign, Acquire)
+- Production toolbar: Auto-Assign, Acquire, Pipeline dropdown (Graphics, Narration, Assemble, Captions, Rough Cut, Preflight, Composite)
 - Stock search panel (Pexels) in Media tab with per-result download buttons
 - Toast notifications (success/error/info/warning with auto-dismiss)
 - Keyboard shortcuts panel (press `?`)
@@ -254,13 +255,13 @@ Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are depre
 - **Services:** Temp directories → integration-style pipeline calls
 - **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
 
-536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 24 frontend vitest tests (`cd web && npm test`).
+536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 30 frontend vitest tests (`cd web && npx vitest run`).
 
 ## Dependencies
 
 **Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
 **Web (backend):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
-**Web (frontend):** @designcombo/state, @designcombo/timeline, @designcombo/types, @designcombo/events, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
+**Web (frontend):** @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
 **TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
 **Maps:** py-staticmaps (`--extra maps`)
 **Dev:** pytest (`--extra dev`)
