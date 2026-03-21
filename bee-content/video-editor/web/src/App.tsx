@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useProjectStore } from './stores/project';
 import { api } from './api/client';
 import { Layout } from './components/Layout';
@@ -12,16 +12,18 @@ const FPS = 30;
 export default function App() {
   const storyboard = useProjectStore(s => s.storyboard);
   const loading = useProjectStore(s => s.loading);
+  const restoreAttempted = useRef(false);
 
   // Try to restore session from backend on mount
   useEffect(() => {
-    if (!storyboard && !loading) {
+    if (!storyboard && !loading && !restoreAttempted.current) {
+      restoreAttempted.current = true;
       api.getCurrentProject()
         .then((sb) => {
           if (sb && sb.total_segments > 0) {
             useProjectStore.setState({ storyboard: sb });
-            // Also load media
             useProjectStore.getState().loadMedia();
+            useProjectStore.getState().loadAssetStatus();
           }
         })
         .catch(() => {

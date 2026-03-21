@@ -14,6 +14,23 @@ interface HistoryEntry {
   newValue: string;
 }
 
+export interface SegmentAssetInfo {
+  hasVideo: boolean;
+  videoStatus: 'found' | 'missing' | 'needs_download' | 'needs_generation' | 'no_source';
+  videoType: string;
+  videoAction: string;
+}
+
+export interface AssetStatus {
+  total: number;
+  found: number;
+  missing: number;
+  needsDownload: number;
+  needsGeneration: number;
+  needsFile: number;
+  segments: Record<string, SegmentAssetInfo>;
+}
+
 interface ProjectState {
   storyboard: Storyboard | null;
   loading: boolean;
@@ -32,6 +49,7 @@ interface ProjectState {
   activeClipId: string | null;
   loopIn: number | null;  // frame number
   loopOut: number | null; // frame number
+  assetStatus: AssetStatus | null;
 
   setCurrentTimeMs: (ms: number) => void;
   setPlayerRef: (ref: RefObject<PlayerRef | null>) => void;
@@ -43,6 +61,7 @@ interface ProjectState {
   toggleSegmentSelection: (id: string, shiftKey: boolean) => void;
   loadMedia: () => Promise<void>;
   loadEffects: () => Promise<void>;
+  loadAssetStatus: () => void;
   setDraggedMedia: (file: MediaFile | null) => void;
   setPreviewMedia: (file: MediaFile | null) => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
@@ -93,6 +112,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeClipId: null,
   loopIn: null,
   loopOut: null,
+  assetStatus: null,
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
@@ -115,6 +135,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         segmentOrder: null,
       });
       get().loadMedia();
+      get().loadAssetStatus();
     } catch (e: any) {
       set({ error: e.message, loading: false });
       toast.error(`Failed to load: ${e.message}`);
@@ -186,6 +207,58 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     } catch {
       // Effects loading is non-critical
     }
+  },
+
+  loadAssetStatus: () => {
+    const sb = get().storyboard;
+    if (!sb) return;
+
+    const segments: Record<string, SegmentAssetInfo> = {};
+    let found = 0, missing = 0, needsDownload = 0, needsGeneration = 0, needsFile = 0;
+
+    for (const seg of sb.segments) {
+      const visual = seg.visual[0];
+      const assigned = seg.assigned_media['visual:0'];
+
+      if (!visual) {
+        segments[seg.id] = { hasVideo: false, videoStatus: 'no_source', videoType: 'NONE', videoAction: 'No visual defined' };
+        missing++;
+        continue;
+      }
+
+      const type = visual.content_type;
+      const src = assigned || visual.content;
+      const query = visual.metadata?.query;
+      const isRealPath = src && (src.includes('/') || src.endsWith('.mp4') || src.endsWith('.jpg') || src.endsWith('.png') || src.endsWith('.wav'));
+
+      if (type === 'BLACK') {
+        segments[seg.id] = { hasVideo: true, videoStatus: 'found', videoType: 'BLACK', videoAction: 'Black frame — no file needed' };
+        found++;
+      } else if (isRealPath) {
+        segments[seg.id] = { hasVideo: true, videoStatus: 'found', videoType: type, videoAction: `File: ${src}` };
+        found++;
+      } else if (query || type === 'STOCK') {
+        segments[seg.id] = { hasVideo: false, videoStatus: 'needs_download', videoType: type, videoAction: `Download stock: "${query || 'search needed'}"` };
+        needsDownload++;
+      } else if (['MAP', 'MAP-FLAT', 'MAP-3D', 'MAP-TACTICAL', 'MAP-PULSE', 'MAP-ROUTE'].includes(type)) {
+        segments[seg.id] = { hasVideo: false, videoStatus: 'needs_generation', videoType: type, videoAction: `Generate ${type} map` };
+        needsGeneration++;
+      } else if (['GRAPHIC', 'GENERATED', 'DOCUMENT-MOCKUP', 'PIP-SINGLE', 'PIP-DUAL'].includes(type)) {
+        segments[seg.id] = { hasVideo: false, videoStatus: 'needs_generation', videoType: type, videoAction: `Generate ${type}` };
+        needsGeneration++;
+      } else {
+        segments[seg.id] = { hasVideo: false, videoStatus: 'missing', videoType: type, videoAction: `Need: ${type} — ${src || 'no source'}` };
+        needsFile++;
+      }
+    }
+
+    set({
+      assetStatus: {
+        total: sb.segments.length,
+        found, missing, needsDownload, needsGeneration, needsFile,
+        segments,
+      },
+    });
   },
 
   updateSegmentConfig: async (segmentId, updates) => {

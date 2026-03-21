@@ -7,6 +7,7 @@ import { ClipProperties } from './ClipProperties';
 import { AIPanel } from './AIPanel';
 import { SegmentList } from './SegmentList';
 import { ExportMenu } from './ExportMenu';
+import { AssetStatusBanner } from './AssetStatusBanner';
 
 export function Layout() {
   const storyboard = useProjectStore(s => s.storyboard);
@@ -37,6 +38,8 @@ export function Layout() {
           <ExportMenu />
         </div>
       </header>
+
+      <AssetStatusBanner />
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-56 border-r border-editor-border flex flex-col shrink-0">
