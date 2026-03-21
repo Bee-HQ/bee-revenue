@@ -57,16 +57,20 @@ export function TimelineEditor() {
   useEffect(() => {
     const player = useProjectStore.getState().playerRef?.current;
     if (!player || typeof player.addEventListener !== 'function') return;
-    const onPlay = () => { isPlayingRef.current = true; };
-    const onPause = () => { isPlayingRef.current = false; };
-    player.addEventListener('play', onPlay as never);
-    player.addEventListener('pause', onPause as never);
-    return () => {
-      try {
-        player.removeEventListener('play', onPlay as never);
-        player.removeEventListener('pause', onPause as never);
-      } catch {}
-    };
+    try {
+      const onPlay = () => { isPlayingRef.current = true; };
+      const onPause = () => { isPlayingRef.current = false; };
+      player.addEventListener('play', onPlay as never);
+      player.addEventListener('pause', onPause as never);
+      return () => {
+        try {
+          player.removeEventListener('play', onPlay as never);
+          player.removeEventListener('pause', onPause as never);
+        } catch {}
+      };
+    } catch {
+      // addEventListener internal crash — isPlayingRef stays false (safe default)
+    }
   }, [storyboard]);
 
   // Convert storyboard → timeline rows on storyboard change

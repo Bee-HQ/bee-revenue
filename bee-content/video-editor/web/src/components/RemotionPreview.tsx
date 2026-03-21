@@ -95,8 +95,22 @@ export function RemotionPreview() {
           player.removeEventListener('pause', onPause as never);
         } catch {}
       };
-    } catch (err) {
-      console.error('[RemotionPreview] event listener setup failed:', err);
+    } catch {
+      // addEventListener exists but internal event map not initialized — fall back to polling
+      const interval = setInterval(() => {
+        try {
+          const frame = player.getCurrentFrame() ?? 0;
+          if (playingRef.current) {
+            useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
+            const li = loopInRef.current;
+            const lo = loopOutRef.current;
+            if (li !== null && lo !== null && frame >= lo) {
+              playerRef.current?.seekTo(li);
+            }
+          }
+        } catch {}
+      }, 100);
+      return () => clearInterval(interval);
     }
   }, [storyboard]);
 
