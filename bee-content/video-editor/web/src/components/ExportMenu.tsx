@@ -31,7 +31,7 @@ export function ExportMenu() {
       a.href = url;
       a.download = 'storyboard.md';
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       setStatus('Markdown exported');
       toast.success('Markdown exported');
     } catch (err: any) {

@@ -21,7 +21,7 @@ export function Layout() {
   if (!storyboard) return null;
 
   const totalMins = Math.floor(storyboard.total_duration_seconds / 60);
-  const totalSecs = storyboard.total_duration_seconds % 60;
+  const totalSecs = Math.round(storyboard.total_duration_seconds % 60);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">

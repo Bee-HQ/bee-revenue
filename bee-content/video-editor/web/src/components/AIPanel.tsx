@@ -23,7 +23,7 @@ export function AIPanel() {
   const activeClipId = useProjectStore(s => s.activeClipId);
 
   // Find the selected segment from the active clip id
-  const segmentId = activeClipId?.match(/^(.+?)-(v|nar|audio|music|ov)-/)?.[1];
+  const segmentId = activeClipId?.match(/^(.+)-(v|nar|audio|music|ov)-/)?.[1];
   const segment = storyboard?.segments.find(s => s.id === segmentId) ?? null;
 
   return (

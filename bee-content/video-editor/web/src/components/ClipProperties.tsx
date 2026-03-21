@@ -39,7 +39,7 @@ export function ClipProperties() {
   }
 
   // Parse clip ID: "{segmentId}-{type}-{index}" from timeline-adapter.ts
-  const parts = activeClipId.match(/^(.+?)-(v|nar|audio|music|ov)-(\d+|empty)$/);
+  const parts = activeClipId.match(/^(.+)-(v|nar|audio|music|ov)-(\d+|empty)$/);
   if (!parts) {
     return (
       <div className="p-3 text-center text-[10px] text-gray-600">
@@ -229,16 +229,12 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
   const isMusic = clipType === 'music';
   const isNar = clipType === 'nar';
 
-  // For narration, find the NAR entry
+  // layerIndex is the original array index (from timeline-adapter)
   let entry: any = null;
-  if (isNar) {
-    const narEntries = segment.audio.filter((a: any) => a.content_type === 'NAR');
-    entry = layerIndex >= 0 ? narEntries[layerIndex] : null;
+  if (isNar || clipType === 'audio') {
+    entry = layerIndex >= 0 ? segment.audio[layerIndex] : null;
   } else if (isMusic) {
     entry = layerIndex >= 0 ? segment.music[layerIndex] : null;
-  } else {
-    const realAudio = segment.audio.filter((a: any) => a.content_type !== 'NAR');
-    entry = layerIndex >= 0 ? realAudio[layerIndex] : null;
   }
 
   const currentVolume = entry?.metadata?.volume ?? 1.0;

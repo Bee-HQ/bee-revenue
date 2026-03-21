@@ -167,6 +167,7 @@ export function TimelineEditor() {
           const formData = new FormData();
           formData.append('file', file);
           const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
           const data = await res.json();
           addActionToTimeline(data.path, data.type, cursorSec, data.duration);
           toast.success(`Uploaded: ${file.name}`);
@@ -186,9 +187,12 @@ export function TimelineEditor() {
         formData.append('file', file);
         try {
           const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
           const data = await res.json();
           addActionToTimeline(data.path, data.type, cursorSec, data.duration);
-        } catch {}
+        } catch {
+          toast.error(`Paste upload failed: ${file.name}`);
+        }
       }
       return;
     }

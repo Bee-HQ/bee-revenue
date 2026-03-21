@@ -71,7 +71,13 @@ export const api = {
     return fetch(`${BASE}/media/upload?category=${category}`, {
       method: 'POST',
       body: form,
-    }).then(r => r.json()) as Promise<StatusResponse>;
+    }).then(async (r) => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(err.detail || `Upload failed: ${r.status}`);
+      }
+      return r.json();
+    }) as Promise<StatusResponse>;
   },
 
   mediaFileUrl(path: string): string {

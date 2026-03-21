@@ -164,13 +164,11 @@ export function storyboardToTimeline(storyboard: Storyboard): {
       });
     }
 
-    // A1: Narration (NAR entries from audio array)
-    const narEntries = seg.audio.filter(
-      (a: LayerEntry) => normalizeAudioType(a.content_type) === 'NAR',
-    );
-    narEntries.forEach((_entry: LayerEntry, i: number) => {
+    // A1: Narration (NAR entries from audio array — use original index)
+    seg.audio.forEach((entry: LayerEntry, origIndex: number) => {
+      if (normalizeAudioType(entry.content_type) !== 'NAR') return;
       trackActions['A1'].push({
-        id: `${seg.id}-nar-${i}`,
+        id: `${seg.id}-nar-${origIndex}`,
         start: startSec,
         end: endSec,
         effectId: 'narration',
@@ -179,19 +177,17 @@ export function storyboardToTimeline(storyboard: Storyboard): {
           contentType: 'NAR',
           src: '',
           title: seg.title,
-          layerIndex: i,
+          layerIndex: origIndex,
         },
       });
     });
 
-    // A2: Real audio / SFX (non-NAR audio)
-    const realAudio = seg.audio.filter(
-      (a: LayerEntry) => normalizeAudioType(a.content_type) !== 'NAR',
-    );
-    realAudio.forEach((entry: LayerEntry, i: number) => {
+    // A2: Real audio / SFX (non-NAR audio — use original index)
+    seg.audio.forEach((entry: LayerEntry, origIndex: number) => {
+      if (normalizeAudioType(entry.content_type) === 'NAR') return;
       const audioType = normalizeAudioType(entry.content_type);
       trackActions['A2'].push({
-        id: `${seg.id}-audio-${i}`,
+        id: `${seg.id}-audio-${origIndex}`,
         start: startSec,
         end: endSec,
         effectId: 'audio',
@@ -200,7 +196,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
           contentType: audioType,
           src: cleanPath(entry.content || ''),
           title: entry.content || audioType,
-          layerIndex: i,
+          layerIndex: origIndex,
         },
       });
     });
@@ -263,27 +259,36 @@ export function timelineToStoryboard(
   rows: TimelineRow[],
   original: Storyboard,
 ): Storyboard {
-  // Build a lookup: segmentId → list of BeeTimelineActions from video track
-  const videoActions: BeeTimelineAction[] = [];
+  // Collect all non-empty actions with src paths
+  const allActions: BeeTimelineAction[] = [];
   for (const row of rows) {
     for (const action of row.actions) {
       const bee = action as BeeTimelineAction;
-      if (bee.data && bee.effectId === 'video' && !bee.data.empty) {
-        videoActions.push(bee);
+      if (bee.data && bee.data.empty !== true) {
+        allActions.push(bee);
       }
     }
   }
 
+  // Map effectId → assigned_media key prefix
+  const EFFECT_TO_LAYER: Record<string, string> = {
+    video: 'visual',
+    narration: 'audio',
+    audio: 'audio',
+    music: 'music',
+    overlay: 'overlay',
+  };
+
   const segments = original.segments.map((seg: Segment) => {
     const updatedMedia = { ...seg.assigned_media };
 
-    // Find video actions for this segment and map src back
-    for (const action of videoActions) {
-      if (action.data.segmentId === seg.id) {
-        const src = action.data.src || '';
-        if (src) {
-          updatedMedia[`visual:${action.data.layerIndex}`] = src;
-        }
+    for (const action of allActions) {
+      if (action.data.segmentId !== seg.id) continue;
+      const src = action.data.src || '';
+      if (!src) continue;
+      const layer = EFFECT_TO_LAYER[action.effectId];
+      if (layer) {
+        updatedMedia[`${layer}:${action.data.layerIndex}`] = src;
       }
     }
 

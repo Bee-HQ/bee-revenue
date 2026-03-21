@@ -163,7 +163,7 @@ export function SegmentList() {
   const selectionCount = selectedSegmentIds.length;
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    () => new Set(groups.map(g => g.section))
+    () => new Set()
   );
 
   const toggleSection = (section: string) => {
