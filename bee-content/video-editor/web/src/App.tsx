@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useProjectStore } from './stores/project';
+import { api } from './api/client';
 import { Layout } from './components/Layout';
 import { LoadProject } from './components/LoadProject';
 import { ToastContainer } from './components/ToastContainer';
@@ -10,6 +11,24 @@ const FPS = 30;
 
 export default function App() {
   const storyboard = useProjectStore(s => s.storyboard);
+  const loading = useProjectStore(s => s.loading);
+
+  // Try to restore session from backend on mount
+  useEffect(() => {
+    if (!storyboard && !loading) {
+      api.getCurrentProject()
+        .then((sb) => {
+          if (sb && sb.total_segments > 0) {
+            useProjectStore.setState({ storyboard: sb });
+            // Also load media
+            useProjectStore.getState().loadMedia();
+          }
+        })
+        .catch(() => {
+          // No session to restore — show LoadProject
+        });
+    }
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
