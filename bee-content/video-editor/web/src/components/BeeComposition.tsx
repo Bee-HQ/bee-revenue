@@ -37,20 +37,6 @@ function PlaceholderFrame({ type, title }: { type: string; title: string }) {
   );
 }
 
-function BlackFrame() {
-  return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: '#0f0f0f',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <span style={{ color: '#333', fontSize: 14 }}>No media</span>
-    </AbsoluteFill>
-  );
-}
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 

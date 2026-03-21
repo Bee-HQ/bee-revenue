@@ -1,12 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Timeline } from '@xzdarcy/react-timeline-editor';
-import type { TimelineState, TimelineRow, TimelineAction } from '@xzdarcy/react-timeline-editor';
+import type { TimelineState } from '@xzdarcy/react-timeline-editor';
+import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
 import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
 import { renderTimelineAction } from './TimelineActionRenderer';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
-import { toast } from '../stores/toast';
 
 export function TimelineEditor() {
   const storyboard = useProjectStore(s => s.storyboard);

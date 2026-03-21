@@ -1,4 +1,4 @@
-import type { TimelineAction, TimelineRow } from '@xzdarcy/react-timeline-editor';
+import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
 import type { BeeTimelineAction } from '../adapters/timeline-adapter';
 
 const TRACK_COLORS: Record<string, { bg: string; border: string }> = {

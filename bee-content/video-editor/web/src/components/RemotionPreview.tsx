@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
 import { useProjectStore } from '../stores/project';
 import { BeeComposition } from './BeeComposition';
-import { formatTimecode, framesToTime, timeToFrames } from '../adapters/time-utils';
+import { timeToFrames } from '../adapters/time-utils';
 
 const FPS = 30;
 
@@ -20,17 +20,12 @@ export function RemotionPreview() {
   );
   const loopIn = useProjectStore((s) => s.loopIn);
   const loopOut = useProjectStore((s) => s.loopOut);
-  const setLoopIn = useProjectStore((s) => s.setLoopIn);
-  const setLoopOut = useProjectStore((s) => s.setLoopOut);
   const playerRef = useRef<PlayerRef>(null);
   const playingRef = useRef(false);
   const loopInRef = useRef<number | null>(null);
   const loopOutRef = useRef<number | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
   const [showCaptions, setShowCaptions] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [hoverTime, setHoverTime] = useState<number | null>(null);
 
   // Keep refs in sync with store state for use in event handlers
   useEffect(() => { loopInRef.current = loopIn; }, [loopIn]);
@@ -57,7 +52,6 @@ export function RemotionPreview() {
       const interval = setInterval(() => {
         try {
           const frame = player.getCurrentFrame() ?? 0;
-          setCurrentTime(framesToTime(frame, FPS));
           if (playingRef.current) {
             useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
             const li = loopInRef.current;
@@ -74,8 +68,6 @@ export function RemotionPreview() {
     try {
       const onFrameChange = (e: { detail: { frame: number } }) => {
         const frame = e?.detail?.frame ?? 0;
-        const seconds = framesToTime(frame, FPS);
-        setCurrentTime(seconds);
         // Only update the store while playing — avoids a seek->framechange->setCurrentTimeMs->seekTo loop
         // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
         if (playingRef.current) {
@@ -89,8 +81,8 @@ export function RemotionPreview() {
           }
         }
       };
-      const onPlay = () => { playingRef.current = true; setPlaying(true); };
-      const onPause = () => { playingRef.current = false; setPlaying(false); };
+      const onPlay = () => { playingRef.current = true; };
+      const onPause = () => { playingRef.current = false; };
 
       player.addEventListener('framechange' as any, onFrameChange as never);
       player.addEventListener('play', onPlay as never);
@@ -115,13 +107,6 @@ export function RemotionPreview() {
       playerRef.current.seekTo(frame);
     }
   }, [currentTimeMs]);
-
-  const togglePlay = useCallback(() => {
-    if (playing) playerRef.current?.pause();
-    else playerRef.current?.play();
-  }, [playing]);
-
-  const getCurrentFrame = () => playerRef.current?.getCurrentFrame() ?? 0;
 
   if (!storyboard) return null;
 

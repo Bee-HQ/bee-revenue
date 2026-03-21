@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { RefObject } from 'react';
 import type { PlayerRef } from '@remotion/player';
-import type { TimelineRow } from '@xzdarcy/react-timeline-editor';
+import type { TimelineRow } from '@xzdarcy/timeline-engine';
 import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';

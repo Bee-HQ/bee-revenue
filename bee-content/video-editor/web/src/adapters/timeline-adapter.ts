@@ -1,6 +1,6 @@
 import type { Storyboard, Segment, LayerEntry } from '../types';
-import { parseTimecode, formatTimecode } from './time-utils';
-import type { TimelineAction, TimelineRow, TimelineEffect } from '@xzdarcy/react-timeline-editor';
+import { parseTimecode } from './time-utils';
+import type { TimelineAction, TimelineRow, TimelineEffect } from '@xzdarcy/timeline-engine';
 
 /** Map formula production codes to base visual categories for timeline rendering */
 const VISUAL_TYPE_MAP: Record<string, string> = {
@@ -61,6 +61,11 @@ export interface BeeActionData {
   layerIndex: number;
   formulaCode?: string;
   empty?: boolean;
+  // transition-specific
+  type?: string;
+  duration?: number;
+  fromSegId?: string;
+  toSegId?: string;
 }
 
 export interface BeeTimelineAction extends TimelineAction {

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import { useProjectStore } from './project';
-import type { TimelineRow } from '@xzdarcy/react-timeline-editor';
+import type { TimelineRow } from '@xzdarcy/timeline-engine';
 
 const makeRows = (id: string): TimelineRow[] => [
   { id: 'V1', actions: [{ id, start: 0, end: 5, effectId: 'video' }] },
