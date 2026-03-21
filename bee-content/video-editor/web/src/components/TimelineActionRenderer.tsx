@@ -18,7 +18,7 @@ export function renderTimelineAction(action: TimelineAction, row: TimelineRow) {
 
   let label = data?.title || '';
   if (effectId === 'narration') label = `NAR: ${data?.title || ''}`;
-  else if (effectId === 'overlay') label = `${data?.contentType || ''}: ${data?.title || ''}`;
+  else if (effectId === 'overlay') label = data?.title || data?.contentType || 'Overlay';
   else if (effectId === 'music') label = data?.src?.split('/').pop() || 'Music';
   else if (effectId === 'audio') label = data?.contentType || 'Audio';
   else if (data?.src) label = data.src.split('/').pop() || data.title;

@@ -25,6 +25,27 @@ else
 fi
 
 echo ""
+echo "=== Frontend unit tests ==="
+if (cd web && npm test); then
+    echo "✓ Frontend unit tests passed"
+else
+    echo "✗ Frontend unit tests failed"
+    FAILED=1
+fi
+
+# E2E tests (optional — pass --e2e flag to include)
+if [[ "${1:-}" == "--e2e" ]]; then
+    echo ""
+    echo "=== Frontend E2E tests ==="
+    if (cd web && npm run test:e2e); then
+        echo "✓ E2E tests passed"
+    else
+        echo "✗ E2E tests failed"
+        FAILED=1
+    fi
+fi
+
+echo ""
 if [ $FAILED -eq 0 ]; then
     echo "All checks passed."
 else
