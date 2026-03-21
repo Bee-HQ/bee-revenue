@@ -27,7 +27,7 @@ export function RemotionPreview() {
   const loopInRef = useRef<number | null>(null);
   const loopOutRef = useRef<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [showCaptions, setShowCaptions] = useState(true);
+  const [showCaptions, setShowCaptions] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
