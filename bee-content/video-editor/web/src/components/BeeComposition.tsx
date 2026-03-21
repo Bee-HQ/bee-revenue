@@ -117,7 +117,7 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: str
             name={seg.title}
           >
             {/* Base visual with color grade + Ken Burns */}
-            {!isRealFile(src) || (knownFiles.size > 0 && !knownFiles.has(src!)) ? (
+            {!isRealFile(src) || !knownFiles.has(src!) ? (
               <PlaceholderFrame type={seg.visual[0]?.content_type || 'NONE'} title={seg.title} />
             ) : (() => {
               const visualContent = isImage ? (
