@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Timeline } from '@xzdarcy/react-timeline-editor';
 import type { TimelineState } from '@xzdarcy/react-timeline-editor';
+import '@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css';
 import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
 import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
@@ -275,6 +276,8 @@ export function TimelineEditor() {
       {/* Track labels + Timeline */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="w-12 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col">
+          {/* Spacer to align with Timeline's time ruler (32px) + edit area margin (10px) */}
+          <div style={{ height: 42 }} className="shrink-0" />
           {editorData.map(row => (
             <div key={row.id} className="text-[9px] text-gray-500 font-mono px-1 flex items-center" style={{ height: 28 }}>
               {row.id}
@@ -283,6 +286,7 @@ export function TimelineEditor() {
         </div>
         <div className="flex-1 overflow-hidden">
           <Timeline
+            style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
             editorData={editorData}
             effects={effects}
