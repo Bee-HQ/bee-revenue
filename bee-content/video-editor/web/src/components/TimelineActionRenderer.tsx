@@ -7,18 +7,17 @@ const TRACK_COLORS: Record<string, { bg: string; border: string }> = {
   audio:      { bg: '#0f766e', border: '#14b8a6' },
   music:      { bg: '#6b21a8', border: '#a855f7' },
   overlay:    { bg: '#9d174d', border: '#f472b6' },
-  transition: { bg: 'rgba(255,255,255,0.15)', border: 'rgba(255,255,255,0.3)' },
 };
 
-export function renderTimelineAction(action: TimelineAction, _row: TimelineRow) {
+export function renderTimelineAction(action: TimelineAction, row: TimelineRow) {
   const beeAction = action as BeeTimelineAction;
   const effectId = beeAction.effectId || 'video';
   const colors = TRACK_COLORS[effectId] || TRACK_COLORS.video;
   const data = beeAction.data;
+  const isFirstAction = row.actions.length > 0 && row.actions[0].id === action.id;
 
   let label = data?.title || '';
   if (effectId === 'narration') label = `NAR: ${data?.title || ''}`;
-  else if (effectId === 'transition') label = data?.type || 'transition';
   else if (effectId === 'overlay') label = `${data?.contentType || ''}: ${data?.title || ''}`;
   else if (effectId === 'music') label = data?.src?.split('/').pop() || 'Music';
   else if (effectId === 'audio') label = data?.contentType || 'Audio';
@@ -38,6 +37,11 @@ export function renderTimelineAction(action: TimelineAction, _row: TimelineRow) 
         cursor: 'pointer',
       }}
     >
+      {isFirstAction && (
+        <span style={{ fontSize: 8, color: '#999', marginRight: 4, fontFamily: 'monospace', flexShrink: 0 }}>
+          {row.id}
+        </span>
+      )}
       <span style={{ fontSize: 10, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {label}
       </span>

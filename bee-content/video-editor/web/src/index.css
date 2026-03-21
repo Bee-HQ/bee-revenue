@@ -27,3 +27,9 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-editor-hover;
 }
+
+/* Override react-timeline-editor library defaults (600x600) */
+.timeline-editor {
+  width: 100% !important;
+  height: 100% !important;
+}

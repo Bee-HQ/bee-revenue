@@ -74,7 +74,7 @@ export interface BeeTimelineAction extends TimelineAction {
 
 // ---------- Effect IDs ----------
 
-type EffectId = 'video' | 'narration' | 'audio' | 'music' | 'overlay' | 'transition';
+type EffectId = 'video' | 'narration' | 'audio' | 'music' | 'overlay';
 
 const EFFECTS: Record<EffectId, TimelineEffect> = {
   video:      { id: 'video',      name: 'Video' },
@@ -82,7 +82,6 @@ const EFFECTS: Record<EffectId, TimelineEffect> = {
   audio:      { id: 'audio',      name: 'Audio' },
   music:      { id: 'music',      name: 'Music' },
   overlay:    { id: 'overlay',    name: 'Overlay' },
-  transition: { id: 'transition', name: 'Transition' },
 };
 
 // ---------- Track definitions ----------
@@ -240,25 +239,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
       });
     });
 
-    // Transitions
-    if (seg.transition.length > 0) {
-      const trans = seg.transition[0];
-      const dur = parseFloat(trans.content?.replace('s', '') || '1');
-      trackActions['V1'].push({
-        id: `trans-${seg.id}`,
-        start: Math.max(0, startSec - dur / 2),
-        end: startSec + dur / 2,
-        effectId: 'transition',
-        flexible: false,
-        data: {
-          segmentId: seg.id,
-          contentType: trans.content_type || 'fade',
-          src: '',
-          title: `Transition: ${trans.content_type || 'fade'}`,
-          layerIndex: 0,
-        },
-      });
-    }
+    // Transitions are metadata (stored in seg.transition[]) — not rendered on timeline
   }
 
   // Build rows: dynamic — only include tracks that have actions (V1 always present)

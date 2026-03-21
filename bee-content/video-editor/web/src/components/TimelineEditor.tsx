@@ -50,6 +50,24 @@ export function TimelineEditor() {
   const [effects, setEffects] = useState<Record<string, any>>({});
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const lastSyncRef = useRef(0);
+
+  // Track Remotion play/pause state for cursor sync throttling
+  useEffect(() => {
+    const player = useProjectStore.getState().playerRef?.current;
+    if (!player || typeof player.addEventListener !== 'function') return;
+    const onPlay = () => { isPlayingRef.current = true; };
+    const onPause = () => { isPlayingRef.current = false; };
+    player.addEventListener('play', onPlay as never);
+    player.addEventListener('pause', onPause as never);
+    return () => {
+      try {
+        player.removeEventListener('play', onPlay as never);
+        player.removeEventListener('pause', onPause as never);
+      } catch {}
+    };
+  }, [storyboard]);
 
   // Convert storyboard → timeline rows on storyboard change
   // Skip re-conversion when storyboard was updated by the debounced sync callback
@@ -65,11 +83,16 @@ export function TimelineEditor() {
     pushTimelineHistory(rows);
   }, [storyboard]);
 
-  // Sync Remotion playback → timeline cursor
+  // Sync Remotion playback → timeline cursor (throttled during playback)
   useEffect(() => {
-    if (timelineRef.current) {
-      timelineRef.current.setTime(currentTimeMs / 1000);
-    }
+    if (!timelineRef.current) return;
+    const now = Date.now();
+    // During playback: throttle to ~5fps to avoid 30fps churn
+    if (isPlayingRef.current && now - lastSyncRef.current < 200) return;
+    lastSyncRef.current = now;
+    timelineRef.current.setTime(currentTimeMs / 1000);
+    // reRender() needed for the library to visually update cursor position
+    (timelineRef.current as any).reRender?.();
   }, [currentTimeMs]);
 
   const handleChange = useCallback((newData: TimelineRow[]) => {
@@ -185,7 +208,7 @@ export function TimelineEditor() {
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 180 }}
+      style={{ height: 250 }}
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -273,26 +296,16 @@ export function TimelineEditor() {
           Redo
         </button>
       </div>
-      {/* Track labels + Timeline */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="w-12 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col">
-          {/* Spacer to align with Timeline's time ruler (32px) + edit area margin (10px) */}
-          <div style={{ height: 42 }} className="shrink-0" />
-          {editorData.map(row => (
-            <div key={row.id} className="text-[9px] text-gray-500 font-mono px-1 flex items-center" style={{ height: 28 }}>
-              {row.id}
-            </div>
-          ))}
-        </div>
-        <div className="flex-1 overflow-hidden">
+      {/* Timeline */}
+      <div className="flex-1 min-h-0 overflow-hidden">
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
             editorData={editorData}
             effects={effects}
             onChange={handleChange}
-            scale={1}
-            scaleWidth={zoomLevel * 40}
+            scale={10}
+            scaleWidth={zoomLevel * 60}
             rowHeight={28}
             gridSnap={snapEnabled}
             dragLine={true}
@@ -303,7 +316,6 @@ export function TimelineEditor() {
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
           />
-        </div>
       </div>
     </div>
   );
