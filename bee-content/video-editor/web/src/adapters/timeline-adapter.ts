@@ -133,9 +133,7 @@ export function storyboardToDesignCombo(storyboard: Storyboard): DCState {
           originalEntry: entry,
         },
         details: {
-          src: src
-            ? `/api/media/file?path=${encodeURIComponent(src)}`
-            : '',
+          src: src || '',
           width: 1920,
           height: 1080,
         },
