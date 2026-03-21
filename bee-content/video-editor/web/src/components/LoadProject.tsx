@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 
 export function LoadProject() {
-  const [storyboardPath, setStoryboardPath] = useState('../discovery/true-crime/cases/alex-murdaugh/storyboard.md');
+  const [storyboardPath, setStoryboardPath] = useState('../discovery/true-crime/cases/alex-murdaugh/storyboard-v2.md');
   const [projectDir, setProjectDir] = useState('../discovery/true-crime/cases/alex-murdaugh');
   const { loadProject, loading, error } = useProjectStore();
 
