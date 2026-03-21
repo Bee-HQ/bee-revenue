@@ -9,11 +9,11 @@ export default {
     extend: {
       colors: {
         editor: {
-          bg: '#0f0f0f',
-          surface: '#1a1a1a',
-          border: '#2a2a2a',
-          hover: '#333333',
-          accent: '#3b82f6',
+          bg: 'var(--editor-bg)',
+          surface: 'var(--editor-surface)',
+          border: 'var(--editor-border)',
+          hover: 'var(--editor-hover)',
+          accent: 'var(--editor-accent)',
         },
       },
       keyframes: {

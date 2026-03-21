@@ -37,7 +37,7 @@ function addActionToTimeline(path: string, type: string, cursorSec: number, dura
   useProjectStore.getState().pushTimelineHistory(newRows);
 }
 
-export function TimelineEditor() {
+export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const storyboard = useProjectStore(s => s.storyboard);
   const editorData = useProjectStore(s => s.editorData);
   const setEditorData = useProjectStore(s => s.setEditorData);
@@ -217,7 +217,7 @@ export function TimelineEditor() {
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 250 }}
+      style={{ height: 250, ...style }}
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

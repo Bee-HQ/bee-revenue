@@ -2,12 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme variables — dark (default) */
 :root {
+  --editor-bg: #0f0f0f;
+  --editor-surface: #1a1a1a;
+  --editor-border: #2a2a2a;
+  --editor-hover: #333333;
+  --editor-accent: #3b82f6;
   color-scheme: dark;
 }
 
+/* Light theme */
+:root.light {
+  --editor-bg: #f5f5f5;
+  --editor-surface: #ffffff;
+  --editor-border: #e0e0e0;
+  --editor-hover: #ebebeb;
+  --editor-accent: #2563eb;
+  color-scheme: light;
+}
+
 body {
-  @apply bg-editor-bg text-gray-200 m-0 font-sans;
+  background-color: var(--editor-bg);
+  @apply text-gray-200 m-0 font-sans;
+}
+
+:root.light body {
+  @apply text-gray-800;
 }
 
 /* Scrollbar styling */
@@ -17,15 +38,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-editor-bg;
+  background: var(--editor-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-editor-border rounded-full;
+  background: var(--editor-border);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-editor-hover;
+  background: var(--editor-hover);
 }
 
 /* Range slider styling */
@@ -33,7 +55,7 @@ input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
-  background: #2a2a2a;
+  background: var(--editor-border);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -44,7 +66,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--editor-accent);
   cursor: pointer;
   transition: transform 0.1s;
 }
@@ -57,14 +79,14 @@ input[type="range"]::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--editor-accent);
   border: none;
   cursor: pointer;
 }
 
 input[type="range"]::-moz-range-track {
   height: 4px;
-  background: #2a2a2a;
+  background: var(--editor-border);
   border-radius: 2px;
 }
 

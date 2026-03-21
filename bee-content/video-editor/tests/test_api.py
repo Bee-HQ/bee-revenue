@@ -4,7 +4,7 @@ import json
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from starlette.testclient import TestClient
@@ -869,3 +869,100 @@ class TestGenerateClip:
             "provider": "nonexistent",
         })
         assert r.status_code == 400
+
+
+# ─── WebSocket progress tests ──────────────────────────────────────────────
+
+
+class TestWebSocketProgress:
+    """Tests for the /api/production/ws/progress WebSocket endpoint."""
+
+    def test_unknown_action_returns_error(self, loaded_project):
+        client, _, _ = loaded_project
+        with client.websocket_connect("/api/production/ws/progress") as ws:
+            ws.send_json({"action": "bogus"})
+            data = ws.receive_json()
+            assert "error" in data
+            assert "Unknown action" in data["error"]
+
+    def test_narration_sends_started_and_complete(self, loaded_project):
+        client, _, proj_dir = loaded_project
+        from bee_video_editor.services.production import ProductionResult
+
+        mock_result = ProductionResult(succeeded=[Path("seg-01.mp3")])
+
+        with patch(
+            "bee_video_editor.services.production.generate_narration_for_project",
+            return_value=mock_result,
+        ):
+            with client.websocket_connect("/api/production/ws/progress") as ws:
+                ws.send_json({"action": "narration", "params": {"tts_engine": "edge"}})
+
+                messages = []
+                while True:
+                    msg = ws.receive_json()
+                    messages.append(msg)
+                    if msg.get("step") == "complete":
+                        break
+
+                # Should have at least started + complete
+                assert any(m.get("status") == "started" for m in messages)
+                assert messages[-1]["step"] == "complete"
+                assert messages[-1]["status"] in ("ok", "partial")
+
+    def test_produce_sends_progress_and_complete(self, loaded_project):
+        client, session, proj_dir = loaded_project
+        from bee_video_editor.services.production import PipelineResult
+
+        output_path = proj_dir / "output" / "final" / "final.mp4"
+
+        def mock_pipeline(parsed, config, on_step=None, **kwargs):
+            if on_step:
+                on_step("init", "done", "Initialized directories")
+                on_step("graphics", "done", "Generated 3 graphics")
+            return PipelineResult(output_path=output_path)
+
+        with patch(
+            "bee_video_editor.services.production.run_full_pipeline",
+            side_effect=mock_pipeline,
+        ):
+            with client.websocket_connect("/api/production/ws/progress") as ws:
+                ws.send_json({"action": "produce", "params": {}})
+
+                messages = []
+                while True:
+                    msg = ws.receive_json()
+                    messages.append(msg)
+                    if msg.get("step") == "complete":
+                        break
+
+                # Should have progress messages + complete
+                assert len(messages) >= 2
+                assert messages[-1]["step"] == "complete"
+                assert messages[-1]["status"] == "ok"
+
+    def test_produce_no_storyboard_path_errors(self, loaded_project):
+        client, session, _ = loaded_project
+        # Create a session copy with otio_path cleared
+        no_otio_session = SessionStore()
+        no_otio_session.parsed = session.parsed
+        no_otio_session.project_dir = session.project_dir
+        no_otio_session.timeline = session.timeline
+        no_otio_session.otio_path = None
+
+        with patch("bee_video_editor.api.session.get_session", return_value=no_otio_session):
+            with client.websocket_connect("/api/production/ws/progress") as ws:
+                ws.send_json({"action": "produce", "params": {}})
+                msg = ws.receive_json()
+                assert "error" in msg
+
+    def test_narration_with_no_project_errors(self, project_env):
+        client, _, _, _ = project_env
+        # No project loaded — session.require_project() should raise
+        empty_session = SessionStore()
+
+        with patch("bee_video_editor.api.session.get_session", return_value=empty_session):
+            with client.websocket_connect("/api/production/ws/progress") as ws:
+                ws.send_json({"action": "narration", "params": {}})
+                msg = ws.receive_json()
+                assert msg.get("step") == "error" and msg.get("status") == "failed"
