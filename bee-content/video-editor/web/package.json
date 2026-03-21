@@ -12,15 +12,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@designcombo/events": "^1.0.2",
-    "@designcombo/state": "^5.5.8",
-    "@designcombo/timeline": "^5.5.8",
-    "@designcombo/types": "^5.5.8",
     "@remotion/bundler": "^4.0.438",
     "@remotion/cli": "^4.0.438",
     "@remotion/player": "^4.0.438",
     "@remotion/renderer": "^4.0.438",
     "@types/lodash-es": "^4.17.12",
+    "@xzdarcy/react-timeline-editor": "^1.0.0",
     "lodash-es": "^4.17.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
