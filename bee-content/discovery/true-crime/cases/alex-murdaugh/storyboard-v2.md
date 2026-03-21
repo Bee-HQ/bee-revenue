@@ -14,13 +14,13 @@
   "visual": [
     {
       "type": "WAVEFORM-AERIAL",
-      "src": "`segments/911-call-full.mp4",
+      "src": "segments/911-call-full.mp4",
       "query": "\u2014 911 call waveform (red) over dark Moselle aerial"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     },
     {
       "type": "MUSIC"
@@ -28,7 +28,7 @@
   ],
   "overlay": [
     {
-      "type": "TIMELINE-MARKER",
+      "type": "TIMELINE_MARKER",
       "text": "\"911 CALL \u2014 JUNE 7, 2021 \u2014 10:07 PM\""
     }
   ]
@@ -42,13 +42,13 @@
   "visual": [
     {
       "type": "WAVEFORM-AERIAL",
-      "src": "`segments/911-call-full.mp4",
+      "src": "segments/911-call-full.mp4",
       "query": "\u2014 same aerial, waveform continues"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ]
 }
@@ -115,18 +115,18 @@
   "visual": [
     {
       "type": "UNKNOWN",
-      "src": "`segments/bodycam-arrival.mp4",
+      "src": "segments/bodycam-arrival.mp4",
       "query": "Bodycam \u2014 deputies arriving at Moselle, flashlights on driveway"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Colleton County Sheriff's Office \u2014 Night of June 7, 2021\""
     }
   ],
@@ -146,13 +146,13 @@
   "visual": [
     {
       "type": "INTERROGATION",
-      "src": "`segments/sled-interview-opening.mp4",
+      "src": "segments/sled-interview-opening.mp4",
       "query": "\u2014 SLED patrol car interior, Alex in back seat"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "transition_in": {
@@ -181,7 +181,7 @@
   ],
   "overlay": [
     {
-      "type": "TIMELINE-MARKER",
+      "type": "TIMELINE_MARKER",
       "text": "\"8:44 PM \u2014 The Kennel Video\" \u2014 fades in"
     }
   ]
@@ -197,18 +197,18 @@
   "visual": [
     {
       "type": "COURTROOM",
-      "src": "`segments/kennel-video-court.mp4",
+      "src": "segments/kennel-video-court.mp4",
       "query": "\u2014 Trial footage, Rogan Gibson on witness stand"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Rogan Gibson \u2014 Paul Murdaugh's Best Friend\""
     }
   ],
@@ -226,13 +226,13 @@
   "visual": [
     {
       "type": "COURTROOM",
-      "src": "`segments/cross-examination.mp4",
+      "src": "segments/cross-examination.mp4",
       "query": "\u2014 Creighton Waters addressing Alex on the stand"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "transition_in": {
@@ -277,13 +277,13 @@
   "visual": [
     {
       "type": "COURTROOM",
-      "src": "`segments/verdict.mp4",
+      "src": "segments/verdict.mp4",
       "query": "\u2014 verdict reading moment"
     }
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "transition_in": {
@@ -339,7 +339,7 @@
   ],
   "overlay": [
     {
-      "type": "SPLIT-INFO",
+      "type": "SPLIT_INFO",
       "text": "\u2014 text pins appear as narrator mentions them: \"Legal Empire\" \u2192 \"Double Murder\" \u2192 \"$12M Stolen\" \u2192 \"Dead Man's Phone\""
     }
   ]
@@ -410,7 +410,7 @@
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Randolph Murdaugh Sr. \u2014 14th Circuit Solicitor, 1920\""
     }
   ]
@@ -435,7 +435,7 @@
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Three Generations of Murdaugh Prosecutors \u2014 1920 to 2006\""
     }
   ]
@@ -484,7 +484,7 @@
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Alex Murdaugh \u2014 4th Generation, PMPED\""
     }
   ]
@@ -518,7 +518,7 @@
   ],
   "overlay": [
     {
-      "type": "SPLIT-INFO",
+      "type": "SPLIT_INFO",
       "text": "\u2014 \"Moselle \u2014 1,772-acre Murdaugh Hunting Estate, Islandton, SC\""
     }
   ]
@@ -571,7 +571,7 @@
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Margaret 'Maggie' Murdaugh \u2014 Wife, Mother\""
     }
   ]
@@ -612,12 +612,12 @@
   ],
   "audio": [
     {
-      "type": "REAL AUDIO"
+      "type": "REAL_AUDIO"
     }
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Blanca Turrubiate-Simpson \u2014 Murdaugh Family Housekeeper\""
     }
   ]
@@ -659,7 +659,7 @@
   ],
   "overlay": [
     {
-      "type": "LOWER-THIRD",
+      "type": "LOWER_THIRD",
       "text": "\"Paul Murdaugh \u2014 22 Years Old\""
     }
   ]
