@@ -7,6 +7,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Timeline: DesignCombo → react-timeline-editor** — replaced canvas/Fabric.js-based DesignCombo SDK (4 packages) with DOM-based `@xzdarcy/react-timeline-editor`. Eliminates canvas crashes, invisible tracks, class registry bugs. Bundle size reduced from 930KB to 683KB (-27%).
+- **Timeline adapter rewritten** — outputs `TimelineRow[]` in seconds (was `DCState` in ms). Dynamic tracks: only rows with content shown. Action IDs use `{segmentId}-{type}-{layerIndex}` format.
+- **Undo/redo unified** — replaced per-assignment `HistoryEntry` stack with full timeline snapshot history (max 50 entries). Single Ctrl+Z/Shift+Z handles all timeline edits.
+- **Keyboard shortcuts** — rewired from DesignCombo event dispatch to direct Zustand store calls.
+
+### Added
+- **Drag-drop media to timeline** — internal drag from Media Library, external file drop from Finder (auto-uploads), Cmd+V paste file paths
+- **Custom action renderer** — colored clips per track type (amber=video, green=narration, teal=audio, purple=music, pink=overlay)
+- **Upload route extended** — `POST /api/media/upload` now returns `type` and `duration` fields
+
+### Removed
+- `@designcombo/state`, `@designcombo/timeline`, `@designcombo/types`, `@designcombo/events`
+- `TimelineRuler.tsx` (library has built-in ruler)
+- `SPIKE-NOTES.md` (stale DesignCombo API docs)
+
 ## [0.9.0] — 2026-03-20
 
 ### Added
@@ -25,14 +41,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - Layout restructured: sidebars kept, center replaced with Remotion Player + DesignCombo timeline
 - Right sidebar now tabbed: Media / Properties / AI
-- Undo/redo dispatches to DesignCombo StateManager instead of Zustand stack
+- Undo/redo dispatches to timeline history instead of per-assignment Zustand stack
 
 ### Removed
 - StoryboardTimeline, VideoPlayer, ProductionBar, SegmentCard (replaced by NLE timeline)
 - TransitionPicker, ColorGradePicker, VolumeSlider, TrimControls (replaced by ClipProperties panel)
 
 ### Dependencies
-- Added: @designcombo/state, @designcombo/timeline, @designcombo/types, @designcombo/events, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
+- Added: @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
 
 ## [0.8.0] — 2026-03-19
 
