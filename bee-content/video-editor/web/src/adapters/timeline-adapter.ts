@@ -108,10 +108,6 @@ function tcToSec(tc: string): number {
   return parseTimecode(tc);
 }
 
-let _actionCounter = 0;
-function nextActionId(prefix: string): string {
-  return `${prefix}-${_actionCounter++}`;
-}
 
 // ---------- storyboardToTimeline ----------
 
@@ -119,8 +115,6 @@ export function storyboardToTimeline(storyboard: Storyboard): {
   rows: TimelineRow[];
   effects: Record<string, TimelineEffect>;
 } {
-  _actionCounter = 0;
-
   // Collect actions per track id
   const trackActions: Record<string, BeeTimelineAction[]> = {};
   for (const def of TRACK_DEFS) {
@@ -139,7 +133,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
         const baseType = normalizeVisualType(entry.content_type);
 
         trackActions['V1'].push({
-          id: nextActionId(`${seg.id}-v`),
+          id: `${seg.id}-v-${i}`,
           start: startSec,
           end: endSec,
           effectId: 'video',
@@ -156,7 +150,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     } else {
       // Placeholder for segment with no visuals
       trackActions['V1'].push({
-        id: nextActionId(`${seg.id}-v-empty`),
+        id: `${seg.id}-v-empty`,
         start: startSec,
         end: endSec,
         effectId: 'video',
@@ -177,7 +171,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     );
     narEntries.forEach((_entry: LayerEntry, i: number) => {
       trackActions['A1'].push({
-        id: nextActionId(`${seg.id}-nar`),
+        id: `${seg.id}-nar-${i}`,
         start: startSec,
         end: endSec,
         effectId: 'narration',
@@ -185,7 +179,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
           segmentId: seg.id,
           contentType: 'NAR',
           src: '',
-          title: `Narration: ${seg.title}`,
+          title: seg.title,
           layerIndex: i,
         },
       });
@@ -198,7 +192,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     realAudio.forEach((entry: LayerEntry, i: number) => {
       const audioType = normalizeAudioType(entry.content_type);
       trackActions['A2'].push({
-        id: nextActionId(`${seg.id}-audio`),
+        id: `${seg.id}-audio-${i}`,
         start: startSec,
         end: endSec,
         effectId: 'audio',
@@ -215,7 +209,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     // A3: Music
     seg.music.forEach((entry: LayerEntry, i: number) => {
       trackActions['A3'].push({
-        id: nextActionId(`${seg.id}-music`),
+        id: `${seg.id}-music-${i}`,
         start: startSec,
         end: endSec,
         effectId: 'music',
@@ -232,7 +226,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     // OV1: Overlays
     seg.overlay.forEach((entry: LayerEntry, i: number) => {
       trackActions['OV1'].push({
-        id: nextActionId(`${seg.id}-ov`),
+        id: `${seg.id}-ov-${i}`,
         start: startSec,
         end: Math.min(startSec + 4, endSec), // overlays default 4s, capped to segment end
         effectId: 'overlay',
@@ -251,7 +245,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
       const trans = seg.transition[0];
       const dur = parseFloat(trans.content?.replace('s', '') || '1');
       trackActions['V1'].push({
-        id: nextActionId(`trans-${seg.id}`),
+        id: `trans-${seg.id}`,
         start: Math.max(0, startSec - dur / 2),
         end: startSec + dur / 2,
         effectId: 'transition',

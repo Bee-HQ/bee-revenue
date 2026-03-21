@@ -48,10 +48,16 @@ export function TimelineEditor() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [effects, setEffects] = useState<Record<string, any>>({});
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncingRef = useRef(false);
 
   // Convert storyboard → timeline rows on storyboard change
+  // Skip re-conversion when storyboard was updated by the debounced sync callback
   useEffect(() => {
     if (!storyboard) return;
+    if (syncingRef.current) {
+      syncingRef.current = false;
+      return;
+    }
     const { rows, effects: eff } = storyboardToTimeline(storyboard);
     setEditorData(rows);
     setEffects(eff);
@@ -85,6 +91,7 @@ export function TimelineEditor() {
             }
           }
         }
+        syncingRef.current = true;
         const freshSb = await api.getCurrentProject();
         useProjectStore.setState({ storyboard: freshSb });
       } catch (e) {
@@ -185,7 +192,50 @@ export function TimelineEditor() {
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1 border-b border-editor-border bg-editor-surface shrink-0">
+        <button
+          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          onClick={async () => {
+            try {
+              const r = await api.autoAssign();
+              toast.success(`Auto-assigned ${r.assigned} segments`);
+              const sb = await api.getCurrentProject();
+              syncingRef.current = true;
+              useProjectStore.setState({ storyboard: sb });
+            } catch (e: unknown) {
+              toast.error(e instanceof Error ? e.message : String(e));
+            }
+          }}
+        >
+          Auto-Assign
+        </button>
+        <button
+          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          onClick={async () => {
+            try {
+              const r = await api.acquireMedia();
+              toast.success(`Acquired: ${r.downloaded} downloaded`);
+              useProjectStore.getState().loadMedia();
+            } catch (e: unknown) {
+              toast.error(e instanceof Error ? e.message : String(e));
+            }
+          }}
+        >
+          Acquire
+        </button>
         <ProductionDropdown />
+        <button
+          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          onClick={async () => {
+            try {
+              await api.roughCut();
+              toast.success('Rough cut exported');
+            } catch (e: unknown) {
+              toast.error(e instanceof Error ? e.message : String(e));
+            }
+          }}
+        >
+          Rough Cut
+        </button>
         <div className="flex-1" />
         <button
           className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
@@ -244,7 +294,6 @@ export function TimelineEditor() {
             dragLine={true}
             autoScroll={true}
             getActionRender={renderTimelineAction}
-            onClickAction={handleClickAction}
             onClickActionOnly={handleClickAction}
             onClickRow={handleClickRow}
             onCursorDrag={handleCursorDrag}
