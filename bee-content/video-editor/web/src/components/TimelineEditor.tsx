@@ -103,8 +103,8 @@ export function TimelineEditor() {
       // Track viewport scroll for ruler sync
       try {
         if (typeof tl.onViewportChange === 'function') {
-          tl.onViewportChange(({ scrollLeft: sl }: { scrollLeft: number }) => {
-            setScrollLeft(sl || 0);
+          tl.onViewportChange((left: number) => {
+            setScrollLeft(left || 0);
           });
         }
       } catch {
@@ -118,7 +118,7 @@ export function TimelineEditor() {
       });
 
       // Debounced sync: when clips are dragged/resized, update backend
-      trackItemSub = sm.subscribeToUpdateTrackItemTiming(({ trackItemsMap }) => {
+      trackItemSub = sm.subscribeToUpdateTrackItemTiming(() => {
         if (syncTimeout) clearTimeout(syncTimeout);
         syncTimeout = setTimeout(async () => {
           try {

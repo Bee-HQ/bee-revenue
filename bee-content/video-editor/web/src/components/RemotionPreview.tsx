@@ -84,13 +84,13 @@ export function RemotionPreview() {
       const onPlay = () => { playingRef.current = true; setPlaying(true); };
       const onPause = () => { playingRef.current = false; setPlaying(false); };
 
-      player.addEventListener('framechange', onFrameChange as never);
+      player.addEventListener('framechange' as any, onFrameChange as never);
       player.addEventListener('play', onPlay as never);
       player.addEventListener('pause', onPause as never);
 
       return () => {
         try {
-          player.removeEventListener('framechange', onFrameChange as never);
+          player.removeEventListener('framechange' as any, onFrameChange as never);
           player.removeEventListener('play', onPlay as never);
           player.removeEventListener('pause', onPause as never);
         } catch {}

@@ -111,7 +111,7 @@ export function storyboardToDesignCombo(storyboard: Storyboard): DCState {
     const narEntries = seg.audio.filter(
       (a: LayerEntry) => a.content_type === 'NAR',
     );
-    narEntries.forEach((entry: LayerEntry, i: number) => {
+    narEntries.forEach((_entry: LayerEntry, i: number) => {
       const id = `${seg.id}-nar-${i}`;
       trackItemsMap[id] = {
         id,

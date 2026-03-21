@@ -38,11 +38,11 @@ export default function App() {
       // Undo / Redo
       if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        dcDispatch('history:undo', {});
+        dcDispatch('history:undo', { payload: {} });
       }
       if (mod && e.key === 'z' && e.shiftKey) {
         e.preventDefault();
-        dcDispatch('history:redo', {});
+        dcDispatch('history:redo', { payload: {} });
       }
 
       // Split at playhead
