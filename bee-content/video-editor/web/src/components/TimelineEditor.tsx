@@ -7,6 +7,33 @@ import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline
 import { renderTimelineAction } from './TimelineActionRenderer';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
+import { toast } from '../stores/toast';
+
+// Module-level — outside TimelineEditor component
+function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
+  const { editorData } = useProjectStore.getState();
+  const dur = duration ?? 5;
+  const effectId = type === 'audio' ? 'audio' : 'video';
+  const targetRowId = type === 'audio' ? 'A2' : 'V1';
+
+  const newAction: any = {
+    id: `drop-${Date.now()}`,
+    start: cursorSec,
+    end: cursorSec + dur,
+    effectId,
+    data: { segmentId: '', contentType: type.toUpperCase(), src: path, title: path.split('/').pop() || '', layerIndex: 0 },
+  };
+
+  let newRows: any[];
+  const targetRow = editorData.find(r => r.id === targetRowId);
+  if (targetRow) {
+    newRows = editorData.map(r => r.id === targetRowId ? { ...r, actions: [...r.actions, newAction] } : r);
+  } else {
+    newRows = [...editorData, { id: targetRowId, actions: [newAction] }];
+  }
+  useProjectStore.getState().setEditorData(newRows);
+  useProjectStore.getState().pushTimelineHistory(newRows);
+}
 
 export function TimelineEditor() {
   const storyboard = useProjectStore(s => s.storyboard);
@@ -82,6 +109,69 @@ export function TimelineEditor() {
     setActiveClipId(null);
   }, []);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    const cursorSec = timelineRef.current?.getTime() ?? 0;
+
+    // 1. Internal drag (from Media Library)
+    const beeMedia = e.dataTransfer.getData('bee/media');
+    if (beeMedia) {
+      try {
+        const { path, type } = JSON.parse(beeMedia);
+        addActionToTimeline(path, type, cursorSec);
+      } catch {}
+      return;
+    }
+
+    // 2. External file drop
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          addActionToTimeline(data.path, data.type, cursorSec, data.duration);
+          toast.success(`Uploaded: ${file.name}`);
+        } catch {
+          toast.error(`Upload failed: ${file.name}`);
+        }
+      }
+    }
+  }, []);
+
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const cursorSec = timelineRef.current?.getTime() ?? 0;
+
+    if (e.clipboardData.files.length > 0) {
+      for (const file of Array.from(e.clipboardData.files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          addActionToTimeline(data.path, data.type, cursorSec, data.duration);
+        } catch {}
+      }
+      return;
+    }
+
+    const text = e.clipboardData.getData('text').trim();
+    if (text && (text.includes('/') || text.includes('\\'))) {
+      const ext = text.split('.').pop()?.toLowerCase() || '';
+      const type = ['mp4','mov','webm','avi'].includes(ext) ? 'video'
+        : ['mp3','wav','aac','m4a'].includes(ext) ? 'audio'
+        : ['png','jpg','jpeg','webp'].includes(ext) ? 'image' : 'video';
+      addActionToTimeline(text, type, cursorSec);
+    }
+  }, []);
+
   if (!storyboard) return null;
 
   return (
@@ -89,6 +179,9 @@ export function TimelineEditor() {
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
       style={{ height: 180 }}
       tabIndex={0}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onPaste={handlePaste}
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1 border-b border-editor-border bg-editor-surface shrink-0">

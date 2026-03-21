@@ -466,7 +466,14 @@ export function MediaLibrary() {
             <div
               key={file.path}
               draggable
-              onDragStart={() => handleDragStart(file)}
+              onDragStart={(e) => {
+                handleDragStart(file);
+                const ext = file.path.split('.').pop()?.toLowerCase() || '';
+                const type = ['mp4','mov','webm','avi','mkv'].includes(ext) ? 'video'
+                  : ['mp3','wav','aac','m4a'].includes(ext) ? 'audio' : 'image';
+                e.dataTransfer.setData('bee/media', JSON.stringify({ path: file.relative_path || file.path, type }));
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
               onDragEnd={handleDragEnd}
               onClick={() => handleClick(file)}
               className={`flex items-center gap-2 px-2 py-1.5 rounded
