@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
 import { useProjectStore } from '../stores/project';
@@ -9,8 +9,15 @@ const FPS = 30;
 
 export function RemotionPreview() {
   const storyboard = useProjectStore((s) => s.storyboard);
+  const mediaFiles = useProjectStore((s) => s.mediaFiles);
   const currentTimeMs = useProjectStore((s) => s.currentTimeMs);
   const setPlayerRef = useProjectStore((s) => s.setPlayerRef);
+
+  // Build list of known media file paths for the composition
+  const mediaFilePaths = useMemo(
+    () => mediaFiles.map((f) => f.relative_path || f.path),
+    [mediaFiles],
+  );
   const loopIn = useProjectStore((s) => s.loopIn);
   const loopOut = useProjectStore((s) => s.loopOut);
   const setLoopIn = useProjectStore((s) => s.setLoopIn);
@@ -124,7 +131,7 @@ export function RemotionPreview() {
         <Player
           ref={playerRef}
           component={BeeComposition}
-          inputProps={{ storyboard }}
+          inputProps={{ storyboard, mediaFiles: mediaFilePaths }}
           durationInFrames={totalFrames}
           fps={FPS}
           compositionWidth={1920}

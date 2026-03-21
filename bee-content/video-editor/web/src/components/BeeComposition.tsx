@@ -69,10 +69,14 @@ const COLOR_FILTERS: Record<string, string> = {
   vhs: 'brightness(0.95) saturate(0.8) contrast(0.9)',
 };
 
-export const BeeComposition: React.FC<{ storyboard: Storyboard }> = ({
+export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: string[] }> = ({
   storyboard,
+  mediaFiles = [],
 }) => {
   const { fps } = useVideoConfig();
+
+  // Build a set of known file paths for fast lookup
+  const knownFiles = new Set(mediaFiles);
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -113,7 +117,7 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard }> = ({
             name={seg.title}
           >
             {/* Base visual with color grade + Ken Burns */}
-            {!isRealFile(src) ? (
+            {!isRealFile(src) || (knownFiles.size > 0 && !knownFiles.has(src!)) ? (
               <PlaceholderFrame type={seg.visual[0]?.content_type || 'NONE'} title={seg.title} />
             ) : (() => {
               const visualContent = isImage ? (
