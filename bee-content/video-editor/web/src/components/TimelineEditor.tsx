@@ -9,6 +9,7 @@ import { renderTimelineAction } from './TimelineActionRenderer';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2 } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -223,9 +224,10 @@ export function TimelineEditor() {
       onPaste={handlePaste}
     >
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1 border-b border-editor-border bg-editor-surface shrink-0">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-editor-border bg-editor-surface shrink-0">
+        {/* Pipeline group */}
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               const r = await api.autoAssign();
@@ -238,10 +240,11 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Wand2 size={12} />
           Auto-Assign
         </button>
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               const r = await api.acquireMedia();
@@ -252,11 +255,12 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Download size={12} />
           Acquire
         </button>
         <ProductionDropdown />
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               await api.roughCut();
@@ -266,42 +270,54 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Scissors size={12} />
           Rough Cut
         </button>
+
         <div className="flex-1" />
+
+        {/* Editing group */}
+        <div className="w-px h-4 bg-editor-border" />
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2.5 py-1 rounded transition-colors"
           onClick={() => useProjectStore.getState().splitAtPlayhead()}
           title="Split at playhead (S)"
         >
+          <Scissors size={12} />
           Split
         </button>
         <button
-          className={`text-[10px] px-2 py-1 rounded ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : 'bg-editor-hover text-gray-300'}`}
+          className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded transition-colors ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : 'bg-editor-hover text-gray-300'}`}
           onClick={() => setSnapEnabled(!snapEnabled)}
           title="Toggle snap"
         >
+          <Magnet size={12} />
           Snap
         </button>
+
+        {/* View group */}
+        <div className="w-px h-4 bg-editor-border" />
         <input
           type="range" min="1" max="10" value={zoomLevel}
           onChange={(e) => setZoomLevel(parseInt(e.target.value))}
-          className="w-16" style={{ accentColor: '#3b82f6' }}
+          className="w-20"
           title="Zoom"
         />
         <button
           onClick={() => useProjectStore.getState().timelineUndo()}
-          className="text-[10px] text-gray-400 hover:text-white px-1"
-          title="Undo"
+          className="p-1 text-gray-400 hover:text-white hover:bg-editor-hover rounded transition-colors"
+          aria-label="Undo"
+          title="Undo (Ctrl+Z)"
         >
-          Undo
+          <Undo2 size={14} />
         </button>
         <button
           onClick={() => useProjectStore.getState().timelineRedo()}
-          className="text-[10px] text-gray-400 hover:text-white px-1"
-          title="Redo"
+          className="p-1 text-gray-400 hover:text-white hover:bg-editor-hover rounded transition-colors"
+          aria-label="Redo"
+          title="Redo (Ctrl+Shift+Z)"
         >
-          Redo
+          <Redo2 size={14} />
         </button>
       </div>
       {/* Timeline */}

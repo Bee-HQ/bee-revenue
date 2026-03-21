@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { FileText, FileVideo, Film, Package, ChevronDown } from 'lucide-react';
 
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
@@ -60,10 +61,11 @@ export function ExportMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded
+        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded
                    border border-editor-border hover:border-gray-500 transition-colors"
       >
         Export
+        <ChevronDown size={11} />
       </button>
 
       {open && (
@@ -71,17 +73,23 @@ export function ExportMenu() {
                         rounded-lg shadow-lg py-1 w-48 z-50">
           <button
             onClick={handleExportMd}
-            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover flex items-start gap-2"
           >
-            Export Markdown
-            <span className="block text-gray-500 text-[10px]">For review & version control</span>
+            <FileText size={14} className="text-gray-500 shrink-0 mt-0.5" />
+            <div>
+              Export Markdown
+              <span className="block text-gray-500 text-[10px]">For review & version control</span>
+            </div>
           </button>
           <button
             onClick={handleExportOtio}
-            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover flex items-start gap-2"
           >
-            Export for NLE
-            <span className="block text-gray-500 text-[10px]">Clean OTIO for DaVinci/Premiere</span>
+            <FileVideo size={14} className="text-gray-500 shrink-0 mt-0.5" />
+            <div>
+              Export for NLE
+              <span className="block text-gray-500 text-[10px]">Clean OTIO for DaVinci/Premiere</span>
+            </div>
           </button>
           <div className="border-t border-editor-border my-1" />
           <button
@@ -104,19 +112,25 @@ export function ExportMenu() {
               setTimeout(() => setStatus(''), 5000);
             }}
             disabled={rendering}
-            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-editor-hover ${rendering ? 'text-gray-500 cursor-wait' : 'text-gray-300'}`}
+            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-editor-hover flex items-start gap-2 ${rendering ? 'text-gray-500 cursor-wait' : 'text-gray-300'}`}
           >
-            {rendering ? 'Rendering...' : 'Render with Remotion'}
-            <span className="block text-gray-500 text-[10px]">
-              {rendering ? 'This may take a few minutes' : 'Full quality MP4 with overlays'}
-            </span>
+            <Film size={14} className="text-gray-500 shrink-0 mt-0.5" />
+            <div>
+              {rendering ? 'Rendering...' : 'Render with Remotion'}
+              <span className="block text-gray-500 text-[10px]">
+                {rendering ? 'This may take a few minutes' : 'Full quality MP4 with overlays'}
+              </span>
+            </div>
           </button>
           <button
             onClick={() => { setOpen(false); setStatus('Use Assemble in the production bar'); setTimeout(() => setStatus(''), 3000); }}
-            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover"
+            className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover flex items-start gap-2"
           >
-            Export Final Video
-            <span className="block text-gray-500 text-[10px]">Assemble via production pipeline</span>
+            <Package size={14} className="text-gray-500 shrink-0 mt-0.5" />
+            <div>
+              Export Final Video
+              <span className="block text-gray-500 text-[10px]">Assemble via production pipeline</span>
+            </div>
           </button>
         </div>
       )}
