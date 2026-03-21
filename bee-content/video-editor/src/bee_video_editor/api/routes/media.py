@@ -128,11 +128,37 @@ async def upload_media(file: UploadFile, category: str = "footage", session: Ses
     with open(target_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
+    # Determine media type from extension
+    ext = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else ""
+    VIDEO_EXTS = {"mp4", "mov", "webm", "avi", "mkv"}
+    AUDIO_EXTS = {"mp3", "wav", "aac", "m4a", "flac", "ogg"}
+    IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "gif", "bmp"}
+
+    if ext in VIDEO_EXTS:
+        media_type = "video"
+    elif ext in AUDIO_EXTS:
+        media_type = "audio"
+    elif ext in IMAGE_EXTS:
+        media_type = "image"
+    else:
+        media_type = "unknown"
+
+    # Probe duration for video/audio
+    duration = None
+    if media_type in ("video", "audio"):
+        try:
+            from bee_video_editor.processors.ffmpeg import get_duration
+            duration = get_duration(str(target_path))
+        except Exception:
+            pass
+
     return {
         "status": "ok",
         "path": str(target_path),
         "name": safe_name,
         "category": category,
+        "type": media_type,
+        "duration": duration,
     }
 
 
