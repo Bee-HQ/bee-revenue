@@ -40,10 +40,12 @@ uv run bee-video stock-check "aerial farm"                  # Check for clip reu
 ./start.sh      # Production (single server :8420, built frontend)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # All backend tests (536)
+uv run --extra dev pytest tests/ -v          # All backend tests (540+)
 ./test.sh                                    # Backend tests + frontend type check
 uv run --extra dev pytest tests/FILE -v      # Single file
-cd web && npm test                           # Frontend vitest (24 tests)
+cd web && npm test                           # Frontend vitest (30 tests)
+cd web && npx playwright test                # E2E tests (11 Playwright tests)
+cd web && npx playwright test --ui           # E2E interactive mode
 ```
 
 ## Architecture
@@ -205,6 +207,12 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 - Loading skeletons during initial load
 - Export menu: markdown or clean OTIO
 - Remotion-based render: `POST /render-remotion` or `node web/render.mjs` for pixel-perfect MP4
+- Dark/light theme toggle (Sun/Moon button in header, CSS variables, persisted to localStorage)
+- Resizable preview/timeline split (drag handle, height clamped 120px–60vh, persisted to localStorage)
+- lucide-react icons throughout (toolbar, sidebar tabs, menus, media library — replaced all emoji)
+- Toolbar visual hierarchy: accent-tinted primary actions (Auto-Assign, Acquire), grouped sections with separators
+- Styled form controls: custom dark-themed range sliders and select dropdowns
+- Playwright e2e tests: 11 tests covering full UI workflows, integrated into GitHub Actions CI
 
 **Key API routes:**
 - `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
@@ -221,10 +229,8 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 
 **Planned:**
 - Responsive layout — collapse sidebars to tabs on screens < 1024px
-- Dark/light theme toggle
 - Real AI video providers (Kling, Veo) — infra is built, API wiring pending
 - LLM screenplay generation from case research doc + formula
-- WebSocket progress test coverage (zero coverage currently)
 - FOIA pipeline tracker
 
 ## Project Directory Structure (after init)

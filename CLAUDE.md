@@ -13,7 +13,7 @@ Monorepo for automated revenue streams under Bee. This is a git submodule — th
 | `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
 | `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
 | `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
-| `bee-content/video-editor/` | Built (v0.6.0) | Python CLI + web editor — AI-assisted video production |
+| `bee-content/video-editor/` | Built (v0.9.0) | Python CLI + web editor — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
 ## bee-content/research (YouTube competitor analysis)
@@ -84,28 +84,25 @@ Tests use **tempfile-based DB isolation** — each test gets a fresh SQLite in a
 ```bash
 cd bee-content/video-editor
 
-# CLI workflow
-uv run bee-video parse <guide.md>                           # Inspect
-uv run bee-video init <guide.md> --project-dir ./proj       # Create project
-uv run bee-video graphics <guide.md> -p ./proj              # Generate overlays
-uv run bee-video narration <guide.md> -p ./proj --tts edge  # Generate TTS
-uv run bee-video trim-footage <guide.md> -p ./proj          # Trim source clips
+# Core workflow
+uv run bee-video import-md storyboard.md -p ./proj          # Load storyboard → OTIO
+uv run bee-video scenes source.mp4 -p ./proj                # Detect shot boundaries
+uv run bee-video graphics storyboard.md -p ./proj           # Generate overlays
+uv run bee-video narration storyboard.md -p ./proj --tts edge  # Generate TTS
+uv run bee-video trim-footage storyboard.md -p ./proj       # Trim source clips
 uv run bee-video assemble -p ./proj --transition dissolve   # Final assembly
+uv run bee-video export -p ./proj --format md               # Export as markdown
+uv run bee-video export -p ./proj --format otio             # Export clean OTIO for NLE
 
-# v0.6.0 features
+# Stock + AI media
+uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
+uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
+
+# Utilities
 uv run bee-video graphics-batch config.json -p ./proj       # Batch graphics from config
 uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for project
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
-uv run bee-video fetch-stock "aerial farm dusk" -n 3 -p ./proj  # Pexels stock footage
-uv run bee-video generate-clip "sunset over ocean" -p ./proj    # AI video generation
-uv run bee-video validate -p ./proj                            # Validate project structure
-uv run bee-video stock-list                                    # List tracked stock clips
-uv run bee-video stock-check "aerial farm"                     # Check for clip reuse
-
-# Effects (standalone)
-uv run bee-video effects in.mp4 out.mp4 --color noir --speed 1.5 --text "Ch 1"
-uv run bee-video transition a.mp4 b.mp4 out.mp4 --name dissolve
-uv run bee-video list-effects
+uv run bee-video validate -p ./proj                         # Validate project structure
 
 # Web editor
 ./dev.sh        # Dev mode (backend :8420 + frontend :5173)
@@ -114,6 +111,8 @@ uv run bee-video list-effects
 # Tests
 ./test.sh                                    # Backend + frontend type check
 uv run --extra dev pytest tests/ -v          # Backend only
+cd web && npm test                           # Frontend vitest
+cd web && npx playwright test                # E2E tests (11 Playwright tests)
 ```
 
 ### Architecture
