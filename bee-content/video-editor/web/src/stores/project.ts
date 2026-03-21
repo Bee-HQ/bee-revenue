@@ -1,18 +1,12 @@
 import { create } from 'zustand';
 import type { RefObject } from 'react';
 import type { PlayerRef } from '@remotion/player';
+import type { TimelineRow } from '@xzdarcy/react-timeline-editor';
 import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';
 
 const MAX_HISTORY = 50;
-
-interface HistoryEntry {
-  segmentId: string;
-  key: string;        // e.g. "visual:0"
-  oldValue: string | null;
-  newValue: string;
-}
 
 export interface SegmentAssetInfo {
   hasVideo: boolean;
@@ -40,8 +34,6 @@ interface ProjectState {
   mediaCategories: Record<string, number>;
   draggedMedia: MediaFile | null;
   previewMedia: MediaFile | null;
-  undoStack: HistoryEntry[];
-  redoStack: HistoryEntry[];
   segmentOrder: string[] | null;
   effects: Effects | null;
   currentTimeMs: number;
@@ -50,6 +42,9 @@ interface ProjectState {
   loopIn: number | null;  // frame number
   loopOut: number | null; // frame number
   assetStatus: AssetStatus | null;
+  editorData: TimelineRow[];
+  timelineHistory: TimelineRow[][];
+  timelineHistoryIndex: number;
 
   setCurrentTimeMs: (ms: number) => void;
   setPlayerRef: (ref: RefObject<PlayerRef | null>) => void;
@@ -64,34 +59,18 @@ interface ProjectState {
   loadAssetStatus: () => void;
   setDraggedMedia: (file: MediaFile | null) => void;
   setPreviewMedia: (file: MediaFile | null) => void;
+  setEditorData: (data: TimelineRow[]) => void;
+  pushTimelineHistory: (data: TimelineRow[]) => void;
+  timelineUndo: () => void;
+  timelineRedo: () => void;
+  splitAtPlayhead: () => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
   reorderSegments: (fromIndex: number, toIndex: number) => void;
   orderedSegments: () => Segment[];
-  undo: () => Promise<void>;
-  redo: () => Promise<void>;
 
   selectedSegment: () => Segment | null;
-}
-
-function applyAssignment(
-  storyboard: Storyboard,
-  segmentId: string,
-  key: string,
-  value: string | null,
-): Storyboard {
-  const segments = storyboard.segments.map(s => {
-    if (s.id !== segmentId) return s;
-    const assigned_media = { ...s.assigned_media };
-    if (value === null) {
-      delete assigned_media[key];
-    } else {
-      assigned_media[key] = value;
-    }
-    return { ...s, assigned_media };
-  });
-  return { ...storyboard, segments };
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -103,8 +82,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   mediaCategories: {},
   draggedMedia: null,
   previewMedia: null,
-  undoStack: [],
-  redoStack: [],
   segmentOrder: null,
   effects: null,
   currentTimeMs: 0,
@@ -113,6 +90,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loopIn: null,
   loopOut: null,
   assetStatus: null,
+  editorData: [],
+  timelineHistory: [],
+  timelineHistoryIndex: -1,
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
@@ -130,8 +110,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         storyboard,
         loading: false,
         selectedSegmentIds: [],
-        undoStack: [],
-        redoStack: [],
+        editorData: [],
+        timelineHistory: [],
+        timelineHistoryIndex: -1,
         segmentOrder: null,
       });
       get().loadMedia();
@@ -273,90 +254,70 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setPreviewMedia: (file) => set({ previewMedia: file, selectedSegmentIds: [] }),
 
   assignMedia: async (segmentId, layer, mediaPath, layerIndex = 0) => {
-    const { storyboard, undoStack } = get();
+    const { storyboard } = get();
     const key = `${layer}:${layerIndex}`;
-
-    // Capture old value before the API call
-    const segment = storyboard?.segments.find(s => s.id === segmentId);
-    const oldValue = segment?.assigned_media[key] ?? null;
-
     try {
       await api.assignMedia(segmentId, layer, mediaPath, layerIndex);
     } catch (e: any) {
       toast.error(`Assignment failed: ${e.message}`);
       throw e;
     }
-
-    // Push history entry, cap at MAX_HISTORY
-    const entry: HistoryEntry = { segmentId, key, oldValue, newValue: mediaPath };
-    const newStack = [...undoStack, entry];
-    if (newStack.length > MAX_HISTORY) newStack.shift();
-
-    // Update local state
     if (!storyboard) return;
-    set({
-      storyboard: applyAssignment(storyboard, segmentId, key, mediaPath),
-      undoStack: newStack,
-      redoStack: [],
+    const segments = storyboard.segments.map(s => {
+      if (s.id !== segmentId) return s;
+      return { ...s, assigned_media: { ...s.assigned_media, [key]: mediaPath } };
     });
+    set({ storyboard: { ...storyboard, segments } });
     toast.success('Media assigned');
   },
 
-  undo: async () => {
-    const { storyboard, undoStack, redoStack } = get();
-    if (undoStack.length === 0 || !storyboard) return;
+  setEditorData: (data) => set({ editorData: data }),
 
-    const entry = undoStack[undoStack.length - 1];
-
-    // Sync with backend first — only modify stacks on success
-    const [layer, layerIndexStr] = entry.key.split(':');
-    try {
-      await api.assignMedia(entry.segmentId, layer, entry.oldValue ?? '', parseInt(layerIndexStr ?? '0', 10));
-    } catch (e) {
-      console.error('Undo failed:', e);
-      return;
-    }
-
-    const inverseEntry: HistoryEntry = {
-      segmentId: entry.segmentId,
-      key: entry.key,
-      oldValue: entry.newValue,
-      newValue: entry.oldValue ?? '',
-    };
-
-    set({
-      storyboard: applyAssignment(storyboard, entry.segmentId, entry.key, entry.oldValue),
-      undoStack: undoStack.slice(0, -1),
-      redoStack: [...redoStack, inverseEntry],
-    });
+  pushTimelineHistory: (data) => {
+    const { timelineHistory, timelineHistoryIndex } = get();
+    const truncated = timelineHistory.slice(0, timelineHistoryIndex + 1);
+    const next = [...truncated, structuredClone(data)];
+    if (next.length > MAX_HISTORY) next.shift();
+    set({ timelineHistory: next, timelineHistoryIndex: next.length - 1 });
   },
 
-  redo: async () => {
-    const { storyboard, undoStack, redoStack } = get();
-    if (redoStack.length === 0 || !storyboard) return;
+  timelineUndo: () => {
+    const { timelineHistory, timelineHistoryIndex } = get();
+    if (timelineHistoryIndex <= 0) return;
+    const newIndex = timelineHistoryIndex - 1;
+    set({ editorData: structuredClone(timelineHistory[newIndex]), timelineHistoryIndex: newIndex });
+  },
 
-    const entry = redoStack[redoStack.length - 1];
+  timelineRedo: () => {
+    const { timelineHistory, timelineHistoryIndex } = get();
+    if (timelineHistoryIndex >= timelineHistory.length - 1) return;
+    const newIndex = timelineHistoryIndex + 1;
+    set({ editorData: structuredClone(timelineHistory[newIndex]), timelineHistoryIndex: newIndex });
+  },
 
-    const [layer, layerIndexStr] = entry.key.split(':');
-    try {
-      await api.assignMedia(entry.segmentId, layer, entry.newValue, parseInt(layerIndexStr ?? '0', 10));
-    } catch (e) {
-      console.error('Redo failed:', e);
-      return;
+  splitAtPlayhead: () => {
+    const { editorData, currentTimeMs, activeClipId } = get();
+    const cursorSec = currentTimeMs / 1000;
+    let targetRow = editorData.find(r => r.id === 'V1');
+    if (activeClipId) {
+      for (const row of editorData) {
+        if (row.actions.some(a => a.id === activeClipId)) {
+          targetRow = row;
+          break;
+        }
+      }
     }
-
-    const inverseEntry: HistoryEntry = {
-      segmentId: entry.segmentId,
-      key: entry.key,
-      oldValue: entry.newValue,
-      newValue: entry.oldValue ?? '',
-    };
-
-    set({
-      storyboard: applyAssignment(storyboard, entry.segmentId, entry.key, entry.newValue),
-      undoStack: [...undoStack, inverseEntry],
-      redoStack: redoStack.slice(0, -1),
-    });
+    if (!targetRow) return;
+    const actionIdx = targetRow.actions.findIndex(a => a.start < cursorSec && a.end > cursorSec);
+    if (actionIdx === -1) return;
+    const action = targetRow.actions[actionIdx] as any;
+    const left = { ...action, id: action.id + '-L', end: cursorSec, data: { ...action.data } };
+    const right = { ...action, id: action.id + '-R', start: cursorSec, data: { ...action.data } };
+    const newActions = [...targetRow.actions];
+    newActions.splice(actionIdx, 1, left, right);
+    const newRows = editorData.map(r => r.id === targetRow!.id ? { ...r, actions: newActions } : r);
+    get().setEditorData(newRows);
+    get().pushTimelineHistory(newRows);
   },
 
   selectedSegment: () => {
