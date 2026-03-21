@@ -11,6 +11,32 @@ function mediaUrl(path: string): string {
   return `/api/media/file?path=${encodeURIComponent(path)}`;
 }
 
+/** Check if a src path looks like an actual file (not a description or query) */
+function isRealFile(src: string | undefined): boolean {
+  if (!src) return false;
+  // Must contain a slash or end with a media extension
+  const hasPath = src.includes('/');
+  const hasExt = /\.(mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|gif|mp3|wav|m4a)$/i.test(src);
+  return hasPath || hasExt;
+}
+
+function PlaceholderFrame({ type, title }: { type: string; title: string }) {
+  const typeColors: Record<string, string> = {
+    STOCK: '#1e40af', MAP: '#166534', GRAPHIC: '#86198f',
+    GENERATED: '#7c2d12', WAVEFORM: '#065f46', PHOTO: '#6b21a8',
+  };
+  const bg = typeColors[type] || '#1a1a1a';
+  return (
+    <AbsoluteFill style={{ backgroundColor: bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 48 }}>
+        {type === 'STOCK' ? '📦' : type === 'MAP' ? '🗺️' : type === 'GRAPHIC' ? '🎨' : type === 'GENERATED' ? '🤖' : '🎬'}
+      </span>
+      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: 'Arial' }}>{type}</span>
+      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, fontFamily: 'Arial' }}>{title}</span>
+    </AbsoluteFill>
+  );
+}
+
 function BlackFrame() {
   return (
     <AbsoluteFill
@@ -87,8 +113,8 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard }> = ({
             name={seg.title}
           >
             {/* Base visual with color grade + Ken Burns */}
-            {!src ? (
-              <BlackFrame />
+            {!isRealFile(src) ? (
+              <PlaceholderFrame type={seg.visual[0]?.content_type || 'NONE'} title={seg.title} />
             ) : (() => {
               const visualContent = isImage ? (
                 <Img
