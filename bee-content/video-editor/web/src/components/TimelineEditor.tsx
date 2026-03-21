@@ -1,225 +1,195 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { Timeline } from '@xzdarcy/react-timeline-editor';
+import type { TimelineState } from '@xzdarcy/react-timeline-editor';
+import '@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css';
+import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
-import { storyboardToDesignCombo, designComboToStoryboard } from '../adapters/timeline-adapter';
+import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
+import { renderTimelineAction } from './TimelineActionRenderer';
 import { ProductionDropdown } from './ProductionDropdown';
-import { TimelineRuler } from './TimelineRuler';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import StateManager from '@designcombo/state';
-import Timeline, { Trimmable } from '@designcombo/timeline';
-import { dispatch as dcDispatch } from '@designcombo/events';
 
-const SCALE = { unit: 300, zoom: 1 / 300, segments: 5, index: 7 };
-const FPS = 30;
+// Module-level — outside TimelineEditor component
+function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
+  const { editorData } = useProjectStore.getState();
+  const dur = duration ?? 5;
+  const effectId = type === 'audio' ? 'audio' : 'video';
+  const targetRowId = type === 'audio' ? 'A2' : 'V1';
+
+  const newAction: any = {
+    id: `drop-${Date.now()}`,
+    start: cursorSec,
+    end: cursorSec + dur,
+    effectId,
+    data: { segmentId: '', contentType: type.toUpperCase(), src: path, title: path.split('/').pop() || '', layerIndex: 0 },
+  };
+
+  let newRows: any[];
+  const targetRow = editorData.find(r => r.id === targetRowId);
+  if (targetRow) {
+    newRows = editorData.map(r => r.id === targetRowId ? { ...r, actions: [...r.actions, newAction] } : r);
+  } else {
+    newRows = [...editorData, { id: targetRowId, actions: [newAction] }];
+  }
+  useProjectStore.getState().setEditorData(newRows);
+  useProjectStore.getState().pushTimelineHistory(newRows);
+}
 
 export function TimelineEditor() {
-  const storyboard = useProjectStore((s) => s.storyboard);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timelineRef = useRef<Timeline | null>(null);
-  const stateManagerRef = useRef<StateManager | null>(null);
-  const [zoom, setZoom] = useState(SCALE.index);
+  const storyboard = useProjectStore(s => s.storyboard);
+  const editorData = useProjectStore(s => s.editorData);
+  const setEditorData = useProjectStore(s => s.setEditorData);
+  const pushTimelineHistory = useProjectStore(s => s.pushTimelineHistory);
+  const setActiveClipId = useProjectStore(s => s.setActiveClipId);
+  const setCurrentTimeMs = useProjectStore(s => s.setCurrentTimeMs);
+  const currentTimeMs = useProjectStore(s => s.currentTimeMs);
+  const timelineRef = useRef<TimelineState>(null);
+  const [zoomLevel, setZoomLevel] = useState(5);
   const [snapEnabled, setSnapEnabled] = useState(true);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const [effects, setEffects] = useState<Record<string, any>>({});
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncingRef = useRef(false);
 
-  // Ruler zoom: pixels per millisecond, derived from zoom slider index
-  const rulerZoom = 1 / (zoom * 75);
-
-  const handleRulerSeek = useCallback((ms: number) => {
-    useProjectStore.getState().setCurrentTimeMs(ms);
-    const player = useProjectStore.getState().playerRef?.current;
-    if (player) {
-      const frame = Math.round(ms / (1000 / FPS));
-      player.seekTo(frame);
-    }
-  }, []);
-
+  // Convert storyboard → timeline rows on storyboard change
+  // Skip re-conversion when storyboard was updated by the debounced sync callback
   useEffect(() => {
-    if (!canvasRef.current || !storyboard || !containerRef.current) return;
-
-    // Tear down any previous instance first (React strict mode double-mounts)
-    if (timelineRef.current) {
-      try { timelineRef.current.dispose(); } catch {}
-      timelineRef.current = null;
+    if (!storyboard) return;
+    if (syncingRef.current) {
+      syncingRef.current = false;
+      return;
     }
-    if (stateManagerRef.current) {
-      try { stateManagerRef.current.destroyListeners(); stateManagerRef.current.purge(); } catch {}
-      stateManagerRef.current = null;
-    }
-
-    // Set canvas dimensions from container
-    const rect = containerRef.current.getBoundingClientRect();
-    canvasRef.current.width = rect.width;
-    canvasRef.current.height = rect.height;
-
-    // Declare outside try so cleanup can always reach them
-    let activeIdsSub: { unsubscribe: () => void } | null = null;
-    let trackItemSub: { unsubscribe: () => void } | null = null;
-    let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    try {
-      // Register item classes so Timeline can deserialize track items by type.
-      // Trimmable is the base Fabric.js class for all timeline track items.
-      try {
-        Timeline.registerItems({
-          video: Trimmable,
-          audio: Trimmable,
-          image: Trimmable,
-          text: Trimmable,
-        });
-      } catch {
-        // registerItems may throw if classes are already registered — safe to ignore
-      }
-
-      // Initialize StateManager
-      const sm = new StateManager(
-        {
-          fps: 30,
-          size: { width: 1920, height: 1080 },
-        },
-        { scale: SCALE },
-      );
-
-      const totalMs = Math.max(1000, storyboard.total_duration_seconds * 1000);
-
-      // Initialize Timeline
-      const tl = new Timeline(canvasRef.current, {
-        scale: SCALE,
-        duration: totalMs,
-        state: sm,
-        itemTypes: ['video', 'audio', 'image', 'text'],
-        sizesMap: { video: 36, audio: 28, image: 36, text: 28 },
-        acceptsMap: {
-          video: ['video', 'image'],
-          audio: ['audio'],
-          text: ['text'],
-        },
-        withTransitions: ['video'],
-      });
-
-      stateManagerRef.current = sm;
-      timelineRef.current = tl;
-
-      // Track viewport scroll for ruler sync
-      try {
-        if (typeof tl.onViewportChange === 'function') {
-          tl.onViewportChange((left: number) => {
-            setScrollLeft(left || 0);
-          });
-        }
-      } catch {
-        // onViewportChange may not be available in all versions
-      }
-
-      // Track clip selection: sync DesignCombo activeIds -> Zustand store
-      activeIdsSub = sm.subscribeToActiveIds(({ activeIds }) => {
-        const selected = activeIds.length > 0 ? activeIds[0] : null;
-        useProjectStore.getState().setActiveClipId(selected);
-      });
-
-      // Debounced sync: when clips are dragged/resized, update backend
-      trackItemSub = sm.subscribeToUpdateTrackItemTiming(() => {
-        if (syncTimeout) clearTimeout(syncTimeout);
-        syncTimeout = setTimeout(async () => {
-          try {
-            const state = sm.getState();
-            const currentStoryboard = useProjectStore.getState().storyboard;
-            if (!currentStoryboard) return;
-
-            const updated = designComboToStoryboard(state as any, currentStoryboard);
-
-            for (const seg of updated.segments) {
-              const original = currentStoryboard.segments.find(s => s.id === seg.id);
-              if (!original) continue;
-
-              const changed = JSON.stringify(seg.assigned_media) !== JSON.stringify(original.assigned_media);
-              if (changed) {
-                for (const [key, path] of Object.entries(seg.assigned_media)) {
-                  if (original.assigned_media[key] !== path) {
-                    const [layer, indexStr] = key.split(':');
-                    await api.assignMedia(seg.id, layer, path, parseInt(indexStr));
-                  }
-                }
-              }
-            }
-
-            const sb = await api.getCurrentProject();
-            useProjectStore.setState({ storyboard: sb });
-          } catch (e) {
-            console.error('Timeline sync failed:', e);
-          }
-        }, 1000);
-      });
-
-      // Convert storyboard to DesignCombo state and load
-      const dcState = storyboardToDesignCombo(storyboard);
-      dcDispatch('design:load', {
-        payload: {
-          ...dcState,
-          size: { width: 1920, height: 1080 },
-          fps: 30,
-          scale: SCALE,
-        },
-      });
-    } catch (err) {
-      console.error('[TimelineEditor] initialization failed:', err);
-    }
-
-    return () => {
-      // Cleanup subscriptions (declared outside try, so always reachable)
-      activeIdsSub?.unsubscribe();
-      trackItemSub?.unsubscribe();
-      if (syncTimeout) clearTimeout(syncTimeout);
-      useProjectStore.getState().setActiveClipId(null);
-      // Cleanup timeline and state manager
-      if (timelineRef.current) {
-        try { timelineRef.current.dispose(); } catch {}
-      }
-      if (stateManagerRef.current) {
-        try {
-          stateManagerRef.current.destroyListeners();
-          stateManagerRef.current.purge();
-        } catch {}
-      }
-      timelineRef.current = null;
-      stateManagerRef.current = null;
-    };
+    const { rows, effects: eff } = storyboardToTimeline(storyboard);
+    setEditorData(rows);
+    setEffects(eff);
+    pushTimelineHistory(rows);
   }, [storyboard]);
 
-  // Handle window resize
+  // Sync Remotion playback → timeline cursor
   useEffect(() => {
-    const handleResize = () => {
-      if (!containerRef.current || !canvasRef.current || !timelineRef.current)
-        return;
-      const rect = containerRef.current.getBoundingClientRect();
-      canvasRef.current.width = rect.width;
-      canvasRef.current.height = rect.height;
+    if (timelineRef.current) {
+      timelineRef.current.setTime(currentTimeMs / 1000);
+    }
+  }, [currentTimeMs]);
+
+  const handleChange = useCallback((newData: TimelineRow[]) => {
+    setEditorData(newData);
+    pushTimelineHistory(newData);
+    // Debounced backend sync
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(async () => {
       try {
-        timelineRef.current.setDimensions({
-          width: rect.width,
-          height: rect.height,
-        });
-        timelineRef.current.requestRenderAll();
-      } catch {
-        // ignore resize errors on unmounted timeline
+        const sb = useProjectStore.getState().storyboard;
+        if (!sb) return;
+        const updated = timelineToStoryboard(newData, sb);
+        for (const seg of updated.segments) {
+          const original = sb.segments.find(s => s.id === seg.id);
+          if (!original) continue;
+          for (const [key, path] of Object.entries(seg.assigned_media)) {
+            if (original.assigned_media[key] !== path) {
+              const [layer, indexStr] = key.split(':');
+              await api.assignMedia(seg.id, layer, path, parseInt(indexStr));
+            }
+          }
+        }
+        syncingRef.current = true;
+        const freshSb = await api.getCurrentProject();
+        useProjectStore.setState({ storyboard: freshSb });
+      } catch (e) {
+        console.error('Timeline sync failed:', e);
       }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    }, 1000);
   }, []);
 
-  const handleUndo = useCallback(() => {
-    stateManagerRef.current?.undo();
+  const handleCursorDrag = useCallback((time: number) => {
+    setCurrentTimeMs(time * 1000);
   }, []);
 
-  const handleRedo = useCallback(() => {
-    stateManagerRef.current?.redo();
+  const handleCursorDragEnd = useCallback((time: number) => {
+    setCurrentTimeMs(time * 1000);
   }, []);
+
+  const handleClickAction = useCallback((_e: any, { action }: { action: TimelineAction }) => {
+    setActiveClipId(action.id);
+  }, []);
+
+  const handleClickRow = useCallback(() => {
+    setActiveClipId(null);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    const cursorSec = timelineRef.current?.getTime() ?? 0;
+
+    // 1. Internal drag (from Media Library)
+    const beeMedia = e.dataTransfer.getData('bee/media');
+    if (beeMedia) {
+      try {
+        const { path, type } = JSON.parse(beeMedia);
+        addActionToTimeline(path, type, cursorSec);
+      } catch {}
+      return;
+    }
+
+    // 2. External file drop
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          addActionToTimeline(data.path, data.type, cursorSec, data.duration);
+          toast.success(`Uploaded: ${file.name}`);
+        } catch {
+          toast.error(`Upload failed: ${file.name}`);
+        }
+      }
+    }
+  }, []);
+
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const cursorSec = timelineRef.current?.getTime() ?? 0;
+
+    if (e.clipboardData.files.length > 0) {
+      for (const file of Array.from(e.clipboardData.files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          addActionToTimeline(data.path, data.type, cursorSec, data.duration);
+        } catch {}
+      }
+      return;
+    }
+
+    const text = e.clipboardData.getData('text').trim();
+    if (text && (text.includes('/') || text.includes('\\'))) {
+      const ext = text.split('.').pop()?.toLowerCase() || '';
+      const type = ['mp4','mov','webm','avi'].includes(ext) ? 'video'
+        : ['mp3','wav','aac','m4a'].includes(ext) ? 'audio'
+        : ['png','jpg','jpeg','webp'].includes(ext) ? 'image' : 'video';
+      addActionToTimeline(text, type, cursorSec);
+    }
+  }, []);
+
+  if (!storyboard) return null;
 
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 220 }}
+      style={{ height: 180 }}
+      tabIndex={0}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onPaste={handlePaste}
     >
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1 border-b border-editor-border bg-editor-surface shrink-0">
@@ -230,10 +200,10 @@ export function TimelineEditor() {
               const r = await api.autoAssign();
               toast.success(`Auto-assigned ${r.assigned} segments`);
               const sb = await api.getCurrentProject();
+              syncingRef.current = true;
               useProjectStore.setState({ storyboard: sb });
             } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : String(e);
-              toast.error(msg);
+              toast.error(e instanceof Error ? e.message : String(e));
             }
           }}
         >
@@ -247,8 +217,7 @@ export function TimelineEditor() {
               toast.success(`Acquired: ${r.downloaded} downloaded`);
               useProjectStore.getState().loadMedia();
             } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : String(e);
-              toast.error(msg);
+              toast.error(e instanceof Error ? e.message : String(e));
             }
           }}
         >
@@ -262,87 +231,79 @@ export function TimelineEditor() {
               await api.roughCut();
               toast.success('Rough cut exported');
             } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : String(e);
-              toast.error(msg);
+              toast.error(e instanceof Error ? e.message : String(e));
             }
           }}
         >
           Rough Cut
         </button>
-
         <div className="flex-1" />
-
         <button
           className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
-          onClick={() => {
-            const currentMs = useProjectStore.getState().currentTimeMs;
-            dcDispatch('active:split', {
-              payload: { time: currentMs },
-            });
-          }}
+          onClick={() => useProjectStore.getState().splitAtPlayhead()}
           title="Split at playhead (S)"
         >
           Split
         </button>
         <button
           className={`text-[10px] px-2 py-1 rounded ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : 'bg-editor-hover text-gray-300'}`}
-          onClick={() => {
-            const next = !snapEnabled;
-            setSnapEnabled(next);
-            if (stateManagerRef.current) {
-              const state = stateManagerRef.current.getState();
-              const updatedTracks = state.tracks.map((t: any) => ({ ...t, magnetic: next }));
-              stateManagerRef.current.updateState({ tracks: updatedTracks });
-            }
-          }}
+          onClick={() => setSnapEnabled(!snapEnabled)}
           title="Toggle snap"
         >
           Snap
         </button>
-
         <input
-          type="range" min="1" max="10" value={zoom}
-          onChange={(e) => {
-            const val = parseInt(e.target.value);
-            setZoom(val);
-            const zoomLevel = 1 / (val * 75);
-            dcDispatch('scale:changed', {
-              payload: {
-                scale: { unit: 300, zoom: zoomLevel, segments: 5, index: val },
-              },
-            });
-          }}
+          type="range" min="1" max="10" value={zoomLevel}
+          onChange={(e) => setZoomLevel(parseInt(e.target.value))}
           className="w-16" style={{ accentColor: '#3b82f6' }}
           title="Zoom"
         />
-
         <button
-          onClick={handleUndo}
+          onClick={() => useProjectStore.getState().timelineUndo()}
           className="text-[10px] text-gray-400 hover:text-white px-1"
           title="Undo"
         >
           Undo
         </button>
         <button
-          onClick={handleRedo}
+          onClick={() => useProjectStore.getState().timelineRedo()}
           className="text-[10px] text-gray-400 hover:text-white px-1"
           title="Redo"
         >
           Redo
         </button>
       </div>
-
-      {/* Time ruler with draggable scrubber */}
-      <TimelineRuler
-        durationMs={storyboard ? storyboard.total_duration_seconds * 1000 : 1000}
-        zoom={rulerZoom}
-        scrollLeft={scrollLeft}
-        onSeek={handleRulerSeek}
-      />
-
-      {/* Timeline canvas container */}
-      <div ref={containerRef} className="flex-1 overflow-hidden relative">
-        <canvas ref={canvasRef} className="absolute inset-0" />
+      {/* Track labels + Timeline */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="w-12 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col">
+          {/* Spacer to align with Timeline's time ruler (32px) + edit area margin (10px) */}
+          <div style={{ height: 42 }} className="shrink-0" />
+          {editorData.map(row => (
+            <div key={row.id} className="text-[9px] text-gray-500 font-mono px-1 flex items-center" style={{ height: 28 }}>
+              {row.id}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <Timeline
+            style={{ width: '100%', height: '100%' }}
+            ref={timelineRef}
+            editorData={editorData}
+            effects={effects}
+            onChange={handleChange}
+            scale={1}
+            scaleWidth={zoomLevel * 40}
+            rowHeight={28}
+            gridSnap={snapEnabled}
+            dragLine={true}
+            autoScroll={true}
+            getActionRender={renderTimelineAction}
+            onClickActionOnly={handleClickAction}
+            onClickRow={handleClickRow}
+            onCursorDrag={handleCursorDrag}
+            onCursorDragEnd={handleCursorDragEnd}
+          />
+        </div>
       </div>
     </div>
   );

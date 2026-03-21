@@ -1,8 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import {
-  storyboardToDesignCombo,
-  designComboToStoryboard,
-} from './timeline-adapter';
+import { storyboardToTimeline, timelineToStoryboard } from './timeline-adapter';
 import type { Storyboard, Segment } from '../types';
 
 const mockSegment: Segment = {
@@ -15,44 +12,16 @@ const mockSegment: Segment = {
   subsection: '',
   duration_seconds: 15,
   visual: [
-    {
-      content: 'footage/clip.mp4',
-      content_type: 'FOOTAGE',
-      time_start: null,
-      time_end: null,
-      raw: '',
-      metadata: null,
-    },
+    { content: 'footage/clip.mp4', content_type: 'FOOTAGE', time_start: null, time_end: null, raw: '', metadata: null },
   ],
   audio: [
-    {
-      content: 'narration text',
-      content_type: 'NAR',
-      time_start: null,
-      time_end: null,
-      raw: '',
-      metadata: null,
-    },
+    { content: 'narration text', content_type: 'NAR', time_start: null, time_end: null, raw: '', metadata: null },
   ],
   overlay: [
-    {
-      content: 'Colleton County',
-      content_type: 'LOWER_THIRD',
-      time_start: null,
-      time_end: null,
-      raw: '',
-      metadata: null,
-    },
+    { content: 'Colleton County', content_type: 'LOWER_THIRD', time_start: null, time_end: null, raw: '', metadata: null },
   ],
   music: [
-    {
-      content: 'music/bg.mp3',
-      content_type: 'MUSIC',
-      time_start: null,
-      time_end: null,
-      raw: '',
-      metadata: { volume: 0.2 },
-    },
+    { content: 'music/bg.mp3', content_type: 'MUSIC', time_start: null, time_end: null, raw: '', metadata: { volume: 0.2 } },
   ],
   source: [],
   transition: [],
@@ -71,106 +40,101 @@ const mockStoryboard: Storyboard = {
   production_rules: [],
 };
 
-describe('storyboardToDesignCombo', () => {
-  test('creates 5 tracks', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    expect(state.tracks).toHaveLength(5);
-    expect(state.tracks.map((t) => t.id)).toEqual([
-      'V1',
-      'A1',
-      'A2',
-      'A3',
-      'OV1',
-    ]);
+describe('storyboardToTimeline', () => {
+  test('creates dynamic rows — only tracks with content', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const ids = rows.map(r => r.id);
+    expect(ids).toContain('V1');
+    expect(ids).toContain('A1');
+    expect(ids).toContain('A3');
+    expect(ids).toContain('OV1');
+    expect(ids).not.toContain('A2');
   });
 
-  test('creates V1 item for visual', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    const v1 = state.tracks[0];
-    expect(v1.items.length).toBe(1);
-    const item = state.trackItemsMap[v1.items[0]];
-    expect(item.type).toBe('video');
-    expect(item.display.from).toBe(0);
-    expect(item.display.to).toBe(15000);
+  test('V1 always present even with empty storyboard', () => {
+    const empty = { ...mockStoryboard, segments: [], total_segments: 0, total_duration_seconds: 0 };
+    const { rows } = storyboardToTimeline(empty);
+    expect(rows.some(r => r.id === 'V1')).toBe(true);
   });
 
-  test('creates A1 item for narration', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    const a1 = state.tracks[1];
-    expect(a1.items.length).toBe(1);
+  test('times are in seconds (not ms)', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    const action = v1.actions[0];
+    expect(action.start).toBe(0);
+    expect(action.end).toBe(15);
   });
 
-  test('creates A3 item for music', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    const a3 = state.tracks[3];
-    expect(a3.items.length).toBe(1);
-    const item = state.trackItemsMap[a3.items[0]];
-    expect(item.details.volume).toBe(0.2);
+  test('actions have correct effectId per track', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    expect(v1.actions[0].effectId).toBe('video');
+    const a1 = rows.find(r => r.id === 'A1')!;
+    expect(a1.actions[0].effectId).toBe('narration');
   });
 
-  test('creates OV1 item for overlay', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    const ov = state.tracks[4];
-    expect(ov.items.length).toBe(1);
+  test('actions carry segment metadata in data field', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    const data = (v1.actions[0] as any).data;
+    expect(data.segmentId).toBe('cold-open');
+    expect(data.contentType).toBe('FOOTAGE');
+    expect(data.src).toBe('footage/clip.mp4');
   });
 
-  test('handles empty storyboard', () => {
-    const empty = {
-      ...mockStoryboard,
-      segments: [],
-      total_segments: 0,
-      total_duration_seconds: 0,
-    };
-    const state = storyboardToDesignCombo(empty);
-    expect(state.tracks).toHaveLength(5);
-    expect(state.trackItemIds).toHaveLength(0);
+  test('returns effects map', () => {
+    const { effects } = storyboardToTimeline(mockStoryboard);
+    expect(effects.video).toBeDefined();
+    expect(effects.narration).toBeDefined();
+    expect(effects.overlay).toBeDefined();
   });
 
   test('creates placeholder for segment with no visuals', () => {
     const noVisual = { ...mockSegment, visual: [], assigned_media: {} };
     const sb = { ...mockStoryboard, segments: [noVisual] };
-    const state = storyboardToDesignCombo(sb);
-    const v1 = state.tracks[0];
-    expect(v1.items.length).toBe(1);
-    const item = state.trackItemsMap[v1.items[0]];
-    expect(item.metadata.empty).toBe(true);
+    const { rows } = storyboardToTimeline(sb);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    expect(v1.actions.length).toBe(1);
+    expect((v1.actions[0] as any).data.empty).toBe(true);
   });
 
-  test('stores segment metadata on items', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    const item = state.trackItemsMap[state.trackItemIds[0]];
-    expect(item.metadata.segmentId).toBe('cold-open');
-  });
-
-  test('duration in milliseconds', () => {
-    const state = storyboardToDesignCombo(mockStoryboard);
-    expect(state.duration).toBe(15000);
+  test('normalizes formula codes to base types', () => {
+    const brollSeg = {
+      ...mockSegment,
+      visual: [{ content: '', content_type: 'BROLL-DARK', time_start: null, time_end: null, raw: '', metadata: null }],
+    };
+    const sb = { ...mockStoryboard, segments: [brollSeg] };
+    const { rows } = storyboardToTimeline(sb);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    expect((v1.actions[0] as any).data.contentType).toBe('STOCK');
   });
 });
 
-describe('designComboToStoryboard', () => {
-  test('preserves segment count', () => {
-    const dc = storyboardToDesignCombo(mockStoryboard);
-    const result = designComboToStoryboard(dc, mockStoryboard);
+describe('timelineToStoryboard', () => {
+  test('preserves segment count and metadata', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const result = timelineToStoryboard(rows, mockStoryboard);
     expect(result.segments.length).toBe(1);
-  });
-
-  test('preserves title and metadata', () => {
-    const dc = storyboardToDesignCombo(mockStoryboard);
-    const result = designComboToStoryboard(dc, mockStoryboard);
     expect(result.title).toBe('Test');
-    expect(result.sections).toEqual(['Act 1']);
   });
 
-  test('reverse maps changed video src to assigned_media', () => {
-    const dc = storyboardToDesignCombo(mockStoryboard);
-    // Modify the V1 item's src
-    const v1ItemId = dc.tracks[0].items[0];
-    dc.trackItemsMap[v1ItemId] = {
-      ...dc.trackItemsMap[v1ItemId],
-      details: { ...dc.trackItemsMap[v1ItemId].details, src: '/api/media/file?path=footage%2Fnew-clip.mp4' },
-    };
-    const result = designComboToStoryboard(dc, mockStoryboard);
+  test('maps changed src back to assigned_media', () => {
+    const { rows } = storyboardToTimeline(mockStoryboard);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    (v1.actions[0] as any).data.src = 'footage/new-clip.mp4';
+    const result = timelineToStoryboard(rows, mockStoryboard);
     expect(result.segments[0].assigned_media['visual:0']).toBe('footage/new-clip.mp4');
+  });
+
+  test('round-trips timecodes through seconds conversion', () => {
+    const seg = { ...mockSegment, id: 'mid', start: '1:30', end: '2:00', duration_seconds: 30 };
+    const sb = { ...mockStoryboard, segments: [seg] };
+    const { rows } = storyboardToTimeline(sb);
+    const v1 = rows.find(r => r.id === 'V1')!;
+    expect(v1.actions[0].start).toBe(90);
+    expect(v1.actions[0].end).toBe(120);
+    const result = timelineToStoryboard(rows, sb);
+    expect(result.segments[0].start).toBe('1:30');
+    expect(result.segments[0].end).toBe('2:00');
   });
 });

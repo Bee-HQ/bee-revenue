@@ -5,7 +5,6 @@ import { Layout } from './components/Layout';
 import { LoadProject } from './components/LoadProject';
 import { ToastContainer } from './components/ToastContainer';
 import { ShortcutsPanel } from './components/ShortcutsPanel';
-import { dispatch as dcDispatch } from '@designcombo/events';
 
 const FPS = 30;
 
@@ -40,18 +39,17 @@ export default function App() {
       // Undo / Redo
       if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        dcDispatch('history:undo', { payload: {} });
+        useProjectStore.getState().timelineUndo();
       }
       if (mod && e.key === 'z' && e.shiftKey) {
         e.preventDefault();
-        dcDispatch('history:redo', { payload: {} });
+        useProjectStore.getState().timelineRedo();
       }
 
       // Split at playhead
       if (e.key === 's' && !mod) {
         e.preventDefault();
-        const currentMs = useProjectStore.getState().currentTimeMs;
-        dcDispatch('active:split', { payload: { time: currentMs } });
+        useProjectStore.getState().splitAtPlayhead();
       }
 
       // Space — play/pause
