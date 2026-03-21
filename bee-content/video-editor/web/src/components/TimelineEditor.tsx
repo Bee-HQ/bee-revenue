@@ -9,6 +9,7 @@ import { renderTimelineAction } from './TimelineActionRenderer';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2 } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -36,7 +37,7 @@ function addActionToTimeline(path: string, type: string, cursorSec: number, dura
   useProjectStore.getState().pushTimelineHistory(newRows);
 }
 
-export function TimelineEditor() {
+export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const storyboard = useProjectStore(s => s.storyboard);
   const editorData = useProjectStore(s => s.editorData);
   const setEditorData = useProjectStore(s => s.setEditorData);
@@ -50,6 +51,28 @@ export function TimelineEditor() {
   const [effects, setEffects] = useState<Record<string, any>>({});
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const lastSyncRef = useRef(0);
+
+  // Track Remotion play/pause state for cursor sync throttling
+  useEffect(() => {
+    const player = useProjectStore.getState().playerRef?.current;
+    if (!player || typeof player.addEventListener !== 'function') return;
+    try {
+      const onPlay = () => { isPlayingRef.current = true; };
+      const onPause = () => { isPlayingRef.current = false; };
+      player.addEventListener('play', onPlay as never);
+      player.addEventListener('pause', onPause as never);
+      return () => {
+        try {
+          player.removeEventListener('play', onPlay as never);
+          player.removeEventListener('pause', onPause as never);
+        } catch {}
+      };
+    } catch {
+      // addEventListener internal crash — isPlayingRef stays false (safe default)
+    }
+  }, [storyboard]);
 
   // Convert storyboard → timeline rows on storyboard change
   // Skip re-conversion when storyboard was updated by the debounced sync callback
@@ -65,11 +88,16 @@ export function TimelineEditor() {
     pushTimelineHistory(rows);
   }, [storyboard]);
 
-  // Sync Remotion playback → timeline cursor
+  // Sync Remotion playback → timeline cursor (throttled during playback)
   useEffect(() => {
-    if (timelineRef.current) {
-      timelineRef.current.setTime(currentTimeMs / 1000);
-    }
+    if (!timelineRef.current) return;
+    const now = Date.now();
+    // During playback: throttle to ~5fps to avoid 30fps churn
+    if (isPlayingRef.current && now - lastSyncRef.current < 200) return;
+    lastSyncRef.current = now;
+    timelineRef.current.setTime(currentTimeMs / 1000);
+    // reRender() needed for the library to visually update cursor position
+    (timelineRef.current as any).reRender?.();
   }, [currentTimeMs]);
 
   const handleChange = useCallback((newData: TimelineRow[]) => {
@@ -144,6 +172,7 @@ export function TimelineEditor() {
           const formData = new FormData();
           formData.append('file', file);
           const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
           const data = await res.json();
           addActionToTimeline(data.path, data.type, cursorSec, data.duration);
           toast.success(`Uploaded: ${file.name}`);
@@ -163,9 +192,12 @@ export function TimelineEditor() {
         formData.append('file', file);
         try {
           const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
           const data = await res.json();
           addActionToTimeline(data.path, data.type, cursorSec, data.duration);
-        } catch {}
+        } catch {
+          toast.error(`Paste upload failed: ${file.name}`);
+        }
       }
       return;
     }
@@ -185,16 +217,17 @@ export function TimelineEditor() {
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 180 }}
+      style={{ height: 250, ...style }}
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onPaste={handlePaste}
     >
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1 border-b border-editor-border bg-editor-surface shrink-0">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-editor-border bg-editor-surface shrink-0">
+        {/* Pipeline group */}
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               const r = await api.autoAssign();
@@ -207,10 +240,11 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Wand2 size={12} />
           Auto-Assign
         </button>
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               const r = await api.acquireMedia();
@@ -221,11 +255,12 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Download size={12} />
           Acquire
         </button>
         <ProductionDropdown />
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2.5 py-1 rounded transition-colors"
           onClick={async () => {
             try {
               await api.roughCut();
@@ -235,64 +270,66 @@ export function TimelineEditor() {
             }
           }}
         >
+          <Scissors size={12} />
           Rough Cut
         </button>
+
         <div className="flex-1" />
+
+        {/* Editing group */}
+        <div className="w-px h-4 bg-editor-border" />
         <button
-          className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+          className="flex items-center gap-1.5 text-[11px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2.5 py-1 rounded transition-colors"
           onClick={() => useProjectStore.getState().splitAtPlayhead()}
           title="Split at playhead (S)"
         >
+          <Scissors size={12} />
           Split
         </button>
         <button
-          className={`text-[10px] px-2 py-1 rounded ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : 'bg-editor-hover text-gray-300'}`}
+          className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded transition-colors ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : 'bg-editor-hover text-gray-300'}`}
           onClick={() => setSnapEnabled(!snapEnabled)}
           title="Toggle snap"
         >
+          <Magnet size={12} />
           Snap
         </button>
+
+        {/* View group */}
+        <div className="w-px h-4 bg-editor-border" />
         <input
           type="range" min="1" max="10" value={zoomLevel}
           onChange={(e) => setZoomLevel(parseInt(e.target.value))}
-          className="w-16" style={{ accentColor: '#3b82f6' }}
+          className="w-20"
           title="Zoom"
         />
         <button
           onClick={() => useProjectStore.getState().timelineUndo()}
-          className="text-[10px] text-gray-400 hover:text-white px-1"
-          title="Undo"
+          className="p-1 text-gray-400 hover:text-white hover:bg-editor-hover rounded transition-colors"
+          aria-label="Undo"
+          title="Undo (Ctrl+Z)"
         >
-          Undo
+          <Undo2 size={14} />
         </button>
         <button
           onClick={() => useProjectStore.getState().timelineRedo()}
-          className="text-[10px] text-gray-400 hover:text-white px-1"
-          title="Redo"
+          className="p-1 text-gray-400 hover:text-white hover:bg-editor-hover rounded transition-colors"
+          aria-label="Redo"
+          title="Redo (Ctrl+Shift+Z)"
         >
-          Redo
+          <Redo2 size={14} />
         </button>
       </div>
-      {/* Track labels + Timeline */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="w-12 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col">
-          {/* Spacer to align with Timeline's time ruler (32px) + edit area margin (10px) */}
-          <div style={{ height: 42 }} className="shrink-0" />
-          {editorData.map(row => (
-            <div key={row.id} className="text-[9px] text-gray-500 font-mono px-1 flex items-center" style={{ height: 28 }}>
-              {row.id}
-            </div>
-          ))}
-        </div>
-        <div className="flex-1 overflow-hidden">
+      {/* Timeline */}
+      <div className="flex-1 min-h-0 overflow-hidden">
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
             editorData={editorData}
             effects={effects}
             onChange={handleChange}
-            scale={1}
-            scaleWidth={zoomLevel * 40}
+            scale={10}
+            scaleWidth={zoomLevel * 60}
             rowHeight={28}
             gridSnap={snapEnabled}
             dragLine={true}
@@ -303,7 +340,6 @@ export function TimelineEditor() {
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
           />
-        </div>
       </div>
     </div>
   );

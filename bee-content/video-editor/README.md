@@ -391,6 +391,11 @@ uv run --extra dev pytest tests/ -v
 
 # Run a specific test file
 uv run --extra dev pytest tests/test_ffmpeg_effects.py -v
+
+# E2E tests (Playwright)
+cd web && npx playwright test              # Run all (headless)
+cd web && npx playwright test --headed     # See browser
+cd web && npx playwright test --ui         # Interactive mode
 ```
 
 ## Changelog

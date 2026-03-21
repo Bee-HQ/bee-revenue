@@ -4,30 +4,32 @@ import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { StockSearch } from './StockSearch';
 import { SkeletonList } from './SkeletonCard';
+import { Video, Package, ImageIcon, Palette, Mic, Map, Music, Link, Film, Volume2, FileText, Download, RefreshCw, Plus } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  footage: '🎥',
-  stock: '📦',
-  photos: '📷',
-  graphics: '🎨',
-  narration: '🎙️',
-  maps: '🗺️',
-  music: '🎵',
-  segments: '🔗',
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  footage: Video,
+  stock: Package,
+  photos: ImageIcon,
+  graphics: Palette,
+  narration: Mic,
+  maps: Map,
+  music: Music,
+  segments: Link,
 };
 
-const MEDIA_TYPE_ICON: Record<string, string> = {
-  '.mp4': '🎬',
-  '.mkv': '🎬',
-  '.webm': '🎬',
-  '.mov': '🎬',
-  '.mp3': '🔊',
-  '.wav': '🔊',
-  '.m4a': '🔊',
-  '.png': '🖼️',
-  '.jpg': '🖼️',
-  '.jpeg': '🖼️',
-  '.webp': '🖼️',
+const MEDIA_TYPE_ICON: Record<string, LucideIcon> = {
+  '.mp4': Film,
+  '.mkv': Film,
+  '.webm': Film,
+  '.mov': Film,
+  '.mp3': Volume2,
+  '.wav': Volume2,
+  '.m4a': Volume2,
+  '.png': ImageIcon,
+  '.jpg': ImageIcon,
+  '.jpeg': ImageIcon,
+  '.webp': ImageIcon,
 };
 
 function formatSize(bytes: number): string {
@@ -250,9 +252,10 @@ function MediaThumbnail({ file }: { file: MediaFile }) {
     );
   }
 
+  const TypeIcon = MEDIA_TYPE_ICON[file.extension] || FileText;
   return (
-    <span className="text-xs shrink-0 w-8 text-center">
-      {MEDIA_TYPE_ICON[file.extension] || '📄'}
+    <span className="shrink-0 w-8 flex justify-center text-gray-500">
+      <TypeIcon size={14} />
     </span>
   );
 }
@@ -316,35 +319,35 @@ export function MediaLibrary() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => { setShowDownloads(!showDownloads); setShowStock(false); }}
-            className={`text-xs px-1 transition-colors ${
-              showDownloads ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
+            className={`p-1 rounded transition-colors ${
+              showDownloads ? 'text-blue-400 bg-blue-600/10' : 'text-gray-500 hover:text-gray-300 hover:bg-editor-hover'
             }`}
             title="Downloads"
           >
-            ⬇
+            <Download size={13} />
           </button>
           <button
             onClick={() => { setShowStock(!showStock); setShowDownloads(false); }}
-            className={`text-xs px-1 transition-colors ${
-              showStock ? 'text-green-400' : 'text-gray-500 hover:text-gray-300'
+            className={`p-1 rounded transition-colors ${
+              showStock ? 'text-green-400 bg-green-600/10' : 'text-gray-500 hover:text-gray-300 hover:bg-editor-hover'
             }`}
             title="Stock Footage Search"
           >
-            🎞
+            <Film size={13} />
           </button>
           <button
             onClick={() => loadMedia()}
-            className="text-gray-500 hover:text-gray-300 text-xs px-1"
+            className="p-1 rounded text-gray-500 hover:text-gray-300 hover:bg-editor-hover transition-colors"
             title="Refresh"
           >
-            ↻
+            <RefreshCw size={13} />
           </button>
           <button
             onClick={() => fileInput.current?.click()}
-            className="text-gray-500 hover:text-gray-300 text-xs px-1"
+            className="p-1 rounded text-gray-500 hover:text-gray-300 hover:bg-editor-hover transition-colors"
             title="Upload"
           >
-            +
+            <Plus size={13} />
           </button>
           <input
             ref={fileInput}
@@ -403,19 +406,22 @@ export function MediaLibrary() {
           >
             All ({mediaFiles.length})
           </button>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-              className={`text-[10px] px-2 py-0.5 rounded-full transition-colors ${
-                activeCategory === cat
-                  ? 'bg-editor-accent/20 text-blue-400'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {CATEGORY_ICONS[cat] || '📂'} {cat} ({mediaCategories[cat]})
-            </button>
-          ))}
+          {categories.map(cat => {
+            const CatIcon = CATEGORY_ICONS[cat] || FileText;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+                className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-editor-accent/20 text-blue-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <CatIcon size={10} /> {cat} ({mediaCategories[cat]})
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -433,23 +439,25 @@ export function MediaLibrary() {
         {/* Empty state with download prompt */}
         {isEmpty && !uploading && !showDownloads && mediaLoaded && (
           <div className="px-3 py-6 text-center">
-            <div className="text-2xl mb-2">📂</div>
+            <div className="flex justify-center mb-2 text-gray-600">
+              <Package size={28} />
+            </div>
             <div className="text-xs text-gray-400 mb-3">
               No media files found
             </div>
             <button
               onClick={() => setShowDownloads(true)}
-              className="px-3 py-1.5 rounded text-xs bg-blue-600/20 text-blue-400
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs bg-blue-600/20 text-blue-400
                          hover:bg-blue-600/30 transition-colors mb-2 w-full"
             >
-              ⬇ Download media
+              <Download size={12} /> Download media
             </button>
             <button
               onClick={() => fileInput.current?.click()}
-              className="px-3 py-1.5 rounded text-xs bg-editor-hover text-gray-400
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs bg-editor-hover text-gray-400
                          hover:text-gray-200 transition-colors w-full"
             >
-              + Upload files
+              <Plus size={12} /> Upload files
             </button>
           </div>
         )}

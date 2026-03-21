@@ -245,7 +245,7 @@ Node.js (Express/Fastify)
 UX refinements to add when touching nearby code.
 
 - [ ] Responsive layout — collapse sidebars to tabs on < 1024px
-- [ ] Dark/light theme toggle
+- [x] Dark/light theme toggle *(v0.9.0+)*
 - [ ] Fullscreen mode for player and timeline
 - [ ] Right-click context menus on segments/clips
 - [ ] Configurable codec/CRF in FFmpeg processor
@@ -254,8 +254,9 @@ UX refinements to add when touching nearby code.
 
 ### Test Coverage Gaps
 
-**WebSocket progress (zero coverage)**
-- [ ] `ws/progress` narration, produce, unknown action, malformed JSON
+**WebSocket progress**
+- [x] `ws/progress` narration, produce, unknown action *(5 tests added)*
+- [ ] `ws/progress` malformed JSON, disconnect mid-stream
 
 **Production endpoints (partial)**
 - [ ] Graphics with overlays, captions with/without NAR, preflight report, export OTIO

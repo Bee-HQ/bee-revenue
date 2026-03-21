@@ -9,6 +9,7 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
+  if (!text) return null;
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
 
@@ -44,8 +45,8 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
     );
   }
 
-  // Karaoke: highlight word by word
-  const totalChars = words.reduce((sum, w) => sum + w.length, 0);
+  // Karaoke: highlight word by word (use full text length including spaces for accurate timing)
+  const totalChars = text.length;
   let charsSoFar = 0;
 
   return (
@@ -61,6 +62,7 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
         maxWidth: '80%',
       }}>
         {words.map((word, i) => {
+          if (i > 0) charsSoFar += 1; // account for space between words
           const wordStart = (charsSoFar / totalChars) * durationInFrames;
           const wordEnd = ((charsSoFar + word.length) / totalChars) * durationInFrames;
           charsSoFar += word.length;

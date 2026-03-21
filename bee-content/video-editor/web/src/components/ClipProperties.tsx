@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { Check } from 'lucide-react';
 
 const COLOR_PRESETS = [
   'dark_crime', 'surveillance', 'noir', 'bodycam', 'cold_blue',
@@ -39,7 +40,7 @@ export function ClipProperties() {
   }
 
   // Parse clip ID: "{segmentId}-{type}-{index}" from timeline-adapter.ts
-  const parts = activeClipId.match(/^(.+?)-(v|nar|audio|music|ov)-(\d+|empty)$/);
+  const parts = activeClipId.match(/^(.+)-(v|nar|audio|music|ov)-(\d+|empty)$/);
   if (!parts) {
     return (
       <div className="p-3 text-center text-[10px] text-gray-600">
@@ -62,7 +63,7 @@ export function ClipProperties() {
   }
 
   return (
-    <div className="border-t border-editor-border overflow-y-auto" style={{ maxHeight: 280 }}>
+    <div className="border-t border-editor-border overflow-y-auto flex-1">
       <div className="px-3 py-2 bg-editor-surface border-b border-editor-border">
         <div className="text-[10px] font-bold text-gray-300">{segment.title}</div>
         <div className="text-[9px] text-gray-500">
@@ -118,22 +119,32 @@ function ColorGradeSection({ segmentId, visualIndex, segment }: {
 
   return (
     <div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Color Grade</div>
-      <div className="flex gap-1 flex-wrap">
+      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">Color Grade</div>
+      <div className="grid grid-cols-4 gap-1.5">
         <button
           onClick={() => handleSelect(null)}
-          className={`w-5 h-5 rounded border ${!currentColor ? 'border-blue-500' : 'border-editor-border'}`}
-          style={{ background: 'linear-gradient(135deg, #888 50%, #aaa 50%)' }}
+          className={`flex flex-col items-center gap-0.5 rounded p-0.5 ${!currentColor ? 'ring-1 ring-blue-500' : ''}`}
           title="None"
-        />
+        >
+          <div className="w-7 h-7 rounded border border-editor-border flex items-center justify-center"
+               style={{ background: 'linear-gradient(135deg, #888 50%, #aaa 50%)' }}>
+            {!currentColor && <Check size={10} className="text-white drop-shadow" />}
+          </div>
+          <span className="text-[7px] text-gray-500 truncate w-full text-center">none</span>
+        </button>
         {COLOR_PRESETS.map(p => (
           <button
             key={p}
             onClick={() => handleSelect(p)}
-            className={`w-5 h-5 rounded border ${currentColor === p ? 'border-blue-500 ring-1 ring-blue-500/50' : 'border-editor-border'}`}
-            style={{ backgroundColor: PRESET_COLORS[p] }}
+            className={`flex flex-col items-center gap-0.5 rounded p-0.5 ${currentColor === p ? 'ring-1 ring-blue-500' : ''}`}
             title={p}
-          />
+          >
+            <div className={`w-7 h-7 rounded border flex items-center justify-center ${currentColor === p ? 'border-blue-500' : 'border-editor-border'}`}
+                 style={{ backgroundColor: PRESET_COLORS[p] }}>
+              {currentColor === p && <Check size={10} className="text-white drop-shadow" />}
+            </div>
+            <span className="text-[7px] text-gray-500 truncate w-full text-center">{p.replace(/_/g, ' ')}</span>
+          </button>
         ))}
       </div>
     </div>
@@ -229,16 +240,12 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
   const isMusic = clipType === 'music';
   const isNar = clipType === 'nar';
 
-  // For narration, find the NAR entry
+  // layerIndex is the original array index (from timeline-adapter)
   let entry: any = null;
-  if (isNar) {
-    const narEntries = segment.audio.filter((a: any) => a.content_type === 'NAR');
-    entry = layerIndex >= 0 ? narEntries[layerIndex] : null;
+  if (isNar || clipType === 'audio') {
+    entry = layerIndex >= 0 ? segment.audio[layerIndex] : null;
   } else if (isMusic) {
     entry = layerIndex >= 0 ? segment.music[layerIndex] : null;
-  } else {
-    const realAudio = segment.audio.filter((a: any) => a.content_type !== 'NAR');
-    entry = layerIndex >= 0 ? realAudio[layerIndex] : null;
   }
 
   const currentVolume = entry?.metadata?.volume ?? 1.0;
@@ -311,7 +318,7 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
         <input
           type="range" min="0" max="1" step="0.05" value={volume}
           onChange={e => handleVolumeChange(parseFloat(e.target.value))}
-          className="flex-1" style={{ accentColor: isMusic ? '#818cf8' : '#22c55e' }}
+          className="flex-1"
         />
         <span className="text-[10px] font-mono text-gray-400 w-8">{volume.toFixed(2)}</span>
       </div>
@@ -379,7 +386,7 @@ function TransitionSection({ segmentId, segment }: { segmentId: string; segment:
             <input
               type="range" min="0.5" max="3" step="0.1" value={duration}
               onChange={e => handleChange(type, parseFloat(e.target.value))}
-              className="w-16" style={{ accentColor: '#f97316' }}
+              className="w-16"
             />
             <span className="text-[10px] text-gray-400 w-8">{duration.toFixed(1)}s</span>
           </>

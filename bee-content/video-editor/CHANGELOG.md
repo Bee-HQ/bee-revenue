@@ -18,6 +18,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Custom action renderer** — colored clips per track type (amber=video, green=narration, teal=audio, purple=music, pink=overlay)
 - **Upload route extended** — `POST /api/media/upload` now returns `type` and `duration` fields
 
+### Added
+- **Playwright e2e test infrastructure** — 11 end-to-end tests (Chromium) covering project load, editor layout, toolbar, timeline, sidebar tabs, keyboard shortcuts, export menu, zoom, console errors
+- **E2E tests in CI** — GitHub Actions job with FFmpeg, Node, Playwright browsers; uploads playwright-report on failure
+- **Dark/light theme toggle** — CSS custom properties for all editor colors, Sun/Moon button in header, persisted to localStorage
+- **Resizable preview/timeline split** — drag handle between Remotion Player and timeline, height clamped 120px–60vh, persisted to localStorage
+- **UI polish** — lucide-react icons for toolbar/sidebar/menus/media library, toolbar visual hierarchy with accent-tinted primary actions and grouped sections, larger color grade swatches with grid layout and labels, custom dark-themed range sliders and select dropdowns
+- **WebSocket progress tests** — 5 tests for `/ws/progress` (narration progress, produce pipeline, unknown action, missing project, missing storyboard path)
+
+### Fixed
+- **Remotion PlayerEmitter.addEventListener crash** — graceful fallback to polling when addEventListener is unavailable or throws internally
+- **9 bugs from deep code audit** — various fixes across timeline sync, state management, and edge cases
+- **7 timeline integration bugs** — track sync, click handler race conditions, drag-drop state issues after react-timeline-editor migration
+
 ### Removed
 - `@designcombo/state`, `@designcombo/timeline`, `@designcombo/types`, `@designcombo/events`
 - `TimelineRuler.tsx` (library has built-in ruler)

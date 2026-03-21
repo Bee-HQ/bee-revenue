@@ -3,6 +3,7 @@ import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
 import { SkeletonList } from './SkeletonCard';
 import { parseTimecode, timeToMs } from '../adapters/time-utils';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 const VISUAL_TYPE_DOT: Record<string, string> = {
   FOOTAGE: 'bg-yellow-400',
@@ -86,18 +87,31 @@ function SegmentRow({
       {segment.subsection && segment.subsection !== segment.title && (
         <div className="text-[10px] text-gray-600 truncate">{segment.subsection}</div>
       )}
-      {/* Visual type dots */}
-      <div className="flex gap-0.5 mt-1">
-        {segment.visual.map((v, i) => (
-          <span
-            key={i}
-            className={`w-1.5 h-1.5 rounded-full ${VISUAL_TYPE_DOT[v.content_type] || 'bg-gray-600'}`}
-            title={v.content_type}
-          />
-        ))}
-        {segment.audio.length > 0 && (
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 ml-0.5" title="Has audio" />
-        )}
+      {/* Visual type dots + completeness */}
+      <div className="flex items-center gap-1 mt-1">
+        <div className="flex gap-0.5">
+          {segment.visual.map((v, i) => (
+            <span
+              key={i}
+              className={`w-2 h-2 rounded-full ${VISUAL_TYPE_DOT[v.content_type] || 'bg-gray-600'}`}
+              title={v.content_type}
+            />
+          ))}
+          {segment.audio.length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-green-400 ml-0.5" title="Has audio" />
+          )}
+        </div>
+        {/* Completeness bar */}
+        {(() => {
+          const totalLayers = segment.visual.length + segment.audio.length + (segment.overlay?.length || 0);
+          const assignedLayers = Object.keys(segment.assigned_media).length;
+          const pct = totalLayers > 0 ? Math.round((assignedLayers / totalLayers) * 100) : 0;
+          return totalLayers > 0 ? (
+            <div className="flex-1 h-0.5 bg-editor-border rounded-full overflow-hidden" title={`${assignedLayers}/${totalLayers} layers assigned`}>
+              <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-blue-500' : ''}`} style={{ width: `${pct}%` }} />
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );
@@ -163,7 +177,7 @@ export function SegmentList() {
   const selectionCount = selectedSegmentIds.length;
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    () => new Set(groups.map(g => g.section))
+    () => new Set()
   );
 
   const toggleSection = (section: string) => {
@@ -198,9 +212,9 @@ export function SegmentList() {
                 onClick={() => toggleSection(group.section)}
               >
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                    <span className="inline-block w-3 text-gray-600">{isCollapsed ? '▶' : '▼'}</span>
-                    {group.section}
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    {isCollapsed ? <ChevronRight size={12} className="text-gray-600 shrink-0" /> : <ChevronDown size={12} className="text-gray-600 shrink-0" />}
+                    <span className="truncate">{group.section}</span>
                   </div>
                   <div className="text-[10px] text-gray-600">{group.segments.length}</div>
                 </div>

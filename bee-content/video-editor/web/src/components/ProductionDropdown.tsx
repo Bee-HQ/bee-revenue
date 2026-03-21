@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { FolderOpen, ImageIcon, Mic, Captions, ClipboardCheck, Layers, Film, ChevronUp } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const ACTIONS: [string, () => Promise<unknown>][] = [
-  ['Init Dirs', () => api.initProject()],
-  ['Graphics', () => api.generateGraphics()],
-  ['Narration', () => api.generateNarration()],
-  ['Captions', () => api.generateCaptions()],
-  ['Preflight', () => api.getPreflight()],
-  ['Composite', () => api.compositeSegments()],
-  ['Assemble', () => api.assembleVideo()],
+const ACTIONS: [string, () => Promise<unknown>, LucideIcon][] = [
+  ['Init Dirs', () => api.initProject(), FolderOpen],
+  ['Graphics', () => api.generateGraphics(), ImageIcon],
+  ['Narration', () => api.generateNarration(), Mic],
+  ['Captions', () => api.generateCaptions(), Captions],
+  ['Preflight', () => api.getPreflight(), ClipboardCheck],
+  ['Composite', () => api.compositeSegments(), Layers],
+  ['Assemble', () => api.assembleVideo(), Film],
 ];
 
 export function ProductionDropdown() {
@@ -41,18 +43,20 @@ export function ProductionDropdown() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="text-[10px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2 py-1 rounded"
+        className="flex items-center gap-1.5 text-[11px] bg-editor-hover text-gray-300 hover:bg-editor-border px-2.5 py-1 rounded transition-colors"
       >
         Pipeline
+        <ChevronUp size={11} className={`transition-transform ${open ? '' : 'rotate-180'}`} />
       </button>
       {open && (
-        <div className="absolute left-0 bottom-full mb-1 bg-editor-surface border border-editor-border rounded-lg shadow-lg py-1 w-40 z-50">
-          {ACTIONS.map(([name, action]) => (
+        <div className="absolute left-0 bottom-full mb-1 bg-editor-surface border border-editor-border rounded-lg shadow-lg py-1 w-44 z-50">
+          {ACTIONS.map(([name, action, Icon]) => (
             <button
               key={name}
               onClick={() => run(name, action)}
-              className="w-full text-left px-3 py-1.5 text-[10px] text-gray-300 hover:bg-editor-hover"
+              className="w-full text-left px-3 py-1.5 text-[11px] text-gray-300 hover:bg-editor-hover flex items-center gap-2"
             >
+              <Icon size={12} className="text-gray-500" />
               {name}
             </button>
           ))}

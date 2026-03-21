@@ -3,6 +3,7 @@ import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
 import type { Segment } from '../types';
+import { Search, Captions, Palette } from 'lucide-react';
 
 const COLOR_SUGGESTIONS: Record<string, string> = {
   'night': 'surveillance',
@@ -23,7 +24,7 @@ export function AIPanel() {
   const activeClipId = useProjectStore(s => s.activeClipId);
 
   // Find the selected segment from the active clip id
-  const segmentId = activeClipId?.match(/^(.+?)-(v|nar|audio|music|ov)-/)?.[1];
+  const segmentId = activeClipId?.match(/^(.+)-(v|nar|audio|music|ov)-/)?.[1];
   const segment = storyboard?.segments.find(s => s.id === segmentId) ?? null;
 
   return (
@@ -89,7 +90,10 @@ function BRollSection({ segment }: { segment: Segment | null }) {
 
   return (
     <div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-2">AI B-Roll</div>
+      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 uppercase tracking-wider mb-2">
+        <Search size={10} />
+        AI B-Roll
+      </div>
       {segment ? (
         <>
           <div className="flex gap-1 mb-2">
@@ -167,7 +171,10 @@ function CaptionSection() {
 
   return (
     <div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-2">AI Captions</div>
+      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 uppercase tracking-wider mb-2">
+        <Captions size={10} />
+        AI Captions
+      </div>
       <div className="flex items-center gap-2 mb-2">
         <select
           value={style}
@@ -245,7 +252,10 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
 
   return (
     <div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-2">Auto Color Grade</div>
+      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 uppercase tracking-wider mb-2">
+        <Palette size={10} />
+        Auto Color Grade
+      </div>
       {segment ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
