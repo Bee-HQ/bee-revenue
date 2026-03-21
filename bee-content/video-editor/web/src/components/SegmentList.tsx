@@ -162,6 +162,17 @@ export function SegmentList() {
 
   const selectionCount = selectedSegmentIds.length;
 
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 py-2 border-b border-editor-border flex items-center justify-between shrink-0">
@@ -176,29 +187,38 @@ export function SegmentList() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {groups.map(group => (
-          <div key={group.section}>
-            <div className="sticky top-0 z-10 bg-editor-surface/95 backdrop-blur-sm px-3 py-1.5 border-b border-editor-border">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                {group.section}
+        {groups.map(group => {
+          const isCollapsed = collapsedSections.has(group.section);
+          return (
+            <div key={group.section}>
+              <div
+                className="sticky top-0 z-10 bg-editor-surface/95 backdrop-blur-sm px-3 py-1.5 border-b border-editor-border cursor-pointer hover:bg-editor-hover/50"
+                onClick={() => toggleSection(group.section)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    <span className="inline-block w-3 text-gray-600">{isCollapsed ? '▶' : '▼'}</span>
+                    {group.section}
+                  </div>
+                  <div className="text-[10px] text-gray-600">{group.segments.length}</div>
+                </div>
               </div>
-              <div className="text-[10px] text-gray-600">{group.segments.length} segments</div>
+              {!isCollapsed && group.segments.map(({ seg, globalIndex }) => (
+                <SegmentRow
+                  key={seg.id}
+                  segment={seg}
+                  index={globalIndex}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
+                  isDragging={dragFromIndex === globalIndex}
+                  isDropTarget={dropTargetIndex === globalIndex && dragFromIndex !== globalIndex}
+                />
+              ))}
             </div>
-            {group.segments.map(({ seg, globalIndex }) => (
-              <SegmentRow
-                key={seg.id}
-                segment={seg}
-                index={globalIndex}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onDragEnd={handleDragEnd}
-                isDragging={dragFromIndex === globalIndex}
-                isDropTarget={dropTargetIndex === globalIndex && dragFromIndex !== globalIndex}
-              />
-            ))}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
