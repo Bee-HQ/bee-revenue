@@ -27,6 +27,7 @@ export function RemotionPreview() {
   const loopInRef = useRef<number | null>(null);
   const loopOutRef = useRef<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [showCaptions, setShowCaptions] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
@@ -131,7 +132,7 @@ export function RemotionPreview() {
         <Player
           ref={playerRef}
           component={BeeComposition}
-          inputProps={{ storyboard, mediaFiles: mediaFilePaths }}
+          inputProps={{ storyboard, mediaFiles: mediaFilePaths, showCaptions }}
           durationInFrames={totalFrames}
           fps={FPS}
           compositionWidth={1920}
@@ -279,6 +280,17 @@ export function RemotionPreview() {
           title="Playback speed"
         >
           {playbackRate}x
+        </button>
+        <button
+          onClick={() => setShowCaptions(!showCaptions)}
+          className={`text-[10px] px-1.5 py-0.5 rounded border ${
+            showCaptions
+              ? 'text-yellow-400 border-yellow-600/50 bg-yellow-600/10'
+              : 'text-gray-500 border-editor-border'
+          }`}
+          title={showCaptions ? 'Hide captions' : 'Show captions'}
+        >
+          CC
         </button>
       </div>
     </div>

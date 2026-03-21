@@ -69,9 +69,10 @@ const COLOR_FILTERS: Record<string, string> = {
   vhs: 'brightness(0.95) saturate(0.8) contrast(0.9)',
 };
 
-export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: string[] }> = ({
+export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: string[]; showCaptions?: boolean }> = ({
   storyboard,
   mediaFiles = [],
+  showCaptions = true,
 }) => {
   const { fps } = useVideoConfig();
 
@@ -195,7 +196,7 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: str
             ))}
 
             {/* Captions */}
-            {narrationText && (
+            {showCaptions && narrationText && (
               <CaptionOverlay text={narrationText} style="karaoke" />
             )}
           </Sequence>
