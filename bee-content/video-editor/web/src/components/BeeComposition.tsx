@@ -20,6 +20,9 @@ import { PictureInPictureOverlay } from './remotion/PictureInPicture';
 import { AudioVisualization, AudioVisualizationOverlay } from './remotion/AudioVisualization';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
+import { QualityProvider } from './remotion/primitives';
+import { CalloutOverlay, Callout } from './remotion/Callout';
+import { KineticTextOverlay, KineticText } from './remotion/KineticText';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -33,10 +36,17 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   PIP: PictureInPictureOverlay,
   AUDIO_VIS: AudioVisualizationOverlay,
   WAVEFORM: AudioVisualizationOverlay,
+  CALLOUT: CalloutOverlay,
+  KINETIC_TEXT: KineticTextOverlay,
+};
+
+const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
+  KINETIC_TEXT: KineticText,
+  CALLOUT: Callout,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
-function SegmentVisual({ seg, knownFiles }: { seg: BeeSegment; knownFiles: Set<string> }) {
+function SegmentVisual({ seg, knownFiles, fps }: { seg: BeeSegment; knownFiles: Set<string>; fps: number }) {
   const src = seg.visual[0]?.src ?? undefined;
   const ext = src?.split('.').pop()?.toLowerCase() ?? '';
   const isImage = IMAGE_EXTS.has(ext);
@@ -45,6 +55,13 @@ function SegmentVisual({ seg, knownFiles }: { seg: BeeSegment; knownFiles: Set<s
   const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
   const kenBurns = seg.visual[0]?.kenBurns;
   const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
+
+  // New visual component registry
+  const VisualComponent = VISUAL_COMPONENTS[contentType];
+  if (VisualComponent) {
+    const visual = seg.visual[0];
+    return <VisualComponent content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * fps)} />;
+  }
 
   // TEXT_CHAT visual: render as full-screen chat conversation
   if (contentType === 'TEXT_CHAT') {
@@ -144,6 +161,7 @@ export const BeeComposition: React.FC<{
   const segmentMap = new Map(storyboard.segments.map(s => [s.id, s]));
 
   return (
+    <QualityProvider tier={storyboard.quality}>
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {positions.map((pos) => {
         const seg = segmentMap.get(pos.segId);
@@ -155,7 +173,7 @@ export const BeeComposition: React.FC<{
         // Segment content (visual + overlays + captions)
         const segmentContent = (
           <>
-            <SegmentVisual seg={seg} knownFiles={knownFiles} />
+            <SegmentVisual seg={seg} knownFiles={knownFiles} fps={fps} />
             <SegmentOverlays seg={seg} segDuration={pos.duration} fps={fps} />
             {showCaptions && narrationText && <CaptionOverlay text={narrationText} style="karaoke" />}
           </>
@@ -196,12 +214,13 @@ export const BeeComposition: React.FC<{
               type={pos.transitionIn.type}
               durationInFrames={transDur}
               mode="overlap"
-              outgoing={<SegmentVisual seg={prevSeg} knownFiles={knownFiles} />}
-              incoming={<SegmentVisual seg={curSeg} knownFiles={knownFiles} />}
+              outgoing={<SegmentVisual seg={prevSeg} knownFiles={knownFiles} fps={fps} />}
+              incoming={<SegmentVisual seg={curSeg} knownFiles={knownFiles} fps={fps} />}
             />
           </Sequence>
         );
       })}
     </AbsoluteFill>
+    </QualityProvider>
   );
 };

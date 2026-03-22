@@ -19,6 +19,16 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   PIP: 10,
   AUDIO_VIS: 8,
   WAVEFORM: 8,
+  CALLOUT: 4,
+  KINETIC_TEXT: 5,
+  LOTTIE: 4,
+  ATMOSPHERE: 10,
+  GLITCH: 3,
+  INFOGRAPHIC: 8,
+  DATA_VIZ: 6,
+  TITLE_CARD: 4,
+  SCREEN_MOCKUP: 10,
+  THREE_D: 8,
 };
 
 /** Parse "quote text — Author" into parts */
