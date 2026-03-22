@@ -138,6 +138,25 @@ describe('parseBoardData', () => {
   });
 });
 
+// SocialPost parser tests
+import { parsePostData } from './SocialPost';
+
+describe('parsePostData', () => {
+  test('parses valid JSON post', () => {
+    const content = JSON.stringify({ author: 'Alex M', text: 'Just arrived at Moselle', handle: '@alexm' });
+    const result = parsePostData(content);
+    expect(result.author).toBe('Alex M');
+    expect(result.text).toBe('Just arrived at Moselle');
+    expect(result.handle).toBe('@alexm');
+  });
+
+  test('falls back to plain text', () => {
+    const result = parsePostData('Just a status update');
+    expect(result.author).toBe('Unknown');
+    expect(result.text).toBe('Just a status update');
+  });
+});
+
 // TextChat parser tests
 import { parseMessages } from './TextChat';
 
