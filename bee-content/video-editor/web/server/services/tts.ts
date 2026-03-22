@@ -112,7 +112,7 @@ export async function generateNarration(
     if (!narEntry?.text) continue;
     const cleanText = cleanNarrationText(narEntry.text);
     if (!cleanText) continue;
-    const outputPath = path.join(outputDir, `seg-${seg.id}.mp3`);
+    const outputPath = path.join(outputDir, `${seg.id}.mp3`);
     if (fs.existsSync(outputPath)) continue; // skip already generated
     tasks.push({ segId: seg.id, text: cleanText, outputPath });
   }
@@ -126,7 +126,7 @@ export async function generateNarration(
       await ttsEngine.generate(task.text, resolvedVoice, task.outputPath);
       result.succeeded.push(task.outputPath);
     } catch (err) {
-      result.failed.push({ file: `seg-${task.segId}.mp3`, error: String(err) });
+      result.failed.push({ file: `${task.segId}.mp3`, error: String(err) });
     }
     onProgress?.(i + 1, total);
   }
@@ -152,6 +152,10 @@ export function getNarrationTask(): NarrationTaskState | null {
   return narrationTask;
 }
 
+export function resetNarrationTask(): void {
+  narrationTask = null;
+}
+
 function countPendingNarrations(segments: BeeSegment[], outputDir: string): number {
   let count = 0;
   for (const seg of segments) {
@@ -159,7 +163,7 @@ function countPendingNarrations(segments: BeeSegment[], outputDir: string): numb
     if (!narEntry?.text) continue;
     const cleanText = cleanNarrationText(narEntry.text);
     if (!cleanText) continue;
-    if (!fs.existsSync(path.join(outputDir, `seg-${seg.id}.mp3`))) count++;
+    if (!fs.existsSync(path.join(outputDir, `${seg.id}.mp3`))) count++;
   }
   return count;
 }
@@ -178,15 +182,18 @@ export function startNarrationTask(
   const total = countPendingNarrations(segments, outputDir);
 
   if (total === 0) {
-    narrationTask = {
-      running: false,
-      done: 0,
-      total: 0,
-      projectDir,
-      status: 'ok',
-      succeeded: [],
-      failed: [],
-    };
+    // Don't clobber results from a previous completed run
+    if (!narrationTask || narrationTask.projectDir !== projectDir) {
+      narrationTask = {
+        running: false,
+        done: 0,
+        total: 0,
+        projectDir,
+        status: 'ok',
+        succeeded: [],
+        failed: [],
+      };
+    }
     return { total: 0 };
   }
 

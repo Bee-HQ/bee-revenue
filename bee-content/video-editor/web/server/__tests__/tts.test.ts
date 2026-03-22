@@ -6,6 +6,7 @@ import {
   cleanNarrationText,
   generateNarration,
   getNarrationTask,
+  resetNarrationTask,
   VALID_ENGINES,
   DEFAULT_VOICES,
 } from '../services/tts.js';
@@ -216,10 +217,10 @@ describe('generateNarration', () => {
     expect(result.failed).toHaveLength(0);
 
     // Verify files were created
-    expect(fsSync.existsSync(path.join(outputDir, 'seg-seg-01.mp3'))).toBe(true);
-    expect(fsSync.existsSync(path.join(outputDir, 'seg-seg-02.mp3'))).toBe(true);
+    expect(fsSync.existsSync(path.join(outputDir, 'seg-01.mp3'))).toBe(true);
+    expect(fsSync.existsSync(path.join(outputDir, 'seg-02.mp3'))).toBe(true);
     // seg-03 has no NAR, should not be created
-    expect(fsSync.existsSync(path.join(outputDir, 'seg-seg-03.mp3'))).toBe(false);
+    expect(fsSync.existsSync(path.join(outputDir, 'seg-03.mp3'))).toBe(false);
   });
 
   test('skips segments without NAR audio entry', async () => {
@@ -231,11 +232,11 @@ describe('generateNarration', () => {
   test('skips already-generated files', async () => {
     // Pre-create one file
     await fs.mkdir(outputDir, { recursive: true });
-    await fs.writeFile(path.join(outputDir, 'seg-seg-01.mp3'), 'existing');
+    await fs.writeFile(path.join(outputDir, 'seg-01.mp3'), 'existing');
 
     const result = await generateNarration(segments, 'edge', undefined, outputDir);
     expect(result.succeeded).toHaveLength(1); // only seg-02
-    expect(result.succeeded[0]).toContain('seg-seg-02.mp3');
+    expect(result.succeeded[0]).toContain('seg-02.mp3');
   });
 
   test('works with elevenlabs engine', async () => {
@@ -277,6 +278,7 @@ describe('generateNarration', () => {
 describe('Narration routes', () => {
   beforeEach(async () => {
     resetStore();
+    resetNarrationTask();
     const proj = await makeTempProject();
     tmpDir = proj.tmpDir;
     storyboardPath = proj.storyboardPath;
@@ -368,6 +370,7 @@ describe('Narration routes', () => {
 describe('Voice-lock routes', () => {
   beforeEach(async () => {
     resetStore();
+    resetNarrationTask();
     const proj = await makeTempProject();
     tmpDir = proj.tmpDir;
     storyboardPath = proj.storyboardPath;
