@@ -908,7 +908,7 @@ This scans the storyboard against project files and reports found/missing/needs-
 **Step 3: Use the web editor for human-in-the-loop corrections.**
 
 ```bash
-./start.sh  # or: bee-video serve
+./start.sh  # Launches Node.js web editor on :8420
 ```
 
 Load the storyboard in the web editor. Review segments, assign media files via drag-and-drop, adjust as needed. The editor reads the storyboard and saves media assignments as sidecar JSON.

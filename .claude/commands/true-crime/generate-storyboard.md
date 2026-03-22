@@ -178,6 +178,6 @@ After writing the file, report:
    - Narrator stretches exceeding 90 seconds
    - Segments exceeding 60 seconds
 4. **Next steps:**
-   - "Open in web editor (`bee-video serve`) to assign media and review"
+   - "Open in web editor (`./start.sh`) to assign media and review"
    - "Run `bee-video preflight storyboard.md -p ./project` to check asset readiness"
    - "Run `bee-video narration storyboard.md -p ./project` to generate TTS"

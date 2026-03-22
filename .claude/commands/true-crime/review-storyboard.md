@@ -133,6 +133,6 @@ If the storyboard needs work, list specific fixes with segment references, then 
 If the user says yes, make the corrections directly in the file, then re-run the review checks on the updated file.
 
 If production-ready, say: "Storyboard is ready. Next steps:"
-- "Assign remaining media in web editor (`bee-video serve`)"
+- "Assign remaining media in web editor (`./start.sh`)"
 - "Run `bee-video preflight storyboard.md` to verify assets"
 - "Run `bee-video produce storyboard.md -p ./project` to generate the video"

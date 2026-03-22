@@ -20,7 +20,6 @@ find_open_port() {
 }
 
 kill_previous() {
-    pkill -f "bee-video serve" 2>/dev/null || true
     pkill -f "uvicorn.*bee_video" 2>/dev/null || true
     sleep 0.5
 }
