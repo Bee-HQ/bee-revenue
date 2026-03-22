@@ -351,9 +351,9 @@ const HighlightPreset: React.FC<{
   const { timingMultiplier } = useQuality();
 
   const visibleWords = words.filter((w) => w.text !== '');
-  const fadeInEnd = Math.round(20 * timingMultiplier);
-  const highlightStart = fadeInEnd + 5;
-  const highlightStagger = Math.round(8 * timingMultiplier);
+  const fadeInEnd = Math.round(10 * timingMultiplier);
+  const highlightStart = fadeInEnd + 3;
+  const highlightStagger = Math.round(5 * timingMultiplier);
 
   const textOpacity = interpolate(frame, [0, fadeInEnd], [0, 1], {
     extrapolateLeft: 'clamp',
