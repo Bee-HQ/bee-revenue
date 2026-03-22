@@ -194,7 +194,7 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 
 **Key features:**
 - Load `.md` or `.otio` storyboard → react-timeline-editor multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
-- Remotion Player shows composited video preview with real-time overlays (LowerThird, CaptionOverlay, color grades as CSS filters, timeline markers)
+- Remotion Player shows composited video preview with 14 animated overlay/visual components (see Remotion Components below)
 - Clip property panel (right sidebar Props tab): color grade picker, volume slider, trim inputs, transition picker
 - AI panel (right sidebar AI tab): B-Roll stock search from narration, caption generation, auto color grade suggestions
 - Timeline interactions: drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle, undo/redo history (50 snapshots)
@@ -213,6 +213,29 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 - Toolbar visual hierarchy: accent-tinted primary actions (Auto-Assign, Acquire), grouped sections with separators
 - Styled form controls: custom dark-themed range sliders and select dropdowns
 - Playwright e2e tests: 11 tests covering full UI workflows, integrated into GitHub Actions CI
+
+### Remotion Components (`web/src/components/remotion/`)
+
+14 animated React components that render in the Remotion Player preview and MP4 export:
+
+| Component | Trigger | Description |
+|-----------|---------|-------------|
+| LowerThird | `LOWER_THIRD` overlay | Animated slide-in name/role bar |
+| CaptionOverlay | NAR audio | Karaoke/phrase word-by-word captions |
+| KenBurns | `ken_burns` metadata | 7 zoom/pan presets on images |
+| QuoteCard | `QUOTE_CARD` overlay | Animated quote with accent bar, author fade-in |
+| FinancialCard | `FINANCIAL_CARD` overlay | Counting dollar amount, slide-up panel |
+| TextOverlay | `TEXT_OVERLAY` overlay | Typewriter effect with blinking cursor |
+| TimelineMarker | `TIMELINE_MARKER` overlay | Animated slide-in date stamp |
+| TransitionRenderer | `DISSOLVE`, `FADE_FROM_BLACK` | Overlap (cross-dissolve) or fade mode, UI toggle |
+| TextChat | `TEXT_CHAT` visual/overlay | iMessage/Android/Generic chat bubbles, typing/instant/scroll |
+| EvidenceBoard | `EVIDENCE_BOARD` visual/overlay | Conspiracy wall — pinned cards, red string connections |
+| AnimatedMap | `MAP`, `MAP-*` visual/overlay | MapLibre GL satellite/dark/tactical, fly-to/orbit/route/waypoints |
+| SocialPost | `SOCIAL_POST` visual/overlay | Facebook/Instagram/Twitter, slide/reveal/phone animations |
+| PictureInPicture | `PIP` visual/overlay | Corner PiP, side-by-side, top-bottom with any source combo |
+| AudioVisualization | `WAVEFORM`, `AUDIO_VIS` | Animated bars/waveform/pulse for 911 calls with background media |
+
+Components use JSON content in `LayerEntry.content` and configuration via `LayerEntry.metadata` fields (platform, animation, style, coordinates, waypoints, etc.). All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
 
 **Key API routes:**
 - `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
@@ -261,13 +284,13 @@ Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are depre
 - **Services:** Temp directories → integration-style pipeline calls
 - **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
 
-536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 30 frontend vitest tests (`cd web && npx vitest run`).
+536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 70 frontend vitest tests (`cd web && npx vitest run`).
 
 ## Dependencies
 
 **Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
 **Web (backend):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
-**Web (frontend):** @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, vitest
+**Web (frontend):** @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, maplibre-gl, lucide-react, vitest
 **TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
 **Maps:** py-staticmaps (`--extra maps`)
 **Dev:** pytest (`--extra dev`)

@@ -26,6 +26,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **UI polish** — lucide-react icons for toolbar/sidebar/menus/media library, toolbar visual hierarchy with accent-tinted primary actions and grouped sections, larger color grade swatches with grid layout and labels, custom dark-themed range sliders and select dropdowns
 - **WebSocket progress tests** — 5 tests for `/ws/progress` (narration progress, produce pipeline, unknown action, missing project, missing storyboard path)
 
+### Added
+- **14 Remotion animated components** — all storyboard visual/overlay types now render as animated React components:
+  - QuoteCard (animated quote with accent bar), FinancialCard (counting dollar amount), TextOverlay (typewriter), TimelineMarker (slide-in date stamp)
+  - TransitionRenderer with overlap (cross-dissolve) and fade modes, UI toggle persisted to localStorage
+  - TextChat — iMessage/Android/Generic chat bubbles with typing/instant/scroll animations
+  - EvidenceBoard — conspiracy wall with pinned cards and animated red string connections
+  - AnimatedMap — MapLibre GL with satellite/dark/tactical tiles, fly-to/orbit/route/waypoint camera animations
+  - SocialPost — Facebook/Instagram/Twitter with slide/reveal/phone frame animations
+  - PictureInPicture — corner PiP, side-by-side, top-bottom layouts with any source combo
+  - AudioVisualization — animated bars/waveform/pulse for 911 calls with configurable background
+- **BeeComposition refactored** — overlay registry dispatch, transition-aware segment positioning, extracted PlaceholderFrame + SafeMedia
+- **Timeline cursor sync** — clicking ruler seeks Remotion, playback moves timeline cursor
+- **MM:SS timecode ruler** — `getScaleRender` shows minutes:seconds instead of raw numbers
+- **Scroll-to-zoom** — Ctrl+scroll zooms timeline in/out
+- **Audio waveforms on timeline** — Web Audio API decoding with placeholder patterns for missing files
+- **Timeline multi-select** — Shift+click clips, blue outline highlight
+- **Copy/paste/duplicate clips** — Ctrl+C/V/D keyboard shortcuts
+- **Delete clips** — Delete/Backspace key
+- **Right-click context menu** — Split, Duplicate, Copy, Paste, Delete on timeline clips
+- **Track lock/mute/hide** — per-track controls with visual indicators
+
 ### Fixed
 - **Remotion PlayerEmitter.addEventListener crash** — graceful fallback to polling when addEventListener is unavailable or throws internally
 - **9 bugs from deep code audit** — various fixes across timeline sync, state management, and edge cases
