@@ -266,7 +266,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 280, ...style }}
+      style={{ height: 320, ...style }}
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -373,7 +373,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
       {/* Timeline */}
       <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
         {/* Track controls */}
-        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-hidden" style={{ paddingTop: 32 }}>
+        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-y-auto" style={{ paddingTop: 32 }}>
           {markedData.map(row => {
             const state = trackState[row.id] || {};
             return (
