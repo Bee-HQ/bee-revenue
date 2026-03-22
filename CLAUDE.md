@@ -104,14 +104,13 @@ uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
 uv run bee-video validate -p ./proj                         # Validate project structure
 
-# Web editor
-./dev.sh        # Dev mode (backend :8420 + frontend :5173)
-./start.sh      # Production (single server :8420)
+# Web editor (Node.js — no Python needed)
+cd web && ./dev.sh     # Dev mode (Express :8420 + Vite :5173)
+cd web && ./start.sh   # Production (Express serves frontend :8420)
 
 # Tests
-./test.sh                                    # Backend + frontend type check
-uv run --extra dev pytest tests/ -v          # Backend only
-cd web && npm test                           # Frontend vitest
+uv run --extra dev pytest tests/ -v          # Python CLI tests
+cd web && npm test                           # Frontend + server vitest (143 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 ```
 
