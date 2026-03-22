@@ -150,9 +150,12 @@ export const TextChat: React.FC<TextChatProps> = ({
   }
 
   // Typing and instant modes: messages appear one at a time
+  // Typing: ~40 frames per message (typing indicator takes time)
+  // Instant: ~20 frames per message (faster pacing, no indicator)
+  const availableFrames = durationInFrames - 15; // reserve 15 for exit
   const framesPerMsg = animation === 'typing'
-    ? Math.floor((durationInFrames - 15) / messages.length) // reserve 15 for exit
-    : Math.floor((durationInFrames - 15) / messages.length);
+    ? Math.floor(availableFrames / messages.length)
+    : Math.max(8, Math.floor(availableFrames / (messages.length * 2)));
 
   const typingFrames = animation === 'typing' ? Math.min(15, Math.floor(framesPerMsg * 0.35)) : 0;
 

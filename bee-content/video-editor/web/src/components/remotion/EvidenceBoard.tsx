@@ -20,7 +20,12 @@ interface BoardData {
 export function parseBoardData(content: string): BoardData {
   try {
     const parsed = JSON.parse(content);
-    if (parsed.people && Array.isArray(parsed.people)) return parsed;
+    if (parsed.people && Array.isArray(parsed.people)) {
+      return {
+        people: parsed.people,
+        connections: Array.isArray(parsed.connections) ? parsed.connections : [],
+      };
+    }
   } catch {}
   // Fallback: treat content as comma-separated names, no connections
   const names = content.split(',').map(s => s.trim()).filter(Boolean);
@@ -42,9 +47,9 @@ function circleLayout(count: number, cx: number, cy: number, radius: number): { 
 
 // Person card component
 function PersonCard({
-  person, x, y, opacity, scale,
+  person, x, y, opacity, scale, index,
 }: {
-  person: BoardPerson; x: number; y: number; opacity: number; scale: number;
+  person: BoardPerson; x: number; y: number; opacity: number; scale: number; index: number;
 }) {
   const cardW = 120;
   const cardH = 140;
@@ -82,7 +87,7 @@ function PersonCard({
         alignItems: 'center',
         gap: 6,
         boxShadow: '2px 3px 8px rgba(0,0,0,0.4)',
-        transform: `rotate(${(Math.random() - 0.5) * 6}deg)`,
+        transform: `rotate(${((index * 17) % 7) - 3}deg)`,
       }}>
         {/* Photo placeholder */}
         <div style={{
@@ -274,6 +279,7 @@ export const EvidenceBoard: React.FC<EvidenceBoardProps> = ({
                 <PersonCard
                   key={person.name}
                   person={person}
+                  index={i}
                   x={positions[i].x}
                   y={positions[i].y}
                   opacity={appear}
