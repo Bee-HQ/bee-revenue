@@ -114,6 +114,26 @@ export function probeDuration(filePath: string): Promise<number | null> {
   });
 }
 
+const PRIVATE_IP_RANGES = [
+  /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
+  /^0\./, /^169\.254\./, /^fc00:/i, /^fe80:/i, /^::1$/, /^localhost$/i,
+];
+
+export function validateUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const hostname = parsed.hostname;
+  for (const pattern of PRIVATE_IP_RANGES) {
+    if (pattern.test(hostname)) return false;
+  }
+  return true;
+}
+
 export function categorizeFile(ext: string): 'video' | 'audio' | 'image' {
   const normalized = ext.toLowerCase();
 
