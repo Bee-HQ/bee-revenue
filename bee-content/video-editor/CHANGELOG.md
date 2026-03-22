@@ -8,6 +8,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- **JSON project format replaces OTIO** — new `BeeProject`/`BeeSegment` TypeScript types with times in seconds, `src` inline on entries, no `assigned_media` map, transitions as typed objects. Markdown parser (`storyboard-parser.ts`) converts `bee-video:project`/`bee-video:segment` code blocks → `BeeProject` JSON. Timeline adapter, Zustand store, BeeComposition, and all components migrated. Python backend bridge converts `ParsedStoryboard` → `BeeProjectSchema`. Legacy `Storyboard`/`Segment` type aliases removed.
 - **Timeline: DesignCombo → react-timeline-editor** — replaced canvas/Fabric.js-based DesignCombo SDK (4 packages) with DOM-based `@xzdarcy/react-timeline-editor`. Eliminates canvas crashes, invisible tracks, class registry bugs. Bundle size reduced from 930KB to 683KB (-27%).
 - **Timeline adapter rewritten** — outputs `TimelineRow[]` in seconds (was `DCState` in ms). Dynamic tracks: only rows with content shown. Action IDs use `{segmentId}-{type}-{layerIndex}` format.
 - **Undo/redo unified** — replaced per-assignment `HistoryEntry` stack with full timeline snapshot history (max 50 entries). Single Ctrl+Z/Shift+Z handles all timeline edits.

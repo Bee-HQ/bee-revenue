@@ -71,7 +71,7 @@ Parsers    Processors
 
 **Services** resolve targets, call processors, manage state. No FFmpeg commands, no Pillow drawing — just orchestration.
 
-**`formats/` package** is the canonical storyboard representation. `ParsedStoryboard` is the runtime model shared by all services and routes. Data flow: `.otio file → from_otio() → ParsedStoryboard → services → processors`.
+**`formats/` package** is the canonical storyboard representation. `ParsedStoryboard` is the Python runtime model shared by all services and routes. The web frontend uses `BeeProject` JSON format — the Python backend converts via `parsed_to_schema()` bridge. Data flow: `storyboard.md → ParsedStoryboard → BeeProjectSchema (JSON) → frontend BeeProject types`.
 
 **Processors** are stateless functions wrapping external tools. All I/O, no orchestration.
 
@@ -235,7 +235,7 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 | PictureInPicture | `PIP` visual/overlay | Corner PiP, side-by-side, top-bottom with any source combo |
 | AudioVisualization | `WAVEFORM`, `AUDIO_VIS` | Animated bars/waveform/pulse for 911 calls with background media |
 
-Components use JSON content in `LayerEntry.content` and configuration via `LayerEntry.metadata` fields (platform, animation, style, coordinates, waypoints, etc.). All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
+Components receive content via `OverlayEntry.content` or `VisualEntry` fields. Configuration uses top-level fields on entries (platform, animation, style, coordinates, etc.) — no nested `metadata` objects. All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
 
 **Key API routes:**
 - `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
@@ -274,7 +274,7 @@ my-project/
 └── production_state.json # Pipeline state (OTIO)
 ```
 
-Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are deprecated — all state lives in the OTIO file.
+Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are deprecated — all state lives in the project JSON. The web frontend uses `BeeProject` format with `BeeSegment` entries (times in seconds, `src` inline on visual/audio entries, no `assigned_media` map).
 
 ## Test Patterns
 
@@ -284,7 +284,7 @@ Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are depre
 - **Services:** Temp directories → integration-style pipeline calls
 - **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
 
-536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 70 frontend vitest tests (`cd web && npx vitest run`).
+536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 98 frontend vitest tests (`cd web && npx vitest run`).
 
 ## Dependencies
 
