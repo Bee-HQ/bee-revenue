@@ -8,3 +8,4 @@ build/
 *.db
 .env
 .claude/claudeclaw/
+uv.lock
