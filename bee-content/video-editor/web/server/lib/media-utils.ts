@@ -27,23 +27,26 @@ export async function listMediaFiles(
     { relDir: SEGMENTS_DIR, category: 'segments' },
   ];
 
-  for (const { relDir, category } of dirsToScan) {
-    const absDir = path.join(projectDir, relDir);
-
+  async function scanDir(absDir: string, category: string): Promise<void> {
     let entries: string[];
     try {
       entries = await fs.readdir(absDir);
     } catch {
-      // Directory doesn't exist — skip silently
-      continue;
+      return;
     }
 
     for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
       const absPath = path.join(absDir, entry);
       let stat: Awaited<ReturnType<typeof fs.stat>>;
       try {
         stat = await fs.stat(absPath);
       } catch {
+        continue;
+      }
+
+      if (stat.isDirectory()) {
+        await scanDir(absPath, category);
         continue;
       }
 
@@ -63,6 +66,10 @@ export async function listMediaFiles(
 
       categories[category] = (categories[category] ?? 0) + 1;
     }
+  }
+
+  for (const { relDir, category } of dirsToScan) {
+    await scanDir(path.join(projectDir, relDir), category);
   }
 
   return { files, categories };
