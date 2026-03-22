@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
-import type { Storyboard, Segment } from '../types';
-import { parseTimecode } from '../adapters/time-utils';
+import type { Storyboard, BeeSegment } from '../types';
 import { useProjectStore } from '../stores/project';
 import { PlaceholderFrame, isRealFile } from './remotion/PlaceholderFrame';
 import { SafeVideo, SafeImg, mediaUrl, IMAGE_EXTS, COLOR_FILTERS } from './remotion/SafeMedia';
@@ -37,45 +36,45 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
-function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<string> }) {
-  const src = seg.assigned_media['visual:0'];
+function SegmentVisual({ seg, knownFiles }: { seg: BeeSegment; knownFiles: Set<string> }) {
+  const src = seg.visual[0]?.src;
   const ext = src?.split('.').pop()?.toLowerCase() ?? '';
   const isImage = IMAGE_EXTS.has(ext);
-  const contentType = seg.visual[0]?.content_type || 'NONE';
-  const colorPreset = seg.visual[0]?.metadata?.color;
+  const contentType = seg.visual[0]?.type || 'NONE';
+  const colorPreset = seg.visual[0]?.color;
   const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
-  const kenBurns = seg.visual[0]?.metadata?.ken_burns;
+  const kenBurns = seg.visual[0]?.kenBurns;
   const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
 
   // TEXT_CHAT visual: render as full-screen chat conversation
   if (contentType === 'TEXT_CHAT') {
     const visual = seg.visual[0];
-    return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+    return <TextChat content={visual?.content || '[]'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
   }
 
   // WAVEFORM visual: render as audio visualization (911 calls, etc.)
   if (contentType === 'WAVEFORM' || contentType === 'WAVEFORM-AERIAL' || contentType === 'WAVEFORM-DARK') {
     const visual = seg.visual[0];
-    return <AudioVisualization content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+    return <AudioVisualization content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
   }
 
   // SOCIAL_POST visual: render as full-screen social media post
   if (contentType === 'SOCIAL_POST' || contentType === 'SOCIAL-POST') {
     const visual = seg.visual[0];
-    return <SocialPost content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+    return <SocialPost content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
   }
 
   // MAP visual: render as animated map
   const MAP_TYPES = new Set(['MAP', 'MAP-FLAT', 'MAP-3D', 'MAP-TACTICAL', 'MAP-PULSE', 'MAP-ROUTE']);
   if (MAP_TYPES.has(contentType)) {
     const visual = seg.visual[0];
-    return <AnimatedMap content={visual?.content || ''} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+    return <AnimatedMap content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
   }
 
   // EVIDENCE_BOARD visual: render as full-screen evidence board
   if (contentType === 'EVIDENCE_BOARD' || contentType === 'EVIDENCE-BOARD') {
     const visual = seg.visual[0];
-    return <EvidenceBoard content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+    return <EvidenceBoard content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
   }
 
   if (!isRealFile(src) || !knownFiles.has(src!)) {
@@ -91,14 +90,14 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
 }
 
 // Renders all overlays for a segment using the registry
-function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration: number; fps: number }) {
+function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDuration: number; fps: number }) {
   return (
     <>
       {/* LowerThird -- special case (different props interface) */}
-      {seg.overlay.filter(o => o.content_type === 'LOWER_THIRD').map((lt, i) => {
+      {seg.overlay.filter(o => o.type === 'LOWER_THIRD').map((lt, i) => {
         const { name, role } = parseLowerThirdContent(lt.content);
         const defaultDur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
-        const offset = lt.time_start ? Math.round(parseTimecode(lt.time_start) * fps) : 0;
+        const offset = lt.startOffset ? Math.round(lt.startOffset * fps) : 0;
         const clampedDur = Math.min(defaultDur, segDuration - offset);
         return (
           <Sequence key={`lt-${i}`} from={offset} durationInFrames={clampedDur}>
@@ -108,16 +107,16 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration:
       })}
 
       {/* Registry-based overlays */}
-      {seg.overlay.filter(o => o.content_type !== 'LOWER_THIRD').map((entry, i) => {
-        const Component = OVERLAY_COMPONENTS[entry.content_type];
+      {seg.overlay.filter(o => o.type !== 'LOWER_THIRD').map((entry, i) => {
+        const Component = OVERLAY_COMPONENTS[entry.type];
         if (!Component) return null;
-        const defaultDur = (DEFAULT_DURATIONS[entry.content_type] || 3) * fps;
+        const defaultDur = (DEFAULT_DURATIONS[entry.type] || 3) * fps;
         const dur = Math.min(defaultDur, segDuration);
-        const offset = entry.time_start ? Math.round(parseTimecode(entry.time_start) * fps) : 0;
+        const offset = entry.startOffset ? Math.round(entry.startOffset * fps) : 0;
         const clampedDur = Math.min(dur, segDuration - offset);
         return (
           <Sequence key={`ov-${i}`} from={offset} durationInFrames={clampedDur}>
-            <Component content={entry.content} metadata={entry.metadata} durationInFrames={clampedDur} />
+            <Component content={entry.content} metadata={entry} durationInFrames={clampedDur} />
           </Sequence>
         );
       })}
@@ -150,8 +149,8 @@ export const BeeComposition: React.FC<{
         const seg = segmentMap.get(pos.segId);
         if (!seg) return null;
 
-        const narEntry = seg.audio.find(a => a.content_type === 'NAR');
-        const narrationText = narEntry?.content || '';
+        const narEntry = seg.audio.find(a => a.type === 'NAR');
+        const narrationText = narEntry?.text || '';
 
         // Segment content (visual + overlays + captions)
         const segmentContent = (
