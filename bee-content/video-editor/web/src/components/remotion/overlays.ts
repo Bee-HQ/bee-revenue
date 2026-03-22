@@ -43,3 +43,73 @@ export function parseLowerThirdContent(content: string): { name: string; role?: 
   const parts = content.split(/\s*[—–-]\s*/);
   return { name: parts[0]?.trim() || content, role: parts[1]?.trim() || undefined };
 }
+
+import type { Segment } from '../../types';
+import { parseTimecode } from '../../adapters/time-utils';
+
+export interface TransitionInfo {
+  type: string;
+  durationInFrames: number;
+}
+
+export interface SegmentPosition {
+  segId: string;
+  from: number;
+  duration: number;
+  transitionIn?: TransitionInfo;
+}
+
+export function getTransitionInfo(seg: Segment, fps: number): TransitionInfo | null {
+  const trans = seg.transition[0];
+  if (!trans) return null;
+  const durationSec = parseFloat(trans.content?.replace('s', '') || '1');
+  return { type: trans.content_type, durationInFrames: Math.round(durationSec * fps) };
+}
+
+export function calculateSegmentPositions(
+  segments: Segment[],
+  fps: number,
+  mode: 'overlap' | 'fade',
+): { positions: SegmentPosition[]; totalFrames: number } {
+  const positions: SegmentPosition[] = [];
+
+  if (mode === 'fade') {
+    // Absolute positioning from timecodes
+    let maxFrame = 0;
+    for (const seg of segments) {
+      const from = Math.round(parseTimecode(seg.start) * fps);
+      const duration = Math.round(seg.duration_seconds * fps);
+      if (duration <= 0) continue;
+      const transInfo = getTransitionInfo(seg, fps);
+      positions.push({ segId: seg.id, from, duration, transitionIn: transInfo || undefined });
+      maxFrame = Math.max(maxFrame, from + duration);
+    }
+    return { positions, totalFrames: Math.max(1, maxFrame) };
+  }
+
+  // Overlap mode: sequential, transitions eat into the preceding segment's advance
+  let currentFrame = 0;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const duration = Math.round(seg.duration_seconds * fps);
+    if (duration <= 0) continue;
+    const transInfo = getTransitionInfo(seg, fps);
+    // Clamp transition to segment duration
+    if (transInfo && transInfo.durationInFrames > duration) {
+      transInfo.durationInFrames = duration;
+    }
+    positions.push({ segId: seg.id, from: currentFrame, duration, transitionIn: transInfo || undefined });
+    // The next segment's transition (transitionIn) causes it to overlap with this segment,
+    // so we look ahead: if the next segment has a transition, subtract its duration from our advance.
+    const nextSeg = segments[i + 1];
+    const nextTransInfo = nextSeg ? getTransitionInfo(nextSeg, fps) : null;
+    const nextDuration = nextSeg ? Math.round(nextSeg.duration_seconds * fps) : 0;
+    let overlap = 0;
+    if (nextTransInfo && nextDuration > 0) {
+      const clampedNext = Math.min(nextTransInfo.durationInFrames, nextDuration);
+      overlap = clampedNext;
+    }
+    currentFrame += duration - overlap;
+  }
+  return { positions, totalFrames: Math.max(1, currentFrame) };
+}
