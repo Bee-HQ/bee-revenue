@@ -1,6 +1,7 @@
 import { registerRoot, Composition } from 'remotion';
 import { BeeComposition } from './components/BeeComposition.tsx';
 import type { Storyboard } from './types/index.ts';
+import { calculateSegmentPositions } from './components/remotion/overlays.ts';
 
 const Root: React.FC = () => {
   return (
@@ -15,9 +16,9 @@ const Root: React.FC = () => {
       calculateMetadata={({ props }) => {
         const sb = props.storyboard;
         if (!sb) return { durationInFrames: 1 };
-        return {
-          durationInFrames: Math.max(1, Math.round(sb.total_duration_seconds * 30)),
-        };
+        const mode = props.transitionMode || 'overlap';
+        const { totalFrames } = calculateSegmentPositions(sb.segments, 30, mode);
+        return { durationInFrames: Math.max(1, totalFrames) };
       }}
     />
   );

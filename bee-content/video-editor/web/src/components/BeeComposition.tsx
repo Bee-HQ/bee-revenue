@@ -53,11 +53,12 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration:
       {/* LowerThird -- special case (different props interface) */}
       {seg.overlay.filter(o => o.content_type === 'LOWER_THIRD').map((lt, i) => {
         const { name, role } = parseLowerThirdContent(lt.content);
-        const dur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
+        const defaultDur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
         const offset = lt.time_start ? Math.round(parseTimecode(lt.time_start) * fps) : 0;
+        const clampedDur = Math.min(defaultDur, segDuration - offset);
         return (
-          <Sequence key={`lt-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
-            <LowerThird name={name} role={role} durationInFrames={dur} />
+          <Sequence key={`lt-${i}`} from={offset} durationInFrames={clampedDur}>
+            <LowerThird name={name} role={role} durationInFrames={clampedDur} />
           </Sequence>
         );
       })}
@@ -69,9 +70,10 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration:
         const defaultDur = (DEFAULT_DURATIONS[entry.content_type] || 3) * fps;
         const dur = Math.min(defaultDur, segDuration);
         const offset = entry.time_start ? Math.round(parseTimecode(entry.time_start) * fps) : 0;
+        const clampedDur = Math.min(dur, segDuration - offset);
         return (
-          <Sequence key={`ov-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
-            <Component content={entry.content} metadata={entry.metadata} durationInFrames={dur} />
+          <Sequence key={`ov-${i}`} from={offset} durationInFrames={clampedDur}>
+            <Component content={entry.content} metadata={entry.metadata} durationInFrames={clampedDur} />
           </Sequence>
         );
       })}
@@ -127,10 +129,33 @@ export const BeeComposition: React.FC<{
           );
         }
 
-        // Overlap transitions are rendered between segments (handled below)
         return (
           <Sequence key={seg.id} from={pos.from} durationInFrames={pos.duration} name={seg.title}>
             {segmentContent}
+          </Sequence>
+        );
+      })}
+
+      {/* Overlap mode: render TransitionRenderer during overlap windows */}
+      {transitionMode === 'overlap' && positions.map((pos, i) => {
+        if (i === 0 || !pos.transitionIn) return null;
+        const prevPos = positions[i - 1];
+        const prevSeg = segmentMap.get(prevPos.segId);
+        const curSeg = segmentMap.get(pos.segId);
+        if (!prevSeg || !curSeg) return null;
+
+        const overlapStart = pos.from;
+        const transDur = pos.transitionIn.durationInFrames;
+
+        return (
+          <Sequence key={`trans-${pos.segId}`} from={overlapStart} durationInFrames={transDur}>
+            <TransitionRenderer
+              type={pos.transitionIn.type}
+              durationInFrames={transDur}
+              mode="overlap"
+              outgoing={<SegmentVisual seg={prevSeg} knownFiles={knownFiles} />}
+              incoming={<SegmentVisual seg={curSeg} knownFiles={knownFiles} />}
+            />
           </Sequence>
         );
       })}

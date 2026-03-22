@@ -40,7 +40,7 @@ export function parseDollarAmount(text: string): { displayValue: string; numeric
 
 /** Parse "Name — Role" for LowerThird adapter */
 export function parseLowerThirdContent(content: string): { name: string; role?: string } {
-  const parts = content.split(/\s*[—–-]\s*/);
+  const parts = content.split(/\s*[—–]\s*/);
   return { name: parts[0]?.trim() || content, role: parts[1]?.trim() || undefined };
 }
 
