@@ -54,7 +54,11 @@ projectRoutes.post('/load', (req, res, next) => {
       storyboard_path: string;
       project_dir: string;
     };
-    const project = store.loadFromMarkdown(storyboard_path, project_dir);
+    const resolvedDir = path.resolve(project_dir);
+    const resolvedPath = path.isAbsolute(storyboard_path)
+      ? storyboard_path
+      : path.resolve(resolvedDir, storyboard_path);
+    const project = store.loadFromMarkdown(resolvedPath, resolvedDir);
     res.json(project);
   } catch (err) {
     next(err);

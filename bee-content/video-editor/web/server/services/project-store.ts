@@ -22,8 +22,7 @@ class ProjectStore {
   // ---------- Load ----------
 
   loadFromMarkdown(mdPath: string, projectDir: string): BeeProject {
-    const resolvedPath = path.isAbsolute(mdPath) ? mdPath : path.resolve(projectDir, mdPath);
-    const markdown = fs.readFileSync(resolvedPath, 'utf-8');
+    const markdown = fs.readFileSync(mdPath, 'utf-8');
     const project = parseStoryboardMarkdown(markdown);
     this.project = project;
     this.projectDir = projectDir;
