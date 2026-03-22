@@ -347,15 +347,12 @@ const HighlightPreset: React.FC<{
   durationInFrames: number;
 }> = ({ words, color, accentColor, durationInFrames }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const { timingMultiplier } = useQuality();
 
   const visibleWords = words.filter((w) => w.text !== '');
-  const fadeInEnd = Math.round(10 * timingMultiplier);
-  const highlightStart = fadeInEnd + 3;
-  const highlightStagger = Math.round(5 * timingMultiplier);
 
-  const textOpacity = interpolate(frame, [0, fadeInEnd], [0, 1], {
+  // Fast text fade-in: 8 frames (~0.27s)
+  const textOpacity = interpolate(frame, [0, 8], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -367,7 +364,10 @@ const HighlightPreset: React.FC<{
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
-  // Count how many emphasized words have appeared before this one
+  // Highlight timing: starts at frame 15 (~0.5s), each wipe takes 10 frames
+  const HIGHLIGHT_START = 15;
+  const WIPE_DURATION = 10;
+  const HIGHLIGHT_GAP = Math.round(12 * timingMultiplier); // gap between highlight groups
   let emphasisIdx = 0;
 
   return (
@@ -385,12 +385,14 @@ const HighlightPreset: React.FC<{
       {visibleWords.map((word, i) => {
         let highlightProgress = 0;
         if (word.emphasis !== 'none') {
-          const delay = highlightStart + emphasisIdx * highlightStagger;
-          highlightProgress = spring({
-            frame: Math.max(0, frame - delay),
-            fps,
-            config: { mass: 1, damping: 15, stiffness: 120, overshootClamping: true },
-          });
+          const wipeStart = HIGHLIGHT_START + emphasisIdx * HIGHLIGHT_GAP;
+          const wipeEnd = wipeStart + WIPE_DURATION;
+          highlightProgress = interpolate(
+            frame,
+            [wipeStart, wipeEnd],
+            [0, 1],
+            { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+          );
           emphasisIdx++;
         }
 
@@ -409,6 +411,7 @@ const HighlightPreset: React.FC<{
               opacity: textOpacity,
               textShadow: '0 2px 8px rgba(0,0,0,0.5)',
               padding: word.emphasis !== 'none' ? '2px 8px' : '2px 0',
+              isolation: 'isolate',
             }}
           >
             {word.emphasis !== 'none' && (
@@ -426,7 +429,7 @@ const HighlightPreset: React.FC<{
                 }}
               />
             )}
-            {word.text}
+            <span style={{ position: 'relative', zIndex: 1 }}>{word.text}</span>
           </span>
         );
       })}

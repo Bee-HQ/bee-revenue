@@ -141,7 +141,13 @@ function buildPath(data: CalloutData): string {
 // ---------------------------------------------------------------------------
 
 function computeLabelPosition(data: CalloutData): { top?: number; bottom?: number; left: number } {
-  const { targetY, targetX, targetSize, labelPosition: pos } = data;
+  const { targetY, targetX, targetSize, labelPosition: pos, style } = data;
+
+  // Arrow: label goes right at the arrow tip (the target point)
+  if (style === 'arrow' && pos === 'auto') {
+    return { top: targetY + 15, left: targetX };
+  }
+
   switch (pos) {
     case 'top':
       return { top: targetY - targetSize - 60, left: targetX };
