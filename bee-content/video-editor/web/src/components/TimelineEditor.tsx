@@ -46,33 +46,40 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const setCurrentTimeMs = useProjectStore(s => s.setCurrentTimeMs);
   const currentTimeMs = useProjectStore(s => s.currentTimeMs);
   const timelineRef = useRef<TimelineState>(null);
-  const [zoomLevel, setZoomLevel] = useState(5);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [effects, setEffects] = useState<Record<string, any>>({});
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
-  const isPlayingRef = useRef(false);
-  const lastSyncRef = useRef(0);
 
-  // Track Remotion play/pause state for cursor sync throttling
-  useEffect(() => {
-    const player = useProjectStore.getState().playerRef?.current;
-    if (!player || typeof player.addEventListener !== 'function') return;
-    try {
-      const onPlay = () => { isPlayingRef.current = true; };
-      const onPause = () => { isPlayingRef.current = false; };
-      player.addEventListener('play', onPlay as never);
-      player.addEventListener('pause', onPause as never);
-      return () => {
-        try {
-          player.removeEventListener('play', onPlay as never);
-          player.removeEventListener('pause', onPause as never);
-        } catch {}
-      };
-    } catch {
-      // addEventListener internal crash — isPlayingRef stays false (safe default)
+  // Compute scaleWidth so zoom=1 fits the full duration to the container width.
+  // Higher zoom levels expand proportionally.
+  const SCALE = 10; // seconds per major grid division
+  const totalDuration = editorData.reduce((max, row) => {
+    for (const a of row.actions) {
+      if (a.end > max) max = a.end;
     }
-  }, [storyboard]);
+    return max;
+  }, 30); // minimum 30s so empty timelines don't look weird
+  const [containerWidth, setContainerWidth] = useState(800);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setContainerWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // At zoom=1, the full duration fits the container.
+  // scaleWidth = pixels per `scale` seconds.
+  // Total pixels = (totalDuration / SCALE) * scaleWidth => should equal containerWidth at zoom=1
+  // So base scaleWidth = containerWidth / (totalDuration / SCALE) = containerWidth * SCALE / totalDuration
+  const baseScaleWidth = Math.max(20, (containerWidth * SCALE) / totalDuration);
+  const scaleWidth = baseScaleWidth * zoomLevel;
 
   // Convert storyboard → timeline rows on storyboard change
   // Skip re-conversion when storyboard was updated by the debounced sync callback
@@ -88,15 +95,11 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     pushTimelineHistory(rows);
   }, [storyboard]);
 
-  // Sync Remotion playback → timeline cursor (throttled during playback)
+  // Sync Remotion playback → timeline cursor.
+  // RemotionPreview polls at 100ms (~10fps), so updates are already throttled at the source.
   useEffect(() => {
     if (!timelineRef.current) return;
-    const now = Date.now();
-    // During playback: throttle to ~5fps to avoid 30fps churn
-    if (isPlayingRef.current && now - lastSyncRef.current < 200) return;
-    lastSyncRef.current = now;
     timelineRef.current.setTime(currentTimeMs / 1000);
-    // reRender() needed for the library to visually update cursor position
     (timelineRef.current as any).reRender?.();
   }, [currentTimeMs]);
 
@@ -298,10 +301,10 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
         {/* View group */}
         <div className="w-px h-4 bg-editor-border" />
         <input
-          type="range" min="1" max="10" value={zoomLevel}
+          type="range" min="1" max="20" value={zoomLevel}
           onChange={(e) => setZoomLevel(parseInt(e.target.value))}
           className="w-20"
-          title="Zoom"
+          title="Zoom (1 = fit to screen)"
         />
         <button
           onClick={() => useProjectStore.getState().timelineUndo()}
@@ -321,15 +324,15 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
         </button>
       </div>
       {/* Timeline */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
             editorData={editorData}
             effects={effects}
             onChange={handleChange}
-            scale={10}
-            scaleWidth={zoomLevel * 60}
+            scale={SCALE}
+            scaleWidth={scaleWidth}
             rowHeight={28}
             gridSnap={snapEnabled}
             dragLine={true}
