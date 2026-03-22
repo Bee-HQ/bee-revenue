@@ -1,135 +1,129 @@
-"""Convert ParsedStoryboard → StoryboardSchema for API backward compatibility."""
+"""Convert ParsedStoryboard → BeeProjectSchema for API responses."""
 
 from __future__ import annotations
 
 from bee_video_editor.api.schemas import (
-    LayerEntrySchema,
-    SegmentSchema,
-    StoryboardSchema,
+    AudioEntrySchema,
+    BeeProjectSchema,
+    BeeSegmentSchema,
+    MusicEntrySchema,
+    OverlayEntrySchema,
+    ProductionStateSchema,
+    TransitionEntrySchema,
+    VisualEntrySchema,
 )
 from bee_video_editor.formats.parser import ParsedStoryboard, ParsedSegment, segment_duration
 from bee_video_editor.formats.timecodes import parse_header_tc
 
 
-def parsed_to_schema(parsed: ParsedStoryboard) -> StoryboardSchema:
+def parsed_to_schema(parsed: ParsedStoryboard) -> BeeProjectSchema:
     segments = [_segment_to_schema(seg) for seg in parsed.segments]
 
-    stock_count = sum(1 for s in parsed.segments for v in s.config.visual if v.type == "STOCK")
-    photo_count = sum(1 for s in parsed.segments for v in s.config.visual if v.type == "PHOTO")
-    map_count = sum(1 for s in parsed.segments for v in s.config.visual if v.type == "MAP")
-    max_end = max((parse_header_tc(s.end) for s in parsed.segments), default=0)
+    production = ProductionStateSchema()
+    if parsed.project.voice_lock:
+        production.narrationEngine = parsed.project.voice_lock.engine
+        production.narrationVoice = parsed.project.voice_lock.voice
 
-    return StoryboardSchema(
+    fps = 30
+    resolution = [1920, 1080]
+    if parsed.project.output:
+        fps = parsed.project.output.fps
+        parts = parsed.project.output.resolution.split("x")
+        if len(parts) == 2:
+            resolution = [int(parts[0]), int(parts[1])]
+
+    return BeeProjectSchema(
         title=parsed.project.title,
-        total_segments=len(segments),
-        total_duration_seconds=int(max_end),
-        sections=[sec.title for sec in parsed.sections],
+        fps=fps,
+        resolution=resolution,
         segments=segments,
-        stock_footage_needed=stock_count,
-        photos_needed=photo_count,
-        maps_needed=map_count,
-        production_rules=[],
+        production=production,
     )
 
 
-def _segment_to_schema(seg: ParsedSegment) -> SegmentSchema:
-    visual = []
+def _segment_to_schema(seg: ParsedSegment) -> BeeSegmentSchema:
+    start_sec = parse_header_tc(seg.start)
+    dur_sec = segment_duration(seg)
+
+    visual: list[VisualEntrySchema] = []
     for v in seg.config.visual:
-        meta: dict = {
-            "color": v.color,
-            "ken_burns": v.ken_burns,
-            "tc_in": v.tc_in,
-            "out": v.out,
-        }
-        if v.download_url:
-            meta["download_url"] = v.download_url
-        if v.download_trim:
-            meta["download_trim"] = v.download_trim
-        if v.pexels_url:
-            meta["pexels_url"] = v.pexels_url
-        if v.query:
-            meta["query"] = v.query
-        visual.append(LayerEntrySchema(
-            content=v.src or v.query or v.prompt or v.type,
-            content_type=v.type,
-            metadata=meta,
+        trim: list[float] | None = None
+        if v.tc_in is not None or v.out is not None:
+            try:
+                tc_in = parse_header_tc(v.tc_in) if v.tc_in else 0.0
+            except (ValueError, AttributeError):
+                try:
+                    tc_in = float(v.tc_in)
+                except (TypeError, ValueError):
+                    tc_in = 0.0
+            try:
+                tc_out = parse_header_tc(v.out) if v.out else None
+            except (ValueError, AttributeError):
+                try:
+                    tc_out = float(v.out) if v.out else None
+                except (TypeError, ValueError):
+                    tc_out = None
+            trim = [tc_in, tc_out] if tc_out is not None else [tc_in]
+
+        visual.append(VisualEntrySchema(
+            type=v.type,
+            src=v.src or None,
+            trim=trim,
+            color=v.color,
+            kenBurns=v.ken_burns,
+            query=v.query,
         ))
 
-    audio = []
+    audio: list[AudioEntrySchema] = []
     for a in seg.config.audio:
         if a.type == "MUSIC":
             continue
-        a_meta: dict = {
-            "volume": a.volume,
-            "fade_in": a.fade_in,
-            "fade_out": a.fade_out,
-        }
-        if a.download_url:
-            a_meta["download_url"] = a.download_url
-        audio.append(LayerEntrySchema(
-            content=a.src or "",
-            content_type=a.type,
-            metadata=a_meta,
+        audio.append(AudioEntrySchema(
+            type=a.type,
+            src=a.src or None,
+            volume=a.volume,
         ))
     if seg.narration:
-        audio.append(LayerEntrySchema(content=seg.narration, content_type="NAR"))
+        audio.append(AudioEntrySchema(
+            type="NAR",
+            text=seg.narration,
+        ))
 
-    music = []
+    music: list[MusicEntrySchema] = []
     for a in seg.config.audio:
         if a.type != "MUSIC":
             continue
-        m_meta: dict = {
-            "volume": a.volume,
-            "fade_in": a.fade_in,
-            "fade_out": a.fade_out,
-        }
-        if a.download_url:
-            m_meta["download_url"] = a.download_url
-        music.append(LayerEntrySchema(
-            content=a.src or "",
-            content_type=a.type,
-            metadata=m_meta,
+        music.append(MusicEntrySchema(
+            type=a.type,
+            src=a.src or None,
+            volume=a.volume,
         ))
 
-    overlay = [
-        LayerEntrySchema(
-            content=o.text or o.quote or o.date or o.amount or "",
-            content_type=o.type,
-        )
-        for o in seg.config.overlay
-    ]
+    overlay: list[OverlayEntrySchema] = []
+    for o in seg.config.overlay:
+        content = o.text or o.quote or o.date or o.amount or ""
+        overlay.append(OverlayEntrySchema(
+            type=o.type,
+            content=content,
+            duration=o.duration,
+        ))
 
-    source = [
-        LayerEntrySchema(content=v.src or "", content_type=v.type)
-        for v in seg.config.visual if v.src
-    ]
-
-    transition = []
+    transition: TransitionEntrySchema | None = None
     if seg.config.transition_in:
-        transition.append(LayerEntrySchema(
-            content=f"{seg.config.transition_in.duration}s",
-            content_type=seg.config.transition_in.type.upper(),
-        ))
+        transition = TransitionEntrySchema(
+            type=seg.config.transition_in.type.upper(),
+            duration=seg.config.transition_in.duration,
+        )
 
-    assigned_media: dict[str, str] = {}
-    for i, v in enumerate(seg.config.visual):
-        if v.src:
-            assigned_media[f"visual:{i}"] = v.src
-
-    return SegmentSchema(
+    return BeeSegmentSchema(
         id=seg.id,
-        start=seg.start,
-        end=seg.end,
         title=seg.title,
         section=seg.section,
-        section_time="",
-        subsection="",
-        duration_seconds=segment_duration(seg),
+        start=start_sec,
+        duration=dur_sec,
         visual=visual,
         audio=audio,
         overlay=overlay,
         music=music,
-        source=source,
         transition=transition,
-        assigned_media=assigned_media,
     )

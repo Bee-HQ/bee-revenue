@@ -170,3 +170,76 @@ class GenerateClipRequest(BaseModel):
     reference_images: list[str] = []
     reference_videos: list[str] = []
     style: str | None = None
+
+
+# ─── BeeProject format (new) ──────────────────────────────────────────────────
+
+
+class VisualEntrySchema(BaseModel):
+    type: str
+    src: str | None = None
+    trim: list[float] | None = None
+    color: str | None = None
+    kenBurns: str | None = None
+    query: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+
+
+class AudioEntrySchema(BaseModel):
+    type: str
+    src: str | None = None
+    text: str | None = None
+    volume: float | None = None
+
+
+class OverlayEntrySchema(BaseModel):
+    type: str
+    content: str = ""
+    startOffset: float | None = None
+    duration: float | None = None
+    platform: str | None = None
+    animation: str | None = None
+
+
+class MusicEntrySchema(BaseModel):
+    type: str
+    src: str | None = None
+    volume: float | None = None
+
+
+class TransitionEntrySchema(BaseModel):
+    type: str
+    duration: float
+
+
+class BeeSegmentSchema(BaseModel):
+    id: str
+    title: str
+    section: str
+    start: float
+    duration: float
+    visual: list[VisualEntrySchema]
+    audio: list[AudioEntrySchema]
+    overlay: list[OverlayEntrySchema]
+    music: list[MusicEntrySchema]
+    transition: TransitionEntrySchema | None = None
+
+
+class ProductionStateSchema(BaseModel):
+    narrationEngine: str = "edge"
+    narrationVoice: str = ""
+    transitionMode: str = "overlap"
+    status: dict = {"narration": None, "stock": None, "render": None}
+    renders: list = []
+
+
+class BeeProjectSchema(BaseModel):
+    version: int = 1
+    title: str
+    fps: int = 30
+    resolution: list[int] = [1920, 1080]
+    createdAt: str = ""
+    updatedAt: str = ""
+    segments: list[BeeSegmentSchema]
+    production: ProductionStateSchema = ProductionStateSchema()

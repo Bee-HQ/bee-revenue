@@ -107,7 +107,6 @@ class TestProjectLoad:
         assert r.status_code == 200
         data = r.json()
         assert data["title"] == "Loaded"
-        assert data["total_segments"] == 1
         assert len(data["segments"]) == 1
 
     def test_load_nonexistent_storyboard_404(self, project_env):
@@ -131,7 +130,7 @@ class TestProjectCurrent:
         assert r.status_code == 200
         data = r.json()
         assert data["title"] == "Murder Mystery"
-        assert data["total_segments"] == 3
+        assert len(data["segments"]) == 3
 
 
 # ─── Assign / Unassign ──────────────────────────────────────────────────────
@@ -154,7 +153,7 @@ class TestAssignMedia:
         # Read back via current project
         r = client.get("/api/projects/current")
         seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
-        assert seg["assigned_media"]["visual:0"] == "/media/clip.mp4"
+        assert seg["visual"][0]["src"] == "/media/clip.mp4"
 
     def test_unassign_with_empty_string(self, loaded_project):
         client, session, proj_dir = loaded_project
@@ -180,7 +179,7 @@ class TestAssignMedia:
         # Verify removed
         r = client.get("/api/projects/current")
         seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
-        assert "visual:0" not in seg["assigned_media"]
+        assert seg["visual"][0]["src"] is None
 
     def test_assign_unknown_segment_404(self, loaded_project):
         client, _, _ = loaded_project
@@ -524,7 +523,7 @@ class TestUnassignPreservesOtherAssignments:
         # Read back and confirm
         r = client.get("/api/projects/current")
         seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
-        assert seg["assigned_media"]["visual:0"] == "/media/video.mp4"
+        assert seg["visual"][0]["src"] == "/media/video.mp4"
 
         # Unassign visual
         client.put("/api/projects/assign", json={
@@ -535,7 +534,7 @@ class TestUnassignPreservesOtherAssignments:
         # Visual must be gone
         r = client.get("/api/projects/current")
         seg = next(s for s in r.json()["segments"] if s["id"] == seg_id)
-        assert "visual:0" not in seg["assigned_media"]
+        assert seg["visual"][0]["src"] is None
 
 
 class TestDownloadTaskPruning:

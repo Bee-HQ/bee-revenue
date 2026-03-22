@@ -9,10 +9,10 @@ from fastapi import APIRouter, Depends
 from bee_video_editor.api.schema_compat import parsed_to_schema
 from bee_video_editor.api.schemas import (
     AssignMediaRequest,
+    BeeProjectSchema,
     DownloadEntryRequest,
     LoadProjectRequest,
     ReorderSegmentsRequest,
-    StoryboardSchema,
     UpdateSegmentRequest,
 )
 from bee_video_editor.api.session import SessionStore, get_session
@@ -20,14 +20,14 @@ from bee_video_editor.api.session import SessionStore, get_session
 router = APIRouter()
 
 
-@router.post("/load", response_model=StoryboardSchema)
+@router.post("/load", response_model=BeeProjectSchema)
 def load_project(req: LoadProjectRequest, session: SessionStore = Depends(get_session)):
     """Load a storyboard file and return the parsed project."""
     parsed = session.load_project(Path(req.storyboard_path), Path(req.project_dir))
     return parsed_to_schema(parsed)
 
 
-@router.get("/current", response_model=StoryboardSchema)
+@router.get("/current", response_model=BeeProjectSchema)
 def get_current_project(session: SessionStore = Depends(get_session)):
     """Get the currently loaded project."""
     parsed, _ = session.require_project()
