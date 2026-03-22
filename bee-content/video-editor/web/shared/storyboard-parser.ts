@@ -117,7 +117,7 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
 
   // ---- Extract project block ----
   const projectMatch = markdown.match(
-    /```bee-video:project\s*\n([\s\S]*?)\n```/
+    /```(?:json\s+)?bee-video:project\s*\n([\s\S]*?)\n```/
   );
   let projectConfig: { title?: string; fps?: number; resolution?: [number, number] } = {};
   if (projectMatch) {
@@ -152,11 +152,11 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
   for (const line of lines) {
     // Detect opening code fence
     if (!inSegmentBlock && !inProjectBlock) {
-      if (line.startsWith('```bee-video:project')) {
+      if (line.startsWith('```bee-video:project') || line.startsWith('```json bee-video:project')) {
         inProjectBlock = true;
         continue;
       }
-      if (line.startsWith('```bee-video:segment')) {
+      if (line.startsWith('```bee-video:segment') || line.startsWith('```json bee-video:segment')) {
         inSegmentBlock = true;
         blockLines = [];
         continue;
