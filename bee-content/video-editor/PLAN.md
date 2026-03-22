@@ -84,9 +84,9 @@ bee-content/video-editor/
 - **ProductionBar**: Buttons for generate narration, graphics, trim, assemble. Progress indicators.
 
 ### 4. Wire up + dev experience
-- `uv run bee-video serve` CLI command to start FastAPI + serve built frontend
-- Vite dev server proxies API calls to FastAPI during development
-- Single `bee-video serve --dev` flag for hot-reload mode
+- `cd web && ./start.sh` to start Express server + serve built frontend
+- Vite dev server proxies API calls to Express during development (`./dev.sh`)
+- Express server replaces FastAPI — no Python needed for the web editor
 
 ## Key design decisions
 

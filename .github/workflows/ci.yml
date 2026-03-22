@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
-      - run: uv sync --extra dev --extra web --extra animation --extra maps
+      - run: uv sync --extra dev --extra animation --extra maps
       - run: uv run pytest tests/ -v
 
   test-video-editor-e2e:
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - uses: astral-sh/setup-uv@v4
-      - run: uv sync --extra dev --extra web --extra animation --extra maps
+      - run: uv sync --extra dev --extra animation --extra maps
       - uses: actions/setup-node@v4
         with:
           node-version: 20

@@ -35,7 +35,7 @@ uv run bee-video voice-lock elevenlabs --voice Daniel -p ./my-project
 uv run bee-video rough-cut storyboard.md -p ./my-project
 
 # Launch web editor
-uv run bee-video serve --dev
+cd web && ./dev.sh     # Dev mode (Express + Vite hot reload)
 
 # Render final video via Remotion (pixel-perfect MP4 with all overlays)
 node web/render.mjs

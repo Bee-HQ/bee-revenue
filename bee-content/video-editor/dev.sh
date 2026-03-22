@@ -21,9 +21,8 @@ find_open_port() {
 }
 
 kill_previous() {
-    # Kill previous bee-video serve instances
-    pkill -f "bee-video serve" 2>/dev/null || true
-    pkill -f "uvicorn.*bee_video" 2>/dev/null || true
+    # Kill previous Express/tsx server instances
+    pkill -f "tsx.*server/index" 2>/dev/null || true
     # Kill previous vite dev servers in this project
     pkill -f "vite.*--port" 2>/dev/null || true
     pkill -f "node.*vite" 2>/dev/null || true
@@ -50,7 +49,7 @@ trap cleanup EXIT INT TERM
 
 # Start backend
 echo "Starting backend on :$BACKEND_PORT"
-uv run bee-video serve --dev --port "$BACKEND_PORT" &
+cd web && PORT=$BACKEND_PORT npx tsx watch server/index.ts &
 BACKEND_PID=$!
 
 # Start frontend with matching proxy

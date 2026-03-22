@@ -167,7 +167,7 @@ install_video() {
     fi
 
     echo "  CLI: uv run bee-video --help"
-    echo "  Web: uv run bee-video serve"
+    echo "  Web: cd bee-content/video-editor && ./start.sh"
 }
 
 # ── Environment Setup ─────────────────────────────────────────
@@ -253,7 +253,7 @@ print_summary() {
     echo "    cd bee-content/research   && uv run bee-research --help"
     echo "    cd bee-content/automation && uv run bee-auto --help"
     echo "    cd bee-content/video-editor && uv run bee-video --help"
-    echo "    cd bee-content/video-editor && uv run bee-video serve"
+    echo "    cd bee-content/video-editor && ./start.sh"
     echo ""
     echo "  Run tests:"
     echo "    ./setup.sh test"

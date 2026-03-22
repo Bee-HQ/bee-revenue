@@ -15,6 +15,59 @@ import httpx
 
 
 # ---------------------------------------------------------------------------
+# Download helpers (moved from api.session after FastAPI removal)
+# ---------------------------------------------------------------------------
+
+def _validate_download_url(url: str) -> None:
+    """Block non-HTTPS, private IPs, internal hosts."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Only HTTPS URLs are allowed, got {parsed.scheme}://")
+    if not parsed.hostname:
+        raise ValueError("Invalid URL: no hostname")
+    hostname = parsed.hostname
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+            raise ValueError("Downloads from private/internal addresses are not allowed")
+    except ValueError as e:
+        if "not allowed" in str(e):
+            raise
+    try:
+        addrs = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        for _family, _, _, _, sockaddr in addrs:
+            ip = ipaddress.ip_address(sockaddr[0])
+            if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+                raise ValueError("Downloads from private/internal addresses are not allowed")
+    except socket.gaierror:
+        raise ValueError(f"Cannot resolve hostname: {hostname}")
+
+
+def _stream_download(url: str, out_path: Path) -> None:
+    """Stream-download a URL to a file path."""
+    import ipaddress
+
+    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp:
+        resp.raise_for_status()
+        final_host = resp.url.host
+        if final_host:
+            try:
+                ip = ipaddress.ip_address(final_host)
+                if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+                    raise ValueError("Redirect to private/internal address blocked")
+            except ValueError as e:
+                if "blocked" in str(e):
+                    raise
+        with open(out_path, "wb") as f:
+            for chunk in resp.iter_bytes():
+                f.write(chunk)
+
+
+# ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
 
@@ -315,7 +368,7 @@ def download_media(
 
     Returns the output path on success, None on failure.
     """
-    from bee_video_editor.api.session import _validate_download_url, _stream_download
+    from bee_video_editor.processors.media_search import _validate_download_url, _stream_download
 
     output_path = Path(output_path)
     if output_path.exists():
