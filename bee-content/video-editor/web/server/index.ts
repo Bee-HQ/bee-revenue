@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { projectRoutes } from './routes/projects.js';
+import { mediaRoutes } from './routes/media.js';
+import { productionRoutes } from './routes/production.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,6 +15,11 @@ const PORT = parseInt(process.env.PORT || '8420');
 const origins = (process.env.CORS_ORIGINS || '*').split(',');
 app.use(cors({ origin: origins }));
 app.use(express.json());
+
+// API routes
+app.use('/api/projects', projectRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/production', productionRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
