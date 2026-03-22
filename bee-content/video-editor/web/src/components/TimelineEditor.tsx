@@ -226,10 +226,9 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   }, []);
 
   const trackState = useProjectStore(s => s.trackState);
+  const selectedIds = useProjectStore(s => s.selectedActionIds);
 
   if (!storyboard) return null;
-
-  const selectedIds = useProjectStore.getState().selectedActionIds;
   const markedData = editorData
     .filter(row => !trackState[row.id]?.hidden)
     .map(row => {
