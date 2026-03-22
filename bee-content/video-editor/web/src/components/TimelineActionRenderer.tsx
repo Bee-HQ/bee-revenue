@@ -40,7 +40,8 @@ function ActionClip({ action, row }: { action: BeeTimelineAction; row: TimelineR
   else if (data?.src) label = data.src.split('/').pop() || data.title;
 
   const isAudio = AUDIO_EFFECTS.has(effectId);
-  const hasSrc = isAudio && data?.src;
+  // Show waveform for all audio clips — real src or placeholder from title
+  const waveformSrc = isAudio ? (data?.src || `placeholder:${data?.title || action.id}`) : '';
 
   return (
     <div
@@ -60,9 +61,9 @@ function ActionClip({ action, row }: { action: BeeTimelineAction; row: TimelineR
         position: 'relative',
       }}
     >
-      {hasSrc && (
+      {waveformSrc && (
         <WaveformRenderer
-          src={data.src}
+          src={waveformSrc}
           width={clipWidth}
           height={28}
           color={colors.wave}

@@ -1,233 +1,136 @@
-import { useState, useCallback } from 'react';
-import { AbsoluteFill, Sequence, Video, Img, useVideoConfig } from 'remotion';
-import type { Storyboard } from '../types';
-import { parseTimecode, timeToFrames } from '../adapters/time-utils';
+import { useEffect } from 'react';
+import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
+import type { Storyboard, Segment } from '../types';
+import { parseTimecode } from '../adapters/time-utils';
+import { useProjectStore } from '../stores/project';
+import { PlaceholderFrame, isRealFile } from './remotion/PlaceholderFrame';
+import { SafeVideo, SafeImg, mediaUrl, IMAGE_EXTS, COLOR_FILTERS } from './remotion/SafeMedia';
+import { KenBurns } from './remotion/KenBurns';
 import { LowerThird } from './remotion/LowerThird';
 import { CaptionOverlay } from './remotion/CaptionOverlay';
-import { KenBurns } from './remotion/KenBurns';
+import { QuoteCard } from './remotion/QuoteCard';
+import { FinancialCard } from './remotion/FinancialCard';
+import { TextOverlay } from './remotion/TextOverlay';
+import { TimelineMarker } from './remotion/TimelineMarker';
+import { TransitionRenderer } from './remotion/TransitionRenderer';
+import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
+import type { OverlayProps } from './remotion/overlays';
 
-// Remotion renders inside an iframe — media URLs must be same-origin accessible.
-// In dev, Vite proxies /api to the backend.
-function mediaUrl(path: string): string {
-  return `/api/media/file?path=${encodeURIComponent(path)}`;
-}
-
-/** Check if a src path looks like an actual file (not a description or query) */
-function isRealFile(src: string | undefined): boolean {
-  if (!src) return false;
-  // Must contain a slash or end with a media extension
-  const hasPath = src.includes('/');
-  const hasExt = /\.(mp4|mov|mkv|webm|avi|jpg|jpeg|png|webp|gif|mp3|wav|m4a)$/i.test(src);
-  return hasPath || hasExt;
-}
-
-function PlaceholderFrame({ type, title }: { type: string; title: string }) {
-  const typeColors: Record<string, string> = {
-    STOCK: '#1e40af', MAP: '#166534', GRAPHIC: '#86198f',
-    GENERATED: '#7c2d12', WAVEFORM: '#065f46', PHOTO: '#6b21a8',
-  };
-  const bg = typeColors[type] || '#1a1a1a';
-  return (
-    <AbsoluteFill style={{ backgroundColor: bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 48 }}>
-        {type === 'STOCK' ? '📦' : type === 'MAP' ? '🗺️' : type === 'GRAPHIC' ? '🎨' : type === 'GENERATED' ? '🤖' : '🎬'}
-      </span>
-      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: 'Arial' }}>{type}</span>
-      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, fontFamily: 'Arial' }}>{title}</span>
-    </AbsoluteFill>
-  );
-}
-
-
-/** Video wrapper that catches load/playback errors and falls back to a placeholder */
-function SafeVideo({ src, type, title, style }: { src: string; type: string; title: string; style?: React.CSSProperties }) {
-  const [failed, setFailed] = useState(false);
-  const handleError = useCallback(() => setFailed(true), []);
-
-  if (failed) {
-    return <PlaceholderFrame type={type} title={`${title} (media unavailable)`} />;
-  }
-
-  return (
-    <Video
-      src={src}
-      style={style}
-      onError={handleError}
-    />
-  );
-}
-
-/** Image wrapper that catches load errors and falls back to a placeholder */
-function SafeImg({ src, type, title, style }: { src: string; type: string; title: string; style?: React.CSSProperties }) {
-  const [failed, setFailed] = useState(false);
-  const handleError = useCallback(() => setFailed(true), []);
-
-  if (failed) {
-    return <PlaceholderFrame type={type} title={`${title} (media unavailable)`} />;
-  }
-
-  return (
-    <Img
-      src={src}
-      style={style}
-      onError={handleError}
-    />
-  );
-}
-
-const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
-
-const COLOR_FILTERS: Record<string, string> = {
-  dark_crime: 'brightness(0.85) saturate(0.6) contrast(1.2) sepia(0.1)',
-  surveillance: 'brightness(0.8) saturate(0.3) contrast(1.1) hue-rotate(90deg)',
-  noir: 'brightness(0.9) saturate(0) contrast(1.3)',
-  bodycam: 'brightness(0.85) saturate(0.5) contrast(1.1) sepia(0.15)',
-  cold_blue: 'brightness(0.9) saturate(0.7) contrast(1.1) hue-rotate(200deg)',
-  warm_victim: 'brightness(0.9) saturate(0.8) sepia(0.2)',
-  sepia: 'brightness(0.95) saturate(0.5) sepia(0.6)',
-  vintage: 'brightness(0.9) saturate(0.7) sepia(0.3) contrast(1.1)',
-  bleach_bypass: 'brightness(1.1) saturate(0.4) contrast(1.4)',
-  night_vision: 'brightness(0.7) saturate(0.3) hue-rotate(90deg) contrast(1.3)',
-  golden_hour: 'brightness(1.05) saturate(1.2) sepia(0.15)',
-  vhs: 'brightness(0.95) saturate(0.8) contrast(0.9)',
+const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
+  QUOTE_CARD: QuoteCard,
+  FINANCIAL_CARD: FinancialCard,
+  TEXT_OVERLAY: TextOverlay,
+  TIMELINE_MARKER: TimelineMarker,
 };
 
-export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: string[]; showCaptions?: boolean }> = ({
-  storyboard,
-  mediaFiles = [],
-  showCaptions = true,
-}) => {
-  const { fps } = useVideoConfig();
+// Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
+function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<string> }) {
+  const src = seg.assigned_media['visual:0'];
+  const ext = src?.split('.').pop()?.toLowerCase() ?? '';
+  const isImage = IMAGE_EXTS.has(ext);
+  const contentType = seg.visual[0]?.content_type || 'NONE';
+  const colorPreset = seg.visual[0]?.metadata?.color;
+  const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
+  const kenBurns = seg.visual[0]?.metadata?.ken_burns;
+  const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
 
-  // Build a set of known file paths for fast lookup
+  if (!isRealFile(src) || !knownFiles.has(src!)) {
+    return <PlaceholderFrame type={contentType} title={seg.title} />;
+  }
+
+  const visual = isImage
+    ? <SafeImg src={mediaUrl(src)} type={contentType} title={seg.title} style={mediaStyle} />
+    : <SafeVideo src={mediaUrl(src)} type={contentType} title={seg.title} style={mediaStyle} />;
+
+  const graded = <AbsoluteFill style={{ filter: colorFilter }}>{visual}</AbsoluteFill>;
+  return kenBurns ? <KenBurns effect={kenBurns}>{graded}</KenBurns> : graded;
+}
+
+// Renders all overlays for a segment using the registry
+function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration: number; fps: number }) {
+  return (
+    <>
+      {/* LowerThird -- special case (different props interface) */}
+      {seg.overlay.filter(o => o.content_type === 'LOWER_THIRD').map((lt, i) => {
+        const { name, role } = parseLowerThirdContent(lt.content);
+        const dur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
+        const offset = lt.time_start ? Math.round(parseTimecode(lt.time_start) * fps) : 0;
+        return (
+          <Sequence key={`lt-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
+            <LowerThird name={name} role={role} durationInFrames={dur} />
+          </Sequence>
+        );
+      })}
+
+      {/* Registry-based overlays */}
+      {seg.overlay.filter(o => o.content_type !== 'LOWER_THIRD').map((entry, i) => {
+        const Component = OVERLAY_COMPONENTS[entry.content_type];
+        if (!Component) return null;
+        const defaultDur = (DEFAULT_DURATIONS[entry.content_type] || 3) * fps;
+        const dur = Math.min(defaultDur, segDuration);
+        const offset = entry.time_start ? Math.round(parseTimecode(entry.time_start) * fps) : 0;
+        return (
+          <Sequence key={`ov-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
+            <Component content={entry.content} metadata={entry.metadata} durationInFrames={dur} />
+          </Sequence>
+        );
+      })}
+    </>
+  );
+}
+
+export const BeeComposition: React.FC<{
+  storyboard: Storyboard;
+  mediaFiles?: string[];
+  showCaptions?: boolean;
+  transitionMode?: 'overlap' | 'fade';
+}> = ({ storyboard, mediaFiles = [], showCaptions = true, transitionMode = 'overlap' }) => {
+  const { fps } = useVideoConfig();
   const knownFiles = new Set(mediaFiles);
+
+  const { positions, totalFrames } = calculateSegmentPositions(storyboard.segments, fps, transitionMode);
+
+  // Publish computed total frames so RemotionPreview can set Player duration
+  useEffect(() => {
+    useProjectStore.getState().setComputedTotalFrames(totalFrames);
+  }, [totalFrames]);
+
+  // Build segment lookup for transition rendering
+  const segmentMap = new Map(storyboard.segments.map(s => [s.id, s]));
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      {storyboard.segments.map((seg) => {
-        const src = seg.assigned_media['visual:0'];
-        const from = timeToFrames(parseTimecode(seg.start), fps);
-        const duration = timeToFrames(seg.duration_seconds, fps);
+      {positions.map((pos) => {
+        const seg = segmentMap.get(pos.segId);
+        if (!seg) return null;
 
-        if (duration <= 0) return null;
-
-        const ext = src?.split('.').pop()?.toLowerCase() ?? '';
-        const isImage = IMAGE_EXTS.has(ext);
-
-        // Color grade from visual metadata
-        const colorPreset = seg.visual[0]?.metadata?.color;
-        const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
-
-        // Ken Burns effect
-        const kenBurns = seg.visual[0]?.metadata?.ken_burns;
-
-        // Overlays
-        const lowerThirds = seg.overlay.filter(
-          (o) => o.content_type === 'LOWER_THIRD',
-        );
-        const timelineMarkers = seg.overlay.filter(
-          (o) => o.content_type === 'TIMELINE_MARKER',
-        );
-
-        // Narration for captions
-        const narEntry = seg.audio.find((a) => a.content_type === 'NAR');
+        const narEntry = seg.audio.find(a => a.content_type === 'NAR');
         const narrationText = narEntry?.content || '';
 
+        // Segment content (visual + overlays + captions)
+        const segmentContent = (
+          <>
+            <SegmentVisual seg={seg} knownFiles={knownFiles} />
+            <SegmentOverlays seg={seg} segDuration={pos.duration} fps={fps} />
+            {showCaptions && narrationText && <CaptionOverlay text={narrationText} style="karaoke" />}
+          </>
+        );
+
+        // Apply transition if present
+        if (pos.transitionIn && transitionMode === 'fade') {
+          return (
+            <Sequence key={seg.id} from={pos.from} durationInFrames={pos.duration} name={seg.title}>
+              <TransitionRenderer type={pos.transitionIn.type} durationInFrames={pos.duration} mode="fade" position="in">
+                {segmentContent}
+              </TransitionRenderer>
+            </Sequence>
+          );
+        }
+
+        // Overlap transitions are rendered between segments (handled below)
         return (
-          <Sequence
-            key={seg.id}
-            from={from}
-            durationInFrames={duration}
-            name={seg.title}
-          >
-            {/* Base visual with color grade + Ken Burns */}
-            {!isRealFile(src) || !knownFiles.has(src!) ? (
-              <PlaceholderFrame type={seg.visual[0]?.content_type || 'NONE'} title={seg.title} />
-            ) : (() => {
-              const contentType = seg.visual[0]?.content_type || 'NONE';
-              const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
-              const visualContent = isImage ? (
-                <SafeImg
-                  src={mediaUrl(src)}
-                  type={contentType}
-                  title={seg.title}
-                  style={mediaStyle}
-                />
-              ) : (
-                <SafeVideo
-                  src={mediaUrl(src)}
-                  type={contentType}
-                  title={seg.title}
-                  style={mediaStyle}
-                />
-              );
-
-              const graded = (
-                <AbsoluteFill style={{ filter: colorFilter }}>
-                  {visualContent}
-                </AbsoluteFill>
-              );
-
-              return kenBurns ? (
-                <KenBurns effect={kenBurns}>{graded}</KenBurns>
-              ) : graded;
-            })()}
-
-            {/* Lower thirds */}
-            {lowerThirds.map((lt, i) => {
-              const parts = lt.content.split(/\s*[—–-]\s*/);
-              const name = parts[0]?.trim() || lt.content;
-              const role = parts[1]?.trim() || '';
-              const ltDuration = Math.min(4 * fps, duration);
-              return (
-                <Sequence
-                  key={`lt-${i}`}
-                  from={0}
-                  durationInFrames={ltDuration}
-                >
-                  <LowerThird
-                    name={name}
-                    role={role || undefined}
-                    durationInFrames={ltDuration}
-                  />
-                </Sequence>
-              );
-            })}
-
-            {/* Timeline markers */}
-            {timelineMarkers.map((tm, i) => (
-              <Sequence
-                key={`tm-${i}`}
-                from={0}
-                durationInFrames={Math.min(3 * fps, duration)}
-              >
-                <AbsoluteFill
-                  style={{
-                    justifyContent: 'flex-start',
-                    alignItems: 'flex-end',
-                    padding: '40px 60px',
-                  }}
-                >
-                  <div
-                    style={{
-                      background: 'rgba(220, 38, 38, 0.9)',
-                      padding: '8px 20px',
-                      color: '#fff',
-                      fontSize: 24,
-                      fontWeight: 700,
-                      fontFamily: 'Arial, Helvetica, sans-serif',
-                    }}
-                  >
-                    {tm.content}
-                  </div>
-                </AbsoluteFill>
-              </Sequence>
-            ))}
-
-            {/* Captions */}
-            {showCaptions && narrationText && (
-              <CaptionOverlay text={narrationText} style="karaoke" />
-            )}
+          <Sequence key={seg.id} from={pos.from} durationInFrames={pos.duration} name={seg.title}>
+            {segmentContent}
           </Sequence>
         );
       })}
