@@ -177,10 +177,10 @@ export function projectToTimeline(project: BeeProject): {
       });
     });
 
-    // A2: Real audio / SFX (non-NAR audio — use original index)
+    // A2: Real audio / SFX (non-NAR, non-MUSIC audio — use original index)
     seg.audio.forEach((entry: AudioEntry, origIndex: number) => {
-      if (normalizeAudioType(entry.type) === 'NAR') return;
       const audioType = normalizeAudioType(entry.type);
+      if (audioType === 'NAR' || audioType === 'MUSIC') return;
       const srcStr = entry.src ? cleanPath(entry.src) : '';
       trackActions['A2'].push({
         id: `${seg.id}-audio-${origIndex}`,
@@ -197,7 +197,7 @@ export function projectToTimeline(project: BeeProject): {
       });
     });
 
-    // A3: Music
+    // A3: Music (from music[] array + MUSIC-type entries in audio[])
     seg.music.forEach((entry: MusicEntry, i: number) => {
       const srcStr = entry.src ? cleanPath(entry.src) : '';
       trackActions['A3'].push({
@@ -211,6 +211,23 @@ export function projectToTimeline(project: BeeProject): {
           src: srcStr,
           title: srcStr || 'Music',
           layerIndex: i,
+        },
+      });
+    });
+    seg.audio.forEach((entry: AudioEntry, origIndex: number) => {
+      if (normalizeAudioType(entry.type) !== 'MUSIC') return;
+      const srcStr = entry.src ? cleanPath(entry.src) : '';
+      trackActions['A3'].push({
+        id: `${seg.id}-amusic-${origIndex}`,
+        start: startSec,
+        end: endSec,
+        effectId: 'music',
+        data: {
+          segmentId: seg.id,
+          contentType: 'MUSIC',
+          src: srcStr,
+          title: srcStr || 'Music',
+          layerIndex: origIndex,
         },
       });
     });
