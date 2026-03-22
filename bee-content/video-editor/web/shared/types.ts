@@ -83,6 +83,7 @@ export interface BeeProject {
   updatedAt: string;
   segments: BeeSegment[];
   production: ProductionState;
+  quality?: 'standard' | 'premium' | 'social';
 }
 export interface MediaFile {
   name: string;

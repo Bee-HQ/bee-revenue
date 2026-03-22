@@ -47,6 +47,14 @@ const VISUAL_TYPE_MAP: Record<string, string> = {
   'TR-HARD': 'BLACK', 'TR-GLITCH': 'BLACK', 'TR-FLASH': 'BLACK',
   'TR-FADE': 'BLACK', 'TR-DISSOLVE': 'BLACK', 'TR-ZOOM': 'BLACK',
   'TR-SMASH': 'BLACK', 'TR-LCUT': 'BLACK',
+  // New component types (pass through)
+  'KINETIC_TEXT': 'KINETIC_TEXT', 'KINETIC-TEXT': 'KINETIC_TEXT',
+  'INFOGRAPHIC': 'INFOGRAPHIC',
+  'SCREEN_MOCKUP': 'SCREEN_MOCKUP', 'SCREEN-MOCKUP': 'SCREEN_MOCKUP',
+  'DATA_VIZ': 'DATA_VIZ', 'DATA-VIZ': 'DATA_VIZ',
+  'TITLE_CARD': 'TITLE_CARD', 'TITLE-CARD': 'TITLE_CARD',
+  'THREE_D': 'THREE_D', 'THREE-D': 'THREE_D',
+  'LOTTIE': 'LOTTIE',
   // Standard types pass through
   'FOOTAGE': 'FOOTAGE', 'STOCK': 'STOCK', 'PHOTO': 'PHOTO',
   'MAP': 'MAP', 'GRAPHIC': 'GRAPHIC', 'WAVEFORM': 'WAVEFORM',
@@ -129,7 +137,7 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
   const projectMatch = markdown.match(
     /```(?:json\s+)?bee-video:project\s*\n([\s\S]*?)\n```/
   );
-  let projectConfig: { title?: string; fps?: number; resolution?: [number, number] } = {};
+  let projectConfig: { title?: string; fps?: number; resolution?: [number, number]; quality?: 'standard' | 'premium' | 'social' } = {};
   if (projectMatch) {
     try {
       projectConfig = JSON.parse(projectMatch[1]);
@@ -141,6 +149,7 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
   const title = projectConfig.title ?? 'Untitled';
   const fps = projectConfig.fps ?? 30;
   const resolution: [number, number] = projectConfig.resolution ?? [1920, 1080];
+  const quality = projectConfig.quality;
 
   // ---- Walk lines, collecting section headers + segment headers + segment blocks ----
 
@@ -326,5 +335,6 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
     updatedAt: now,
     segments,
     production: defaultProduction(),
+    ...(quality ? { quality } : {}),
   };
 }
