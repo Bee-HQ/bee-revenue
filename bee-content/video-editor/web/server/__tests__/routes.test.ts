@@ -350,11 +350,15 @@ describe('Production routes', () => {
     expect(res.body.status).toBe('ok');
   });
 
-  // 20. POST /api/production/narration — 501
-  test('POST /api/production/narration — returns 501', async () => {
-    const res = await request(app).post('/api/production/narration');
-    expect(res.status).toBe(501);
-    expect(res.body).toHaveProperty('detail');
+  // 20. POST /api/production/narration — now implemented (see tts.test.ts for full coverage)
+  test('POST /api/production/narration — returns 200 with started status', async () => {
+    const res = await request(app)
+      .post('/api/production/narration')
+      .send({ tts_engine: 'edge' });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('started');
+    // Wait for background task to complete
+    await new Promise(r => setTimeout(r, 200));
   });
 });
 

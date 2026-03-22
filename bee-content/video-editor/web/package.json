@@ -17,6 +17,7 @@
     "server:dev": "tsx watch server/index.ts"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.39.0",
     "@remotion/bundler": "^4.0.438",
     "@remotion/cli": "^4.0.438",
     "@remotion/player": "^4.0.438",
@@ -29,6 +30,8 @@
     "lucide-react": "^0.577.0",
     "maplibre-gl": "^5.21.0",
     "multer": "^2.1.1",
+    "node-edge-tts": "^1.2.10",
+    "openai": "^6.32.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "remotion": "^4.0.438",
