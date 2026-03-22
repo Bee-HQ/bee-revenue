@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { store } from '../services/project-store.js';
+import { VALID_ENGINES, getNarrationTask, startNarrationTask } from '../services/tts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -112,12 +113,111 @@ productionRoutes.post('/assemble', stub({ status: 'ok' }));
 productionRoutes.post('/captions', stub({ status: 'ok' }));
 productionRoutes.post('/rough-cut', stub({ status: 'ok' }));
 
+// --- Narration Routes ---
+
+productionRoutes.post('/narration', (req, res, next) => {
+  try {
+    const project = store.get();
+    const projectDir = store.getProjectDir();
+
+    const engine = req.body?.tts_engine || project.production.narrationEngine || 'edge';
+    const voice = req.body?.tts_voice || project.production.narrationVoice || undefined;
+
+    if (!VALID_ENGINES.includes(engine)) {
+      res.status(400).json({
+        detail: `Invalid TTS engine: ${engine}. Available: ${VALID_ENGINES.join(', ')}`,
+      });
+      return;
+    }
+
+    const outputDir = path.join(projectDir, 'output', 'narration');
+    const { total } = startNarrationTask(project.segments, engine, voice, outputDir, projectDir);
+
+    // Persist engine/voice choice
+    store.updateProduction({
+      narrationEngine: engine,
+      narrationVoice: voice || project.production.narrationVoice,
+    });
+
+    res.json({ status: 'started', total });
+  } catch (err: any) {
+    if (err.message === 'Narration is already running') {
+      res.status(409).json({ detail: err.message });
+      return;
+    }
+    next(err);
+  }
+});
+
+productionRoutes.get('/narration/status', async (req, res, next) => {
+  try {
+    const projectDir = store.getProjectDir();
+    const task = getNarrationTask();
+
+    // Ignore stale task from a different project
+    const isCurrentProject = task && task.projectDir === projectDir;
+
+    // Count files on disk for accurate done count
+    let done = 0;
+    const narrationDir = path.join(projectDir, 'output', 'narration');
+    try {
+      const files = await readdir(narrationDir);
+      done = files.filter(f => f.endsWith('.mp3')).length;
+    } catch { /* dir doesn't exist yet */ }
+
+    const result: Record<string, any> = {
+      running: isCurrentProject ? task!.running : false,
+      done,
+      total: isCurrentProject ? task!.total : 0,
+    };
+
+    // Include final results when task is done
+    if (isCurrentProject && !task!.running && task!.status) {
+      result.status = task!.status;
+      result.succeeded = task!.succeeded;
+      result.failed = task!.failed;
+      result.count = task!.succeeded.length;
+    }
+
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// --- Voice Lock Routes ---
+
+productionRoutes.get('/voice-lock', (req, res, next) => {
+  try {
+    const project = store.get();
+    res.json({
+      engine: project.production.narrationEngine || 'edge',
+      voice: project.production.narrationVoice || '',
+    });
+  } catch (err) { next(err); }
+});
+
+productionRoutes.put('/voice-lock', (req, res, next) => {
+  try {
+    const { engine, voice } = req.body || {};
+    if (engine && !VALID_ENGINES.includes(engine)) {
+      res.status(400).json({
+        detail: `Invalid TTS engine: ${engine}. Available: ${VALID_ENGINES.join(', ')}`,
+      });
+      return;
+    }
+    store.updateProduction({
+      ...(engine && { narrationEngine: engine }),
+      ...(voice !== undefined && { narrationVoice: voice }),
+    });
+    const project = store.get();
+    res.json({
+      engine: project.production.narrationEngine,
+      voice: project.production.narrationVoice,
+    });
+  } catch (err) { next(err); }
+});
+
 // --- 501 Stubs (not yet migrated) ---
 
-productionRoutes.post('/narration', notImplemented('Not yet migrated — Step 3'));
-productionRoutes.get('/narration/status', notImplemented('Not yet migrated — Step 3'));
-productionRoutes.put('/voice-lock', notImplemented('Not yet migrated — Step 3'));
-productionRoutes.get('/voice-lock', notImplemented('Not yet migrated — Step 3'));
 productionRoutes.post('/produce', notImplemented('Not yet migrated'));
 productionRoutes.post('/preview/:segmentId', notImplemented('Not yet migrated'));
 productionRoutes.post('/previews', notImplemented('Not yet migrated'));
