@@ -24,12 +24,6 @@ app.use('/api/production', productionRoutes);
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-// Error handler — { detail: "..." } format to match frontend
-app.use((err: any, _req: any, res: any, _next: any) => {
-  const status = err.status || 500;
-  res.status(status).json({ detail: err.message || 'Internal server error' });
-});
-
 // Static frontend (production mode)
 const staticDir = process.env.STATIC_DIR || path.join(__dirname, '../dist');
 app.use(express.static(staticDir));
@@ -39,6 +33,12 @@ app.get('/{*splat}', (req, res) => {
   if (!req.path.startsWith('/api/')) {
     res.sendFile(path.join(staticDir, 'index.html'));
   }
+});
+
+// Error handler — { detail: "..." } format to match frontend (must be last)
+app.use((err: any, _req: any, res: any, _next: any) => {
+  const status = err.status || 500;
+  res.status(status).json({ detail: err.message || 'Internal server error' });
 });
 
 // Only start listening if this is the main module (not imported by tests)

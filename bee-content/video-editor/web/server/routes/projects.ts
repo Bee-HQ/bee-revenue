@@ -77,7 +77,7 @@ projectRoutes.put('/assign', (req, res, next) => {
       media_path: string;
       layer_index?: number;
     };
-    store.assignMedia(segment_id, layer, layer_index || 0, media_path);
+    store.assignMedia(segment_id, layer, layer_index ?? 0, media_path);
     res.json({ status: 'ok' });
   } catch (err) {
     next(err);
