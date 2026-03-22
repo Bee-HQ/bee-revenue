@@ -1,6 +1,6 @@
 [project]
 name = "bee-video-editor"
-version = "0.9.0"
+version = "0.10.0"
 description = "AI-assisted video production tool — assembly guide to final video"
 readme = "README.md"
 authors = [

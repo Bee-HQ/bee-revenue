@@ -4,7 +4,7 @@
 
 AI-assisted video production tool. Takes a v2 storyboard markdown file → generates assets → assembles final video. Built for true crime documentaries but the processors are genre-agnostic.
 
-**Version:** 0.9.0
+**Version:** 0.10.0
 **Python:** >=3.11, managed with `uv` + `hatchling`
 **Entry point:** `bee-video` CLI
 
@@ -40,7 +40,7 @@ cd web && ./dev.sh     # Dev mode (Express :8420 + Vite :5173 hot reload)
 cd web && ./start.sh   # Production (Express serves built frontend :8420)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # Python CLI tests (540+)
+uv run --extra dev pytest tests/ -v          # Python CLI tests (374)
 cd web && npm test                           # Frontend + server vitest (215 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 cd web && npx playwright test --ui           # E2E interactive mode
@@ -280,13 +280,12 @@ All web editor state lives in `.bee-project.json` (`BeeProject` format). Sidecar
 - **API (Python):** FastAPI TestClient — all route groups, security boundaries, edge cases
 - **API (Node.js):** supertest — ProjectStore unit tests, route integration tests, path traversal checks
 
-536 Python CLI tests. 215 frontend + server vitest tests (98 frontend + 24 store + 24 route + 26 TTS + 13 media-utils + 17 acquisition + 13 matcher/download).
+374 Python CLI tests. 215 frontend + server vitest tests (98 frontend + 24 store + 24 route + 26 TTS + 13 media-utils + 17 acquisition + 13 matcher/download).
 
 ## Dependencies
 
 **Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
-**Web (backend — Python, CLI only):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
-**Web (backend — Node.js, web editor):** express, cors, multer, tsx
+**Web (backend — Node.js):** express, cors, multer, tsx, node-edge-tts, @elevenlabs/elevenlabs-js, openai
 **Web (frontend):** @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, maplibre-gl, lucide-react, vitest
 **TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
 **Maps:** py-staticmaps (`--extra maps`)
