@@ -13,7 +13,7 @@ Monorepo for automated revenue streams under Bee. This is a git submodule — th
 | `bee-content/research/` | Built (v0.1.0) | Python CLI + MCP server — YouTube competitor analysis |
 | `bee-content/discovery/` | Research | Markdown — niche analysis, competitor deep dives |
 | `bee-content/automation/` | Research | Markdown — AI video production pipeline research |
-| `bee-content/video-editor/` | Built (v0.9.0) | Python CLI + web editor — AI-assisted video production |
+| `bee-content/video-editor/` | Built (v0.10.0) | Python CLI + Node.js web editor — AI-assisted video production |
 | `bee-trading/` | Research | Markdown — trading bots, prediction markets, AI/ML |
 
 ## bee-content/research (YouTube competitor analysis)
@@ -117,7 +117,7 @@ cd web && npx playwright test                # E2E tests (11 Playwright tests)
 ### Architecture
 
 ```
-Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
+Adapters (CLI / Express + React) → Services → Parsers + Processors
 ```
 
 **Processors:** FFmpeg (17 functions — trim, concat, color grade, transitions, Ken Burns, PiP, speed, text overlay, audio mix), Pillow (lower thirds, timeline markers, financial cards), TTS (edge/kokoro/openai/elevenlabs).

@@ -5,7 +5,7 @@ All notable changes to bee-video-editor are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.10.0] — 2026-03-22
 
 ### Changed
 - **JSON project format replaces OTIO** — new `BeeProject`/`BeeSegment` TypeScript types with times in seconds, `src` inline on entries, no `assigned_media` map, transitions as typed objects. Markdown parser (`storyboard-parser.ts`) converts `bee-video:project`/`bee-video:segment` code blocks → `BeeProject` JSON. Timeline adapter, Zustand store, BeeComposition, and all components migrated. Legacy `Storyboard`/`Segment` type aliases removed.
@@ -55,6 +55,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **7 timeline integration bugs** — track sync, click handler race conditions, drag-drop state issues after react-timeline-editor migration
 
 ### Removed
+- **Python web server** — `bee-video serve` command, FastAPI backend (`src/bee_video_editor/api/`), `web` optional deps (fastapi, uvicorn, python-multipart). Web editor is now 100% Node.js.
 - `@designcombo/state`, `@designcombo/timeline`, `@designcombo/types`, `@designcombo/events`
 - `TimelineRuler.tsx` (library has built-in ruler)
 - `SPIKE-NOTES.md` (stale DesignCombo API docs)

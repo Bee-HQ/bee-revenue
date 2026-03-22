@@ -1,6 +1,6 @@
 # bee-video-editor
 
-AI-assisted video production tool. Takes a v2 storyboard markdown file and produces final videos through CLI commands, a web UI, or the Python API. v0.9.0.
+AI-assisted video production tool. Takes a v2 storyboard markdown file and produces final videos through CLI commands or a web UI. v0.10.0.
 
 ## Quick Start
 
@@ -363,22 +363,22 @@ Use `bee-video voice-lock` to persist your preferred engine/voice per project.
 ## Architecture
 
 ```
-Adapters (CLI / FastAPI + React)
-    │
-Services (production, compositor, matcher, acquisition)
-    │
-┌───┴───┐
-formats/    Processors
-(OTIO)      ├ ffmpeg.py, graphics.py, tts.py
-            ├ captions.py, maps.py
-            ├ scene_detect.py, media_search.py
-            └ ai_video.py
+CLI (Typer)                    Web Editor (React + Express)
+    │                              │
+Python Services                 web/server/ (Express)
+    │                           ├── ProjectStore (.bee-project.json)
+┌───┴───┐                      ├── routes/ (projects, media, production)
+formats/    Processors          └── web/shared/ (types, parser)
+(Pydantic)  ├ ffmpeg.py
+            ├ tts.py            web/src/ (React frontend)
+            └ ...               ├── Remotion (preview + render)
+                                └── Zustand + Timeline
 ```
 
-- **`formats/`**: `ParsedStoryboard` — the Python runtime model. Web frontend uses `BeeProject` JSON format (converted via backend bridge).
-- **Processors**: Stateless functions wrapping FFmpeg, Pillow, TTS, stock APIs, scene detection.
-- **Services**: Production pipeline orchestration (no business logic — calls processors, manages state).
-- **Adapters**: Typer CLI, FastAPI + React web UI. Both delegate to the same service functions.
+- **Two backends**: Python CLI (`bee-video`) uses its own services/processors. Web editor uses Node.js Express in `web/server/` — no Python needed.
+- **Processors**: Stateless functions wrapping FFmpeg, Pillow, TTS, stock APIs, scene detection. CLI-only.
+- **Services**: Production pipeline orchestration. CLI-only.
+- **Web editor**: Express + React + Remotion. Reads/writes `.bee-project.json` directly.
 
 ## Development
 
