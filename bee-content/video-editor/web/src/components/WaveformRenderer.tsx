@@ -10,13 +10,45 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
+/** Generate a pseudo-random waveform that looks organic (speech-like or music-like) */
+function generatePlaceholder(seed: string, numBuckets: number): number[] {
+  // Simple hash from string for deterministic randomness
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  const rand = () => { h = (h * 1103515245 + 12345) & 0x7fffffff; return (h % 1000) / 1000; };
+
+  const peaks: number[] = [];
+  let level = 0.3 + rand() * 0.3;
+  for (let i = 0; i < numBuckets; i++) {
+    // Smooth random walk with occasional dips (simulates speech pauses)
+    level += (rand() - 0.48) * 0.15;
+    level = Math.max(0.05, Math.min(0.85, level));
+    // Add small jitter for realism
+    const jitter = (rand() - 0.5) * 0.1;
+    peaks.push(Math.max(0.02, level + jitter));
+  }
+  return peaks;
+}
+
 async function decodeAndExtract(src: string, numBuckets: number): Promise<number[]> {
   const cached = waveformCache.get(src);
   if (cached && cached.length === numBuckets) return cached;
 
+  // Placeholder sources skip the fetch entirely
+  if (src.startsWith('placeholder:')) {
+    const placeholder = generatePlaceholder(src, numBuckets);
+    waveformCache.set(src, placeholder);
+    return placeholder;
+  }
+
   const url = `/api/media/file?path=${encodeURIComponent(src)}`;
   const response = await fetch(url);
-  if (!response.ok) return new Array(numBuckets).fill(0.3);
+  if (!response.ok) {
+    // Generate a realistic-looking placeholder waveform from src hash
+    const placeholder = generatePlaceholder(src, numBuckets);
+    waveformCache.set(src, placeholder);
+    return placeholder;
+  }
 
   const arrayBuffer = await response.arrayBuffer();
   const ctx = getAudioContext();
