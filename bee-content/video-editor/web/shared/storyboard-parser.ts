@@ -66,6 +66,16 @@ function parseDuration(raw: number | string): number {
   return Number(raw) || 0;
 }
 
+// ---------- Timecode range → duration ----------
+
+function durationFromTimecodeRange(range: string): number {
+  const match = range.match(/^(\d+:\d+(?::\d+)?)\s*-\s*(\d+:\d+(?::\d+)?)$/);
+  if (!match) return 0;
+  const start = parseTimecode(match[1]);
+  const end = parseTimecode(match[2]);
+  return end > start ? end - start : 0;
+}
+
 // ---------- Slug helper ----------
 
 function slugify(text: string): string {
@@ -230,7 +240,10 @@ export function parseStoryboardMarkdown(markdown: string): BeeProject {
       continue;
     }
 
-    const duration = parseDuration(raw.duration ?? 0);
+    // Duration: from JSON, or inferred from timecode-range header ID (e.g. "0:00 - 0:15")
+    const duration = raw.duration
+      ? parseDuration(raw.duration)
+      : (p.id ? durationFromTimecodeRange(p.id) : 0);
 
     // Visual entries
     const visual: VisualEntry[] = (raw.visual ?? []).map((v: Record<string, any>): VisualEntry => {
