@@ -221,7 +221,7 @@ function ColorSuggestSection({ segment }: { segment: BeeSegment | null }) {
   const handleApply = async () => {
     if (!segment || !suggested) return;
     try {
-      await api.updateBeeSegment(segment.id, {
+      await api.updateSegment(segment.id, {
         visual_updates: [{ index: 0, color: suggested }],
       });
       toast.success(`Applied color: ${suggested}`);
@@ -240,7 +240,7 @@ function ColorSuggestSection({ segment }: { segment: BeeSegment | null }) {
       const color = suggestColor(seg);
       if (color && seg.visual.length > 0) {
         try {
-          await api.updateBeeSegment(seg.id, { visual_updates: [{ index: 0, color }] });
+          await api.updateSegment(seg.id, { visual_updates: [{ index: 0, color }] });
           applied++;
         } catch { /* skip */ }
       }

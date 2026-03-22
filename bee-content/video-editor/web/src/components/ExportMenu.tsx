@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import { FileText, FileVideo, Film, Package, ChevronDown } from 'lucide-react';
+import { FileText, Film, Package, ChevronDown } from 'lucide-react';
 
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
@@ -42,19 +42,25 @@ export function ExportMenu() {
     setTimeout(() => setStatus(''), 3000);
   };
 
-  const handleExportOtio = async () => {
+  const handleExportJson = async () => {
     setOpen(false);
     setStatus('Exporting...');
     try {
-      const result = await api.exportOtio();
-      const msg = `OTIO saved to ${result.path}`;
-      setStatus(msg);
-      toast.success(msg);
+      const result = await api.exportJson();
+      const blob = new Blob([result.content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'project.bee-project.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus('JSON exported');
+      toast.success('Project JSON exported');
     } catch (err: any) {
       setStatus(`Error: ${err.message}`);
       toast.error(`Export failed: ${err.message}`);
     }
-    setTimeout(() => setStatus(''), 5000);
+    setTimeout(() => setStatus(''), 3000);
   };
 
   return (
@@ -82,13 +88,13 @@ export function ExportMenu() {
             </div>
           </button>
           <button
-            onClick={handleExportOtio}
+            onClick={handleExportJson}
             className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-editor-hover flex items-start gap-2"
           >
-            <FileVideo size={14} className="text-gray-500 shrink-0 mt-0.5" />
+            <FileText size={14} className="text-gray-500 shrink-0 mt-0.5" />
             <div>
-              Export for NLE
-              <span className="block text-gray-500 text-[10px]">Clean OTIO for DaVinci/Premiere</span>
+              Export Project JSON
+              <span className="block text-gray-500 text-[10px]">Download .bee-project.json</span>
             </div>
           </button>
           <div className="border-t border-editor-border my-1" />

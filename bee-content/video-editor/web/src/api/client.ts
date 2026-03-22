@@ -216,41 +216,7 @@ export const api = {
     return request('/projects/export?format=md');
   },
 
-  exportOtio(): Promise<{ format: string; path: string }> {
-    return request('/projects/export?format=otio');
-  },
-
-  connectProgress(
-    action: string,
-    params: Record<string, any>,
-    onMessage: (data: any) => void,
-    onClose?: () => void,
-  ): WebSocket {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const ws = new WebSocket(`${protocol}//${host}/api/production/ws/progress`);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ action, params }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        onMessage(data);
-      } catch {
-        console.error('WebSocket: failed to parse message', event.data);
-      }
-    };
-
-    ws.onclose = () => {
-      if (onClose) onClose();
-    };
-
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-    };
-
-    return ws;
+  exportJson(): Promise<{ format: string; content: string }> {
+    return request('/projects/export?format=json');
   },
 };
