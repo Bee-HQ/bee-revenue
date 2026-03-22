@@ -174,30 +174,17 @@ def init(
 def graphics(
     storyboard: str = typer.Argument(..., help="Path to storyboard markdown file"),
     project_dir: str = typer.Option(".", "--project-dir", "-p"),
-    animated: bool = typer.Option(False, "--animated", help="Use Lottie animations for lower-thirds (requires lottie + Cairo)"),
 ):
-    """Generate all graphics assets (lower thirds, timelines, etc.)."""
+    """Generate all graphics assets (lower thirds, timelines, etc.). Note: most graphics are now Remotion components — this generates legacy Pillow PNGs."""
     from bee_video_editor.services.production import ProductionConfig, generate_graphics_for_project
 
     config = ProductionConfig(project_dir=Path(project_dir))
     project = _load_storyboard(storyboard)
 
-    if animated:
-        try:
-            from bee_video_editor.processors.lottie_overlays import _has_cairo
+    console.print("[bold]Generating graphics (legacy Pillow)...[/bold]")
+    console.print("[dim]Note: overlays are now Remotion components in the web editor.[/dim]")
 
-            console.print("[bold]Generating graphics (animated lower-thirds)...[/bold]")
-            if not _has_cairo():
-                console.print("[yellow]Cairo not available — animated lower-thirds will require Cairo for full rendering.[/yellow]")
-        except ImportError:
-            console.print("[yellow]lottie package not installed — falling back to static PNGs.[/yellow]")
-            console.print("[dim]Install with: uv sync --extra animation[/dim]")
-            animated = False
-
-    if not animated:
-        console.print("[bold]Generating graphics...[/bold]")
-
-    result = generate_graphics_for_project(project, config, animated=animated)
+    result = generate_graphics_for_project(project, config, animated=False)
 
     console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
     for g in result.succeeded:
@@ -736,91 +723,11 @@ def export_v2(
 
 
 @app.command(name="map")
-def generate_map(
-    map_type: str = typer.Argument(..., help="Map type: flat, tactical, pulse, route, satellite, hybrid"),
-    lat: float = typer.Option(..., help="Center latitude"),
-    lng: float = typer.Option(..., help="Center longitude"),
-    output: str = typer.Option(None, "--output", "-o"),
-    project_dir: str = typer.Option(".", "--project-dir", "-p"),
-    zoom: int = typer.Option(12, "--zoom", "-z"),
-    label: str = typer.Option("", "--label", "-l"),
-):
-    """Generate a styled map image."""
-    try:
-        from bee_video_editor.processors.maps import (
-            MapLocation,
-            map_flat,
-            map_hybrid,
-            map_pulse,
-            map_route,
-            map_satellite,
-            map_tactical,
-        )
-    except ImportError:
-        console.print("[red]Missing dependency. Install with: uv sync --extra maps[/red]")
-        raise typer.Exit(1)
-
-    if output is None:
-        out_dir = Path(project_dir) / "output" / "maps"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        output = str(out_dir / f"map-{map_type}-{lat:.2f}-{lng:.2f}.png")
-
-    out_path = Path(output)
-    markers = [MapLocation(lat=lat, lng=lng, label=label)] if label else None
-
-    if map_type == "flat":
-        map_flat(lat, lng, out_path, zoom=zoom, markers=markers)
-    elif map_type == "tactical":
-        map_tactical(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
-    elif map_type == "pulse":
-        map_pulse(lat, lng, out_path, zoom=zoom, label=label)
-    elif map_type == "satellite":
-        map_satellite(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
-    elif map_type == "hybrid":
-        map_hybrid(lat, lng, out_path, zoom=zoom, markers=markers, label=label)
-    elif map_type == "route":
-        console.print("[red]Route requires multiple points — use the Python API directly.[/red]")
-        return
-    else:
-        console.print(f"[red]Unknown map type: {map_type}. Use: flat, tactical, pulse, route, satellite, hybrid[/red]")
-        return
-
-    console.print(f"[green]Map generated: {out_path}[/green]")
-
-
-@app.command()
-def graphics_batch(
-    config_file: str = typer.Argument(..., help="Path to graphics config JSON file"),
-    project_dir: str = typer.Option(".", "--project-dir", "-p"),
-):
-    """Generate all graphics from a JSON config file."""
-    from bee_video_editor.services.batch_graphics import generate_batch, parse_graphics_config
-
-    config_path = Path(config_file)
-    if not config_path.exists():
-        console.print(f"[red]Config not found: {config_file}[/red]")
-        raise typer.Exit(1)
-
-    try:
-        specs, output_dir_rel = parse_graphics_config(config_path)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        raise typer.Exit(1)
-
-    output_dir = Path(project_dir) / output_dir_rel
-    console.print(f"[bold]Generating {len(specs)} graphics...[/bold]")
-
-    result = generate_batch(specs, output_dir)
-
-    console.print(f"[green]Succeeded: {len(result.succeeded)}[/green]")
-    for g in result.succeeded:
-        console.print(f"  {g}")
-    if result.failed:
-        console.print(f"[red]Failed: {len(result.failed)}[/red]")
-        for f in result.failed:
-            console.print(f"  [red]{f.path}: {f.error}[/red]")
-    if result.skipped:
-        console.print(f"[dim]Skipped: {len(result.skipped)}[/dim]")
+def generate_map():
+    """[Deprecated] Map generation is now handled by Remotion's AnimatedMap component in the web editor."""
+    console.print("[yellow]This command is deprecated. Maps are now rendered by Remotion in the web editor.[/yellow]")
+    console.print("[dim]Use the web editor or add MAP visual type to your storyboard.[/dim]")
+    raise typer.Exit(0)
 
 
 @app.command()

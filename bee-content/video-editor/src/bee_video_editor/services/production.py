@@ -221,35 +221,20 @@ def generate_graphics_for_project(
         state.phase = "graphics"
         state.save(config.state_path)
 
-    # Resolve animated lower-third renderer
-    _animated_lower_third = None
-    if animated:
-        try:
-            from bee_video_editor.processors.lottie_overlays import generate_animated_lower_third
-            _animated_lower_third = generate_animated_lower_third
-        except ImportError:
-            pass  # fall back to static
-
+    # Lower thirds (legacy Pillow PNGs — overlays are now Remotion components)
     lower_third_idx = 0
     for seg in project.segments:
         for entry in seg.config.overlay:
             if entry.type == "LOWER_THIRD":
                 name = entry.text or f"Character {lower_third_idx}"
                 role = entry.subtext or ""
-
-                if _animated_lower_third is not None:
-                    out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.webm"
-                else:
-                    out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
+                out = graphics_dir / f"lower-third-{lower_third_idx:02d}-{_slugify(name)}.png"
 
                 if out.exists():
                     result.skipped.append(str(out))
                 else:
                     try:
-                        if _animated_lower_third is not None:
-                            _animated_lower_third(name, role, out)
-                        else:
-                            gfx.lower_third(name, role, out)
+                        gfx.lower_third(name, role, out)
                         result.succeeded.append(out)
                     except Exception as e:
                         result.failed.append(FailedItem(path=str(out), error=str(e)))

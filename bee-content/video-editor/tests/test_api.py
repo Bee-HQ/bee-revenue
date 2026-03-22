@@ -678,44 +678,11 @@ class TestReorderWithStaleIds:
 
 
 class TestBatchGraphics:
-    def test_batch_graphics_from_config(self, loaded_project):
-        client, _, proj_dir = loaded_project
-        config = {
-            "graphics": [
-                {"type": "lower_third", "name": "Test", "role": "Witness"},
-                {"type": "black_frame"},
-            ]
-        }
-        config_path = proj_dir / "graphics.json"
-        config_path.write_text(json.dumps(config))
-
-        with patch("bee_video_editor.services.batch_graphics.gfx") as mock_gfx:
-            mock_gfx.lower_third.return_value = Path("out.png")
-            mock_gfx.black_frame.return_value = Path("out.png")
-            r = client.post("/api/production/graphics-batch", json={
-                "config_path": str(config_path),
-            })
-
-        assert r.status_code == 200
-        assert r.json()["count"] == 2
-
-    def test_batch_graphics_missing_config_404(self, loaded_project):
+    def test_batch_graphics_deprecated(self, loaded_project):
         client, _, _ = loaded_project
-        r = client.post("/api/production/graphics-batch", json={
-            "config_path": "/nonexistent/config.json",
-        })
-        assert r.status_code == 404
-
-    def test_batch_graphics_invalid_type_400(self, loaded_project):
-        client, _, proj_dir = loaded_project
-        config = {"graphics": [{"type": "nonexistent"}]}
-        config_path = proj_dir / "graphics.json"
-        config_path.write_text(json.dumps(config))
-
-        r = client.post("/api/production/graphics-batch", json={
-            "config_path": str(config_path),
-        })
-        assert r.status_code == 400
+        r = client.post("/api/production/graphics-batch")
+        assert r.status_code == 200
+        assert r.json()["status"] == "deprecated"
 
 
 class TestVoiceLock:
