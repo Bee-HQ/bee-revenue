@@ -64,6 +64,9 @@ interface ProjectState {
   timelineUndo: () => void;
   timelineRedo: () => void;
   splitAtPlayhead: () => void;
+  selectedActionIds: string[];
+  selectAction: (id: string, shiftKey: boolean) => void;
+  clearActionSelection: () => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
@@ -93,6 +96,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   editorData: [],
   timelineHistory: [],
   timelineHistoryIndex: -1,
+  selectedActionIds: [],
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
@@ -114,6 +118,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         timelineHistory: [],
         timelineHistoryIndex: -1,
         segmentOrder: null,
+        selectedActionIds: [],
       });
       get().loadMedia();
       get().loadAssetStatus();
@@ -319,6 +324,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().setEditorData(newRows);
     get().pushTimelineHistory(newRows);
   },
+
+  selectAction: (id, shiftKey) => {
+    const { selectedActionIds } = get();
+    if (shiftKey) {
+      if (selectedActionIds.includes(id)) {
+        set({ selectedActionIds: selectedActionIds.filter(x => x !== id) });
+      } else {
+        set({ selectedActionIds: [...selectedActionIds, id] });
+      }
+    } else {
+      set({ selectedActionIds: [id] });
+    }
+    set({ activeClipId: id });
+  },
+
+  clearActionSelection: () => set({ selectedActionIds: [], activeClipId: null }),
 
   selectedSegment: () => {
     const { storyboard, selectedSegmentIds } = get();

@@ -86,3 +86,40 @@ describe('splitAtPlayhead', () => {
     expect(v1.actions[1].start).toBe(5);
   });
 });
+
+describe('multi-select', () => {
+  beforeEach(() => {
+    const rows: TimelineRow[] = [
+      { id: 'V1', actions: [
+        { id: 'a1', start: 0, end: 5, effectId: 'video' },
+        { id: 'a2', start: 5, end: 10, effectId: 'video' },
+        { id: 'a3', start: 10, end: 15, effectId: 'video' },
+      ]},
+    ];
+    useProjectStore.setState({ editorData: rows, selectedActionIds: [], timelineHistory: [rows], timelineHistoryIndex: 0 });
+  });
+
+  test('selectAction sets single selection', () => {
+    useProjectStore.getState().selectAction('a1', false);
+    expect(useProjectStore.getState().selectedActionIds).toEqual(['a1']);
+  });
+
+  test('selectAction with shift adds to selection', () => {
+    useProjectStore.getState().selectAction('a1', false);
+    useProjectStore.getState().selectAction('a2', true);
+    expect(useProjectStore.getState().selectedActionIds).toEqual(['a1', 'a2']);
+  });
+
+  test('selectAction with shift toggles off', () => {
+    useProjectStore.getState().selectAction('a1', false);
+    useProjectStore.getState().selectAction('a2', true);
+    useProjectStore.getState().selectAction('a1', true);
+    expect(useProjectStore.getState().selectedActionIds).toEqual(['a2']);
+  });
+
+  test('clearActionSelection empties selection', () => {
+    useProjectStore.getState().selectAction('a1', false);
+    useProjectStore.getState().clearActionSelection();
+    expect(useProjectStore.getState().selectedActionIds).toEqual([]);
+  });
+});

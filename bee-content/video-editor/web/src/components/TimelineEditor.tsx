@@ -42,7 +42,6 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const editorData = useProjectStore(s => s.editorData);
   const setEditorData = useProjectStore(s => s.setEditorData);
   const pushTimelineHistory = useProjectStore(s => s.pushTimelineHistory);
-  const setActiveClipId = useProjectStore(s => s.setActiveClipId);
   const setCurrentTimeMs = useProjectStore(s => s.setCurrentTimeMs);
   const currentTimeMs = useProjectStore(s => s.currentTimeMs);
   const timelineRef = useRef<TimelineState>(null);
@@ -140,12 +139,12 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     setCurrentTimeMs(time * 1000);
   }, []);
 
-  const handleClickAction = useCallback((_e: any, { action }: { action: TimelineAction }) => {
-    setActiveClipId(action.id);
+  const handleClickAction = useCallback((e: React.MouseEvent, { action }: { action: TimelineAction }) => {
+    useProjectStore.getState().selectAction(action.id, e.shiftKey);
   }, []);
 
   const handleClickRow = useCallback(() => {
-    setActiveClipId(null);
+    useProjectStore.getState().clearActionSelection();
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -216,6 +215,15 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   }, []);
 
   if (!storyboard) return null;
+
+  const selectedIds = useProjectStore.getState().selectedActionIds;
+  const markedData = editorData.map(row => ({
+    ...row,
+    actions: row.actions.map(a => ({
+      ...a,
+      selected: selectedIds.includes(a.id),
+    })),
+  }));
 
   return (
     <div
@@ -328,7 +336,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
-            editorData={editorData}
+            editorData={markedData}
             effects={effects}
             onChange={handleChange}
             scale={SCALE}
