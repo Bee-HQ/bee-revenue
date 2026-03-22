@@ -37,7 +37,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
 function SegmentVisual({ seg, knownFiles }: { seg: BeeSegment; knownFiles: Set<string> }) {
-  const src = seg.visual[0]?.src;
+  const src = seg.visual[0]?.src ?? undefined;
   const ext = src?.split('.').pop()?.toLowerCase() ?? '';
   const isImage = IMAGE_EXTS.has(ext);
   const contentType = seg.visual[0]?.type || 'NONE';
@@ -82,8 +82,8 @@ function SegmentVisual({ seg, knownFiles }: { seg: BeeSegment; knownFiles: Set<s
   }
 
   const visual = isImage
-    ? <SafeImg src={mediaUrl(src)} type={contentType} title={seg.title} style={mediaStyle} />
-    : <SafeVideo src={mediaUrl(src)} type={contentType} title={seg.title} style={mediaStyle} />;
+    ? <SafeImg src={mediaUrl(src!)} type={contentType} title={seg.title} style={mediaStyle} />
+    : <SafeVideo src={mediaUrl(src!)} type={contentType} title={seg.title} style={mediaStyle} />;
 
   const graded = <AbsoluteFill style={{ filter: colorFilter }}>{visual}</AbsoluteFill>;
   return kenBurns ? <KenBurns effect={kenBurns}>{graded}</KenBurns> : graded;

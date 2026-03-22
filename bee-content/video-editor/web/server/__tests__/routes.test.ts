@@ -115,6 +115,36 @@ describe('Project routes', () => {
     expect(res.body.segments[1].id).toBe('seg-02');
   });
 
+  // 1b. POST /api/projects/load — 404 for non-existent file
+  test('POST /api/projects/load — returns 404 for non-existent storyboard', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: '/no/such/file.md', project_dir: tmpDir });
+
+    expect(res.status).toBe(404);
+    expect(res.body.detail).toContain('not found');
+  });
+
+  // 1c. POST /api/projects/load — works with relative storyboard_path
+  test('POST /api/projects/load — resolves relative storyboard_path against project_dir', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: 'storyboard.md', project_dir: tmpDir });
+
+    expect(res.status).toBe(200);
+    expect(res.body.segments).toHaveLength(2);
+  });
+
+  // 1d. POST /api/projects/load — 404 for non-existent project_dir
+  test('POST /api/projects/load — returns 404 for non-existent project_dir', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: 'storyboard.md', project_dir: '/no/such/dir' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.detail).toContain('not found');
+  });
+
   // 2. GET /api/projects/current — after load
   test('GET /api/projects/current — returns loaded project', async () => {
     await loadProject(tmpDir, storyboardPath);
@@ -209,11 +239,13 @@ describe('Project routes', () => {
     expect(res.body).toHaveProperty('detail');
   });
 
-  // 10. POST /api/projects/acquire-media — 501
-  test('POST /api/projects/acquire-media — returns 501', async () => {
+  // 10. POST /api/projects/acquire-media — now implemented (see acquisition.test.ts)
+  test('POST /api/projects/acquire-media — returns 200', async () => {
+    // Re-load in case parallel test files reset the shared store
+    await loadProject(tmpDir, storyboardPath);
     const res = await request(app).post('/api/projects/acquire-media');
-    expect(res.status).toBe(501);
-    expect(res.body).toHaveProperty('detail');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
   });
 });
 
@@ -283,10 +315,10 @@ describe('Media routes', () => {
     expect(res.body).toHaveProperty('detail');
   });
 
-  // 15. POST /api/media/stock/search — 501
-  test('POST /api/media/stock/search — returns 501', async () => {
-    const res = await request(app).post('/api/media/stock/search');
-    expect(res.status).toBe(501);
+  // 15. POST /api/media/stock/search — now implemented (see acquisition.test.ts)
+  test('POST /api/media/stock/search — returns 400 without query', async () => {
+    const res = await request(app).post('/api/media/stock/search').send({});
+    expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('detail');
   });
 });

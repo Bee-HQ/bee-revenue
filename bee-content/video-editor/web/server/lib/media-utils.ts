@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { execFile } from 'node:child_process';
 import type { MediaFile } from '../../shared/types.js';
 
 const MEDIA_DIRS = [
@@ -26,23 +27,26 @@ export async function listMediaFiles(
     { relDir: SEGMENTS_DIR, category: 'segments' },
   ];
 
-  for (const { relDir, category } of dirsToScan) {
-    const absDir = path.join(projectDir, relDir);
-
+  async function scanDir(absDir: string, category: string): Promise<void> {
     let entries: string[];
     try {
       entries = await fs.readdir(absDir);
     } catch {
-      // Directory doesn't exist — skip silently
-      continue;
+      return;
     }
 
     for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
       const absPath = path.join(absDir, entry);
       let stat: Awaited<ReturnType<typeof fs.stat>>;
       try {
         stat = await fs.stat(absPath);
       } catch {
+        continue;
+      }
+
+      if (stat.isDirectory()) {
+        await scanDir(absPath, category);
         continue;
       }
 
@@ -62,6 +66,10 @@ export async function listMediaFiles(
 
       categories[category] = (categories[category] ?? 0) + 1;
     }
+  }
+
+  for (const { relDir, category } of dirsToScan) {
+    await scanDir(path.join(projectDir, relDir), category);
   }
 
   return { files, categories };
@@ -88,6 +96,49 @@ export function sanitizeFilename(name: string): string {
   }
 
   return cleaned;
+}
+
+export function probeDuration(filePath: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    execFile(
+      'ffprobe',
+      ['-v', 'quiet', '-print_format', 'json', '-show_format', filePath],
+      { timeout: 10000 },
+      (error, stdout) => {
+        if (error) {
+          resolve(null);
+          return;
+        }
+        try {
+          const data = JSON.parse(stdout);
+          const duration = parseFloat(data?.format?.duration);
+          resolve(isNaN(duration) ? null : duration);
+        } catch {
+          resolve(null);
+        }
+      },
+    );
+  });
+}
+
+const PRIVATE_IP_RANGES = [
+  /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./,
+  /^0\./, /^169\.254\./, /^fc00:/i, /^fe80:/i, /^::1$/, /^localhost$/i,
+];
+
+export function validateUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const hostname = parsed.hostname;
+  for (const pattern of PRIVATE_IP_RANGES) {
+    if (pattern.test(hostname)) return false;
+  }
+  return true;
 }
 
 export function categorizeFile(ext: string): 'video' | 'audio' | 'image' {
