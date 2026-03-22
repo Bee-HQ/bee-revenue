@@ -112,7 +112,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   timelineHistoryIndex: -1,
   selectedActionIds: [],
   clipboard: [],
-  trackState: {},
+  trackState: { V1: { locked: true }, A1: { locked: true }, A2: { locked: true }, A3: { locked: true }, OV1: { locked: true } },
   transitionMode: (() => {
     try { return (localStorage.getItem('bee-editor-transition-mode') as 'overlap' | 'fade') || 'overlap'; }
     catch { return 'overlap' as const; }
@@ -146,7 +146,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         segmentOrder: null,
         selectedActionIds: [],
         clipboard: [],
-        trackState: {},
+        trackState: { V1: { locked: true }, A1: { locked: true }, A2: { locked: true }, A3: { locked: true }, OV1: { locked: true } },
       });
       get().loadMedia();
       get().loadAssetStatus();
