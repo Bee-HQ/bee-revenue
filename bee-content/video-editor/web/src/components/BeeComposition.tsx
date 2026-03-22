@@ -17,6 +17,8 @@ import { TextChat, TextChatOverlay } from './remotion/TextChat';
 import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/EvidenceBoard';
 import { AnimatedMap, AnimatedMapOverlay } from './remotion/AnimatedMap';
 import { SocialPost, SocialPostOverlay } from './remotion/SocialPost';
+import { PictureInPictureOverlay } from './remotion/PictureInPicture';
+import { AudioVisualization, AudioVisualizationOverlay } from './remotion/AudioVisualization';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 
@@ -29,6 +31,9 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   EVIDENCE_BOARD: EvidenceBoardOverlay,
   MAP: AnimatedMapOverlay,
   SOCIAL_POST: SocialPostOverlay,
+  PIP: PictureInPictureOverlay,
+  AUDIO_VIS: AudioVisualizationOverlay,
+  WAVEFORM: AudioVisualizationOverlay,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -46,6 +51,12 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
   if (contentType === 'TEXT_CHAT') {
     const visual = seg.visual[0];
     return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
+
+  // WAVEFORM visual: render as audio visualization (911 calls, etc.)
+  if (contentType === 'WAVEFORM' || contentType === 'WAVEFORM-AERIAL' || contentType === 'WAVEFORM-DARK') {
+    const visual = seg.visual[0];
+    return <AudioVisualization content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
   }
 
   // SOCIAL_POST visual: render as full-screen social media post

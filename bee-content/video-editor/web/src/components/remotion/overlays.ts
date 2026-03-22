@@ -17,6 +17,9 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   EVIDENCE_BOARD: 8,
   MAP: 6,
   SOCIAL_POST: 5,
+  PIP: 10,
+  AUDIO_VIS: 8,
+  WAVEFORM: 8,
 };
 
 /** Parse "quote text — Author" into parts */
