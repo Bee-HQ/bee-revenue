@@ -6,6 +6,7 @@ import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
 import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
 import { renderTimelineAction } from './TimelineActionRenderer';
+import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
@@ -49,6 +50,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [effects, setEffects] = useState<Record<string, any>>({});
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actionId: string } | null>(null);
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
 
@@ -145,6 +147,15 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
 
   const handleClickRow = useCallback(() => {
     useProjectStore.getState().clearActionSelection();
+  }, []);
+
+  const handleContextMenuAction = useCallback((e: React.MouseEvent, { action }: { action: TimelineAction }) => {
+    e.preventDefault();
+    const { selectedActionIds } = useProjectStore.getState();
+    if (!selectedActionIds.includes(action.id)) {
+      useProjectStore.getState().selectAction(action.id, false);
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY, actionId: action.id });
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -347,11 +358,20 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
             autoScroll={true}
             getActionRender={renderTimelineAction}
             onClickActionOnly={handleClickAction}
+            onContextMenuAction={handleContextMenuAction}
             onClickRow={handleClickRow}
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
           />
       </div>
+      {contextMenu && (
+        <TimelineContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          actionId={contextMenu.actionId}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
