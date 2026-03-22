@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { RefObject } from 'react';
 import type { PlayerRef } from '@remotion/player';
 import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
-import type { BeeProject, Effects, MediaFile, Segment } from '../types';
+import type { BeeProject, BeeSegment, Effects, MediaFile } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';
 
@@ -80,14 +80,14 @@ interface ProjectState {
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
   reorderSegments: (fromIndex: number, toIndex: number) => void;
-  orderedSegments: () => Segment[];
+  orderedSegments: () => BeeSegment[];
 
   transitionMode: 'overlap' | 'fade';
   computedTotalFrames: number | null;
   setTransitionMode: (mode: 'overlap' | 'fade') => void;
   setComputedTotalFrames: (frames: number) => void;
 
-  selectedSegment: () => Segment | null;
+  selectedSegment: () => BeeSegment | null;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({

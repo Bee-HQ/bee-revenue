@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import type { Segment } from '../types';
+import type { BeeSegment } from '../types';
 import { Search, Captions, Palette } from 'lucide-react';
 
 const COLOR_SUGGESTIONS: Record<string, string> = {
@@ -44,7 +44,7 @@ export function AIPanel() {
 
 // --- B-Roll Section ---
 
-function BRollSection({ segment }: { segment: Segment | null }) {
+function BRollSection({ segment }: { segment: BeeSegment | null }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Array<{ id: number; duration: number; width: number; height: number; hd_url: string; sd_url: string }>>([]);
   const [searching, setSearching] = useState(false);
@@ -201,8 +201,8 @@ function CaptionSection() {
 
 // --- Auto Color Grade Section ---
 
-function ColorSuggestSection({ segment }: { segment: Segment | null }) {
-  const suggestColor = useCallback((seg: Segment | null): string | null => {
+function ColorSuggestSection({ segment }: { segment: BeeSegment | null }) {
+  const suggestColor = useCallback((seg: BeeSegment | null): string | null => {
     if (!seg) return null;
     const text = [
       seg.title,
@@ -221,7 +221,7 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
   const handleApply = async () => {
     if (!segment || !suggested) return;
     try {
-      await api.updateSegment(segment.id, {
+      await api.updateBeeSegment(segment.id, {
         visual_updates: [{ index: 0, color: suggested }],
       });
       toast.success(`Applied color: ${suggested}`);
@@ -240,7 +240,7 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
       const color = suggestColor(seg);
       if (color && seg.visual.length > 0) {
         try {
-          await api.updateSegment(seg.id, { visual_updates: [{ index: 0, color }] });
+          await api.updateBeeSegment(seg.id, { visual_updates: [{ index: 0, color }] });
           applied++;
         } catch { /* skip */ }
       }

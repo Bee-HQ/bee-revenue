@@ -51,9 +51,9 @@ describe('parseLowerThirdContent', () => {
 });
 
 import { calculateSegmentPositions, getTransitionInfo } from './overlays';
-import type { Segment } from '../../types';
+import type { BeeSegment } from '../../types';
 
-const makeSeg = (id: string, start: number, dur: number, trans?: { type: string; duration: number }): Segment => ({
+const makeSeg = (id: string, start: number, dur: number, trans?: { type: string; duration: number }): BeeSegment => ({
   id, start, duration: dur, title: id, section: '',
   visual: [], audio: [], overlay: [], music: [],
   transition: trans ? { type: trans.type, duration: trans.duration } : null,

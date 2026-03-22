@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
-import type { Segment } from '../types';
+import type { BeeSegment } from '../types';
 import { SkeletonList } from './SkeletonCard';
 import { formatSeconds, timeToMs } from '../adapters/time-utils';
 import { ChevronRight, ChevronDown } from 'lucide-react';
@@ -15,7 +15,7 @@ const VISUAL_TYPE_DOT: Record<string, string> = {
 };
 
 interface SegmentRowProps {
-  segment: Segment;
+  segment: BeeSegment;
   index: number;
   onDragStart: (index: number) => void;
   onDragOver: (e: React.DragEvent, index: number) => void;
@@ -160,7 +160,7 @@ export function SegmentList() {
   };
 
   // Group by section for display
-  const groups: { section: string; segments: { seg: Segment; globalIndex: number }[] }[] = [];
+  const groups: { section: string; segments: { seg: BeeSegment; globalIndex: number }[] }[] = [];
   let currentSection = '';
   segments.forEach((seg, globalIndex) => {
     if (seg.section !== currentSection) {

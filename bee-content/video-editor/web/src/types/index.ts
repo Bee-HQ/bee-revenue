@@ -84,11 +84,6 @@ export interface BeeProject {
   segments: BeeSegment[];
   production: ProductionState;
 }
-
-// --- Legacy type aliases for gradual migration ---
-export type Segment = BeeSegment;
-export type Storyboard = BeeProject;
-
 export interface MediaFile {
   name: string;
   path: string;

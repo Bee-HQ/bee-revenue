@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AbsoluteFill, Sequence, useVideoConfig } from 'remotion';
-import type { Storyboard, BeeSegment } from '../types';
+import type { BeeProject, BeeSegment } from '../types';
 import { useProjectStore } from '../stores/project';
 import { PlaceholderFrame, isRealFile } from './remotion/PlaceholderFrame';
 import { SafeVideo, SafeImg, mediaUrl, IMAGE_EXTS, COLOR_FILTERS } from './remotion/SafeMedia';
@@ -125,7 +125,7 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDurati
 }
 
 export const BeeComposition: React.FC<{
-  storyboard: Storyboard;
+  storyboard: BeeProject;
   mediaFiles?: string[];
   showCaptions?: boolean;
   transitionMode?: 'overlap' | 'fade';
