@@ -1,56 +1,89 @@
-export interface LayerEntryMetadata {
-  color?: string | null;
-  ken_burns?: string | null;
-  tc_in?: string | null;
-  out?: string | null;
-  volume?: number | null;
-  fade_in?: number | null;
-  fade_out?: number | null;
-  download_url?: string;
-  download_trim?: string;
-  pexels_url?: string;
+// --- New BeeProject format ---
+
+export interface VisualEntry {
+  type: string;
+  src: string | null;
+  trim?: [number, number];
+  color?: string;
+  kenBurns?: string;
   query?: string;
+  lat?: number;
+  lng?: number;
+  [key: string]: any;
 }
 
-export interface LayerEntry {
+export interface AudioEntry {
+  type: string;
+  src: string | null;
+  text?: string;
+  volume?: number;
+}
+
+export interface OverlayEntry {
+  type: string;
   content: string;
-  content_type: string;
-  time_start: string | null;
-  time_end: string | null;
-  raw: string;
-  metadata: LayerEntryMetadata | null;
+  startOffset?: number;
+  duration?: number;
+  platform?: string;
+  animation?: string;
+  [key: string]: any;
 }
 
-export interface Segment {
+export interface MusicEntry {
+  type: string;
+  src: string | null;
+  volume?: number;
+}
+
+export interface TransitionEntry {
+  type: string;
+  duration: number;
+}
+
+export interface BeeSegment {
   id: string;
-  start: string;
-  end: string;
   title: string;
   section: string;
-  section_time: string;
-  subsection: string;
-  duration_seconds: number;
-  visual: LayerEntry[];
-  audio: LayerEntry[];
-  overlay: LayerEntry[];
-  music: LayerEntry[];
-  source: LayerEntry[];
-  transition: LayerEntry[];
-  assigned_media: Record<string, string>;
+  start: number;
+  duration: number;
+  visual: VisualEntry[];
+  audio: AudioEntry[];
+  overlay: OverlayEntry[];
+  music: MusicEntry[];
+  transition: TransitionEntry | null;
 }
 
-export interface Storyboard {
+export interface ProductionState {
+  narrationEngine: string;
+  narrationVoice: string;
+  transitionMode: 'overlap' | 'fade';
+  status: {
+    narration: { completed: number; total: number } | null;
+    stock: { completed: number; total: number } | null;
+    render: { status: string; progress: number } | null;
+  };
+  renders: RenderRecord[];
+}
+
+export interface RenderRecord {
+  id: string;
+  timestamp: string;
+  format: string;
+  resolution: [number, number];
+  output: string;
+  duration: number;
+}
+
+export interface BeeProject {
+  version: number;
   title: string;
-  total_segments: number;
-  total_duration_seconds: number;
-  sections: string[];
-  segments: Segment[];
-  stock_footage_needed: number;
-  photos_needed: number;
-  maps_needed: number;
-  production_rules: string[];
+  fps: number;
+  resolution: [number, number];
+  createdAt: string;
+  updatedAt: string;
+  segments: BeeSegment[];
+  production: ProductionState;
 }
-
 export interface MediaFile {
   name: string;
   path: string;
@@ -73,8 +106,6 @@ export interface ProductionStatus {
   graphics_files: number;
   trimmed_files: number;
 }
-
-export type LayerName = 'visual' | 'audio' | 'overlay' | 'music' | 'source' | 'transition';
 
 export interface DownloadScriptInfo {
   name: string;

@@ -9,7 +9,7 @@ import { ShortcutsPanel } from './components/ShortcutsPanel';
 const FPS = 30;
 
 export default function App() {
-  const storyboard = useProjectStore(s => s.storyboard);
+  const storyboard = useProjectStore(s => s.project);
   const loading = useProjectStore(s => s.loading);
   const restoreAttempted = useRef(false);
 
@@ -19,8 +19,8 @@ export default function App() {
       restoreAttempted.current = true;
       api.getCurrentProject()
         .then((sb) => {
-          if (sb && sb.total_segments > 0) {
-            useProjectStore.setState({ storyboard: sb });
+          if (sb && sb.segments?.length > 0) {
+            useProjectStore.setState({ project: sb });
             useProjectStore.getState().loadMedia();
             useProjectStore.getState().loadAssetStatus();
           }
@@ -135,8 +135,9 @@ export default function App() {
         const player = useProjectStore.getState().playerRef?.current;
         if (player) {
           const frame = player.getCurrentFrame();
-          const sb = useProjectStore.getState().storyboard;
-          const maxFrame = sb ? Math.round(sb.total_duration_seconds * FPS) : Infinity;
+          const sb = useProjectStore.getState().project;
+          const totalDuration = sb ? sb.segments.reduce((sum, s) => sum + s.duration, 0) : 0;
+          const maxFrame = sb ? Math.round(totalDuration * FPS) : Infinity;
           player.seekTo(Math.min(maxFrame - 1, frame + FPS));
         }
       }
@@ -168,9 +169,10 @@ export default function App() {
       // End — go to end
       if (e.key === 'End' && !mod) {
         e.preventDefault();
-        const sb = useProjectStore.getState().storyboard;
+        const sb = useProjectStore.getState().project;
         if (sb) {
-          const maxFrame = Math.round(sb.total_duration_seconds * FPS);
+          const totalDuration = sb.segments.reduce((sum, s) => sum + s.duration, 0);
+          const maxFrame = Math.round(totalDuration * FPS);
           useProjectStore.getState().playerRef?.current?.seekTo(Math.max(0, maxFrame - 1));
         }
       }

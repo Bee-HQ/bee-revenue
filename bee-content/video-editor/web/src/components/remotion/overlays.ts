@@ -1,9 +1,8 @@
 // web/src/components/remotion/overlays.ts
-import type { LayerEntryMetadata } from '../../types';
 
 export interface OverlayProps {
   content: string;
-  metadata?: LayerEntryMetadata | null;
+  metadata?: Record<string, any> | null;
   durationInFrames: number;
 }
 
@@ -51,8 +50,7 @@ export function parseLowerThirdContent(content: string): { name: string; role?: 
   return { name: parts[0]?.trim() || content, role: parts[1]?.trim() || undefined };
 }
 
-import type { Segment } from '../../types';
-import { parseTimecode } from '../../adapters/time-utils';
+import type { BeeSegment } from '../../types';
 
 export interface TransitionInfo {
   type: string;
@@ -66,26 +64,24 @@ export interface SegmentPosition {
   transitionIn?: TransitionInfo;
 }
 
-export function getTransitionInfo(seg: Segment, fps: number): TransitionInfo | null {
-  const trans = seg.transition[0];
-  if (!trans) return null;
-  const durationSec = parseFloat(trans.content?.replace('s', '') || '1');
-  return { type: trans.content_type, durationInFrames: Math.round(durationSec * fps) };
+export function getTransitionInfo(seg: BeeSegment, fps: number): TransitionInfo | null {
+  if (!seg.transition) return null;
+  return { type: seg.transition.type, durationInFrames: Math.round(seg.transition.duration * fps) };
 }
 
 export function calculateSegmentPositions(
-  segments: Segment[],
+  segments: BeeSegment[],
   fps: number,
   mode: 'overlap' | 'fade',
 ): { positions: SegmentPosition[]; totalFrames: number } {
   const positions: SegmentPosition[] = [];
 
   if (mode === 'fade') {
-    // Absolute positioning from timecodes
+    // Absolute positioning from start seconds
     let maxFrame = 0;
     for (const seg of segments) {
-      const from = Math.round(parseTimecode(seg.start) * fps);
-      const duration = Math.round(seg.duration_seconds * fps);
+      const from = Math.round(seg.start * fps);
+      const duration = Math.round(seg.duration * fps);
       if (duration <= 0) continue;
       const transInfo = getTransitionInfo(seg, fps);
       positions.push({ segId: seg.id, from, duration, transitionIn: transInfo || undefined });
@@ -98,7 +94,7 @@ export function calculateSegmentPositions(
   let currentFrame = 0;
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
-    const duration = Math.round(seg.duration_seconds * fps);
+    const duration = Math.round(seg.duration * fps);
     if (duration <= 0) continue;
     const transInfo = getTransitionInfo(seg, fps);
     // Clamp transition to segment duration
@@ -110,7 +106,7 @@ export function calculateSegmentPositions(
     // so we look ahead: if the next segment has a transition, subtract its duration from our advance.
     const nextSeg = segments[i + 1];
     const nextTransInfo = nextSeg ? getTransitionInfo(nextSeg, fps) : null;
-    const nextDuration = nextSeg ? Math.round(nextSeg.duration_seconds * fps) : 0;
+    const nextDuration = nextSeg ? Math.round(nextSeg.duration * fps) : 0;
     let overlap = 0;
     if (nextTransInfo && nextDuration > 0) {
       const clampedNext = Math.min(nextTransInfo.durationInFrames, nextDuration);

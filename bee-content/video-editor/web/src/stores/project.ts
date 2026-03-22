@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { RefObject } from 'react';
 import type { PlayerRef } from '@remotion/player';
 import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
-import type { Effects, MediaFile, Segment, Storyboard } from '../types';
+import type { BeeProject, BeeSegment, Effects, MediaFile } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';
 
@@ -26,7 +26,7 @@ export interface AssetStatus {
 }
 
 interface ProjectState {
-  storyboard: Storyboard | null;
+  project: BeeProject | null;
   loading: boolean;
   error: string | null;
   selectedSegmentIds: string[];
@@ -80,18 +80,18 @@ interface ProjectState {
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
   reorderSegments: (fromIndex: number, toIndex: number) => void;
-  orderedSegments: () => Segment[];
+  orderedSegments: () => BeeSegment[];
 
   transitionMode: 'overlap' | 'fade';
   computedTotalFrames: number | null;
   setTransitionMode: (mode: 'overlap' | 'fade') => void;
   setComputedTotalFrames: (frames: number) => void;
 
-  selectedSegment: () => Segment | null;
+  selectedSegment: () => BeeSegment | null;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
-  storyboard: null,
+  project: null,
   loading: false,
   error: null,
   selectedSegmentIds: [],
@@ -137,7 +137,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Backend restores segment order in its list — we don't need to track clientside order separately
       // after load; reset to null so orderedSegments() uses the server-returned order.
       set({
-        storyboard,
+        project: storyboard,
         loading: false,
         selectedSegmentIds: [],
         editorData: [],
@@ -179,22 +179,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   reorderSegments: (fromIndex, toIndex) => {
-    const { storyboard } = get();
-    if (!storyboard) return;
-    const segments = [...storyboard.segments];
+    const { project } = get();
+    if (!project) return;
+    const segments = [...project.segments];
     const [moved] = segments.splice(fromIndex, 1);
     segments.splice(toIndex, 0, moved);
     const newOrder = segments.map(s => s.id);
-    set({ storyboard: { ...storyboard, segments }, segmentOrder: newOrder });
+    set({ project: { ...project, segments }, segmentOrder: newOrder });
     toast.info('Segments reordered');
     // Persist to backend (fire-and-forget, non-critical)
     api.reorderSegments(newOrder).catch(() => {});
   },
 
   orderedSegments: () => {
-    const { storyboard } = get();
-    if (!storyboard) return [];
-    return storyboard.segments;
+    const { project } = get();
+    if (!project) return [];
+    return project.segments;
   },
 
   assignMediaBatch: async (layer, mediaPath) => {
@@ -224,7 +224,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   loadAssetStatus: () => {
-    const sb = get().storyboard;
+    const sb = get().project;
     if (!sb) return;
 
     const segments: Record<string, SegmentAssetInfo> = {};
@@ -232,7 +232,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     for (const seg of sb.segments) {
       const visual = seg.visual[0];
-      const assigned = seg.assigned_media['visual:0'];
 
       if (!visual) {
         segments[seg.id] = { hasVideo: false, videoStatus: 'no_source', videoType: 'NONE', videoAction: 'No visual defined' };
@@ -240,9 +239,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         continue;
       }
 
-      const type = visual.content_type;
-      const src = assigned || visual.content;
-      const query = visual.metadata?.query;
+      const type = visual.type;
+      const src = visual.src;
+      const query = visual.query;
       const isRealPath = src && (src.includes('/') || src.endsWith('.mp4') || src.endsWith('.jpg') || src.endsWith('.png') || src.endsWith('.wav'));
 
       if (type === 'BLACK') {
@@ -277,9 +276,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateSegmentConfig: async (segmentId, updates) => {
     await api.updateSegment(segmentId, updates);
-    // Refresh storyboard from server to get updated state
+    // Refresh project from server to get updated state
     const storyboard = await api.getCurrentProject();
-    set({ storyboard });
+    set({ project: storyboard });
   },
 
   setDraggedMedia: (file) => set({ draggedMedia: file }),
@@ -287,20 +286,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setPreviewMedia: (file) => set({ previewMedia: file, selectedSegmentIds: [] }),
 
   assignMedia: async (segmentId, layer, mediaPath, layerIndex = 0) => {
-    const { storyboard } = get();
-    const key = `${layer}:${layerIndex}`;
     try {
       await api.assignMedia(segmentId, layer, mediaPath, layerIndex);
     } catch (e: any) {
       toast.error(`Assignment failed: ${e.message}`);
       throw e;
     }
-    if (!storyboard) return;
-    const segments = storyboard.segments.map(s => {
+    const { project } = get();
+    if (!project) return;
+    const segments = project.segments.map(s => {
       if (s.id !== segmentId) return s;
-      return { ...s, assigned_media: { ...s.assigned_media, [key]: mediaPath } };
+      if (layer === 'visual') {
+        const visual = s.visual.map((v, i) => i === layerIndex ? { ...v, src: mediaPath } : v);
+        return { ...s, visual };
+      }
+      if (layer === 'audio') {
+        const audio = s.audio.map((a, i) => i === layerIndex ? { ...a, src: mediaPath } : a);
+        return { ...s, audio };
+      }
+      if (layer === 'music') {
+        const music = s.music.map((m, i) => i === layerIndex ? { ...m, src: mediaPath } : m);
+        return { ...s, music };
+      }
+      return s;
     });
-    set({ storyboard: { ...storyboard, segments } });
+    set({ project: { ...project, segments } });
     toast.success('Media assigned');
   },
 
@@ -465,8 +475,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   selectedSegment: () => {
-    const { storyboard, selectedSegmentIds } = get();
-    if (!storyboard || selectedSegmentIds.length === 0) return null;
-    return storyboard.segments.find(s => s.id === selectedSegmentIds[0]) ?? null;
+    const { project, selectedSegmentIds } = get();
+    if (!project || selectedSegmentIds.length === 0) return null;
+    return project.segments.find(s => s.id === selectedSegmentIds[0]) ?? null;
   },
 }));

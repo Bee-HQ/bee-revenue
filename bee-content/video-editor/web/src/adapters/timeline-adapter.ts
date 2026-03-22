@@ -1,9 +1,8 @@
-import type { Storyboard, Segment, LayerEntry } from '../types';
-import { parseTimecode } from './time-utils';
+import type { BeeProject, BeeSegment, VisualEntry, AudioEntry, MusicEntry, OverlayEntry } from '../types';
 import type { TimelineAction, TimelineRow, TimelineEffect } from '@xzdarcy/timeline-engine';
 
 /** Map formula production codes to base visual categories for timeline rendering */
-const VISUAL_TYPE_MAP: Record<string, string> = {
+export const VISUAL_TYPE_MAP: Record<string, string> = {
   // Maps
   'MAP-FLAT': 'MAP', 'MAP-3D': 'MAP', 'MAP-TACTICAL': 'MAP',
   'MAP-PULSE': 'MAP', 'MAP-ROUTE': 'MAP',
@@ -36,11 +35,11 @@ const VISUAL_TYPE_MAP: Record<string, string> = {
   'BLACK': 'BLACK', 'GENERATED': 'GENERATED',
 };
 
-function normalizeVisualType(formulaCode: string): string {
+export function normalizeVisualType(formulaCode: string): string {
   return VISUAL_TYPE_MAP[formulaCode] || VISUAL_TYPE_MAP[formulaCode.toUpperCase()] || 'GRAPHIC';
 }
 
-function cleanPath(path: string): string {
+export function cleanPath(path: string): string {
   // Strip leading backtick from markdown formatting
   return path.replace(/^`+/, '').trim();
 }
@@ -84,6 +83,8 @@ const EFFECTS: Record<EffectId, TimelineEffect> = {
   overlay:    { id: 'overlay',    name: 'Overlay' },
 };
 
+export { EFFECTS };
+
 // ---------- Track definitions ----------
 
 interface TrackDef {
@@ -100,17 +101,11 @@ const TRACK_DEFS: TrackDef[] = [
   { id: 'OV1', effectId: 'overlay' },
 ];
 
-// ---------- Helpers ----------
+export { TRACK_DEFS };
 
-/** Timecode string to seconds */
-function tcToSec(tc: string): number {
-  return parseTimecode(tc);
-}
+// ---------- projectToTimeline ----------
 
-
-// ---------- storyboardToTimeline ----------
-
-export function storyboardToTimeline(storyboard: Storyboard): {
+export function projectToTimeline(project: BeeProject): {
   rows: TimelineRow[];
   effects: Record<string, TimelineEffect>;
 } {
@@ -120,16 +115,16 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     trackActions[def.id] = [];
   }
 
-  for (const seg of storyboard.segments) {
-    const startSec = tcToSec(seg.start);
-    const endSec = tcToSec(seg.end);
+  for (const seg of project.segments) {
+    const startSec = seg.start;                   // already seconds
+    const endSec = seg.start + seg.duration;      // start + duration
 
     // V1: Visual entries
     if (seg.visual.length > 0) {
-      seg.visual.forEach((entry: LayerEntry, i: number) => {
-        const rawSrc = seg.assigned_media[`visual:${i}`] || entry.content || '';
+      seg.visual.forEach((entry: VisualEntry, i: number) => {
+        const rawSrc = entry.src || '';
         const src = cleanPath(rawSrc);
-        const baseType = normalizeVisualType(entry.content_type);
+        const baseType = normalizeVisualType(entry.type);
 
         trackActions['V1'].push({
           id: `${seg.id}-v-${i}`,
@@ -142,7 +137,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
             src,
             title: seg.title,
             layerIndex: i,
-            formulaCode: entry.content_type,
+            formulaCode: entry.type,
           },
         });
       });
@@ -165,8 +160,8 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     }
 
     // A1: Narration (NAR entries from audio array — use original index)
-    seg.audio.forEach((entry: LayerEntry, origIndex: number) => {
-      if (normalizeAudioType(entry.content_type) !== 'NAR') return;
+    seg.audio.forEach((entry: AudioEntry, origIndex: number) => {
+      if (normalizeAudioType(entry.type) !== 'NAR') return;
       trackActions['A1'].push({
         id: `${seg.id}-nar-${origIndex}`,
         start: startSec,
@@ -175,7 +170,7 @@ export function storyboardToTimeline(storyboard: Storyboard): {
         data: {
           segmentId: seg.id,
           contentType: 'NAR',
-          src: '',
+          src: entry.src ? cleanPath(entry.src) : '',
           title: seg.title,
           layerIndex: origIndex,
         },
@@ -183,9 +178,10 @@ export function storyboardToTimeline(storyboard: Storyboard): {
     });
 
     // A2: Real audio / SFX (non-NAR audio — use original index)
-    seg.audio.forEach((entry: LayerEntry, origIndex: number) => {
-      if (normalizeAudioType(entry.content_type) === 'NAR') return;
-      const audioType = normalizeAudioType(entry.content_type);
+    seg.audio.forEach((entry: AudioEntry, origIndex: number) => {
+      if (normalizeAudioType(entry.type) === 'NAR') return;
+      const audioType = normalizeAudioType(entry.type);
+      const srcStr = entry.src ? cleanPath(entry.src) : '';
       trackActions['A2'].push({
         id: `${seg.id}-audio-${origIndex}`,
         start: startSec,
@@ -194,15 +190,16 @@ export function storyboardToTimeline(storyboard: Storyboard): {
         data: {
           segmentId: seg.id,
           contentType: audioType,
-          src: cleanPath(entry.content || ''),
-          title: entry.content || audioType,
+          src: srcStr,
+          title: srcStr || audioType,
           layerIndex: origIndex,
         },
       });
     });
 
     // A3: Music
-    seg.music.forEach((entry: LayerEntry, i: number) => {
+    seg.music.forEach((entry: MusicEntry, i: number) => {
+      const srcStr = entry.src ? cleanPath(entry.src) : '';
       trackActions['A3'].push({
         id: `${seg.id}-music-${i}`,
         start: startSec,
@@ -211,15 +208,15 @@ export function storyboardToTimeline(storyboard: Storyboard): {
         data: {
           segmentId: seg.id,
           contentType: 'MUSIC',
-          src: cleanPath(entry.content || ''),
-          title: entry.content || 'Music',
+          src: srcStr,
+          title: srcStr || 'Music',
           layerIndex: i,
         },
       });
     });
 
     // OV1: Overlays
-    seg.overlay.forEach((entry: LayerEntry, i: number) => {
+    seg.overlay.forEach((entry: OverlayEntry, i: number) => {
       trackActions['OV1'].push({
         id: `${seg.id}-ov-${i}`,
         start: startSec,
@@ -227,15 +224,15 @@ export function storyboardToTimeline(storyboard: Storyboard): {
         effectId: 'overlay',
         data: {
           segmentId: seg.id,
-          contentType: entry.content_type,
+          contentType: entry.type,
           src: entry.content || '',
-          title: `${entry.content_type}: ${entry.content || ''}`.substring(0, 40),
+          title: `${entry.type}: ${entry.content || ''}`.substring(0, 40),
           layerIndex: i,
         },
       });
     });
 
-    // Transitions are metadata (stored in seg.transition[]) — not rendered on timeline
+    // Transitions are metadata (stored in seg.transition) — not rendered on timeline
   }
 
   // Build rows: dynamic — only include tracks that have actions (V1 always present)
@@ -253,12 +250,12 @@ export function storyboardToTimeline(storyboard: Storyboard): {
   return { rows, effects: { ...EFFECTS } };
 }
 
-// ---------- timelineToStoryboard ----------
+// ---------- timelineToProject ----------
 
-export function timelineToStoryboard(
+export function timelineToProject(
   rows: TimelineRow[],
-  original: Storyboard,
-): Storyboard {
+  original: BeeProject,
+): BeeProject {
   // Collect all non-empty actions with src paths
   const allActions: BeeTimelineAction[] = [];
   for (const row of rows) {
@@ -270,30 +267,43 @@ export function timelineToStoryboard(
     }
   }
 
-  // Map effectId → assigned_media key prefix
-  const EFFECT_TO_LAYER: Record<string, string> = {
-    video: 'visual',
-    narration: 'audio',
-    audio: 'audio',
-    music: 'music',
-    overlay: 'overlay',
-  };
-
-  const segments = original.segments.map((seg: Segment) => {
-    const updatedMedia = { ...seg.assigned_media };
+  const segments = original.segments.map((seg: BeeSegment) => {
+    // Clone arrays so we can mutate entries
+    const visual = seg.visual.map(e => ({ ...e }));
+    const audio = seg.audio.map(e => ({ ...e }));
+    const music = seg.music.map(e => ({ ...e }));
 
     for (const action of allActions) {
       if (action.data.segmentId !== seg.id) continue;
       const src = action.data.src || '';
       if (!src) continue;
-      const layer = EFFECT_TO_LAYER[action.effectId];
-      if (layer) {
-        updatedMedia[`${layer}:${action.data.layerIndex}`] = src;
+      const idx = action.data.layerIndex;
+
+      switch (action.effectId) {
+        case 'video':
+          if (visual[idx]) visual[idx].src = src;
+          break;
+        case 'narration':
+        case 'audio':
+          if (audio[idx]) audio[idx].src = src;
+          break;
+        case 'music':
+          if (music[idx]) music[idx].src = src;
+          break;
+        // overlays have no src to write back
       }
     }
 
-    return { ...seg, assigned_media: updatedMedia };
+    return { ...seg, visual, audio, music };
   });
 
   return { ...original, segments };
 }
+
+// ---------- Backward-compatible aliases ----------
+
+/** @deprecated use projectToTimeline */
+export const storyboardToTimeline = projectToTimeline;
+
+/** @deprecated use timelineToProject */
+export const timelineToStoryboard = timelineToProject;

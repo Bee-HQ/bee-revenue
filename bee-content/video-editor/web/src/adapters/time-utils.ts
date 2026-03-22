@@ -36,3 +36,10 @@ export function timeToMs(seconds: number): number {
 export function msToTime(ms: number): number {
   return ms / 1000;
 }
+
+/** Format seconds to "M:SS" (simple display). */
+export function formatSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}

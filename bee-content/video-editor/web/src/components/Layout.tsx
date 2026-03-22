@@ -71,7 +71,7 @@ function useResizable(defaultHeight: number, storageKey: string) {
 }
 
 export function Layout() {
-  const storyboard = useProjectStore(s => s.storyboard);
+  const project = useProjectStore(s => s.project);
   const activeClipId = useProjectStore(s => s.activeClipId);
   const [rightTab, setRightTab] = useState<'media' | 'properties' | 'ai'>('media');
   const { theme, toggle: toggleTheme } = useTheme();
@@ -81,10 +81,11 @@ export function Layout() {
   useEffect(() => {
     if (activeClipId) setRightTab('properties');
   }, [activeClipId]);
-  if (!storyboard) return null;
+  if (!project) return null;
 
-  const totalMins = Math.floor(storyboard.total_duration_seconds / 60);
-  const totalSecs = Math.round(storyboard.total_duration_seconds % 60);
+  const totalDuration = project.segments.reduce((sum, s) => sum + s.duration, 0);
+  const totalMins = Math.floor(totalDuration / 60);
+  const totalSecs = Math.round(totalDuration % 60);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -95,12 +96,12 @@ export function Layout() {
             <h1 className="text-sm font-bold"><span className="text-blue-400">Bee</span> <span className="text-gray-300">Video Editor</span></h1>
           </div>
           <span className="text-xs text-gray-600">|</span>
-          <span className="text-xs text-gray-400 truncate max-w-md">{storyboard.title}</span>
+          <span className="text-xs text-gray-400 truncate max-w-md">{project.title}</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span>{storyboard.total_segments} segments</span>
+          <span>{project.segments.length} segments</span>
           <span>{totalMins}m {totalSecs}s</span>
-          <span>{storyboard.sections.length} sections</span>
+          <span>{new Set(project.segments.map(s => s.section)).size} sections</span>
           <button
             onClick={toggleTheme}
             className="p-1 rounded text-gray-400 hover:text-white hover:bg-editor-hover transition-colors"
