@@ -9,7 +9,6 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from bee_video_editor.api.schemas import (
-    BatchGraphicsRequest,
     CaptionRequest,
     GenerateRequest,
     ProductionStatusSchema,
@@ -620,31 +619,9 @@ def assemble_video(
 
 
 @router.post("/graphics-batch")
-def batch_graphics(req: BatchGraphicsRequest, session: SessionStore = Depends(get_session)):
-    """Generate graphics from a JSON config file."""
-    from bee_video_editor.services.batch_graphics import generate_batch, parse_graphics_config
-
-    _, project_dir = session.require_project()
-    config_path = Path(req.config_path)
-    if not config_path.exists():
-        raise HTTPException(404, f"Config file not found: {req.config_path}")
-
-    try:
-        specs, output_dir_rel = parse_graphics_config(config_path)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-
-    output_dir = project_dir / output_dir_rel
-    result = generate_batch(specs, output_dir)
-
-    status = "ok" if result.ok else ("partial" if result.succeeded else "error")
-    return {
-        "status": status,
-        "count": len(result.succeeded),
-        "succeeded": [str(p) for p in result.succeeded],
-        "failed": [{"file": f.path, "error": f.error} for f in result.failed],
-        "skipped": result.skipped,
-    }
+def batch_graphics():
+    """[Deprecated] Graphics are now Remotion components. Use the web editor."""
+    return {"status": "deprecated", "message": "Graphics batch generation is deprecated. Overlays are now rendered by Remotion components in the web editor."}
 
 
 @router.put("/voice-lock")

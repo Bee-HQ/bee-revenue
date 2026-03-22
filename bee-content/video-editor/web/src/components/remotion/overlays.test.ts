@@ -138,6 +138,66 @@ describe('parseBoardData', () => {
   });
 });
 
+// PictureInPicture parser tests
+import { parsePipData } from './PictureInPicture';
+
+describe('parsePipData', () => {
+  test('parses valid JSON', () => {
+    const content = JSON.stringify({
+      main: { type: 'video', src: 'bodycam.mp4' },
+      pip: { type: 'image', src: 'map.png' },
+      layout: 'top-right',
+    });
+    const result = parsePipData(content);
+    expect(result.main.type).toBe('video');
+    expect(result.pip.type).toBe('image');
+    expect(result.layout).toBe('top-right');
+  });
+
+  test('falls back to placeholder', () => {
+    const result = parsePipData('not json');
+    expect(result.main.type).toBe('color');
+    expect(result.pip.type).toBe('color');
+  });
+});
+
+// AudioVisualization parser tests
+import { parseAudioVisData } from './AudioVisualization';
+
+describe('parseAudioVisData', () => {
+  test('parses valid JSON', () => {
+    const content = JSON.stringify({ label: '911 Call', style: 'pulse', color: '#ff0000' });
+    const result = parseAudioVisData(content);
+    expect(result.label).toBe('911 Call');
+    expect(result.style).toBe('pulse');
+  });
+
+  test('falls back to label from plain text', () => {
+    const result = parseAudioVisData('Emergency call recording');
+    expect(result.label).toBe('Emergency call recording');
+    expect(result.style).toBe('bars');
+  });
+});
+
+// SocialPost parser tests
+import { parsePostData } from './SocialPost';
+
+describe('parsePostData', () => {
+  test('parses valid JSON post', () => {
+    const content = JSON.stringify({ author: 'Alex M', text: 'Just arrived at Moselle', handle: '@alexm' });
+    const result = parsePostData(content);
+    expect(result.author).toBe('Alex M');
+    expect(result.text).toBe('Just arrived at Moselle');
+    expect(result.handle).toBe('@alexm');
+  });
+
+  test('falls back to plain text', () => {
+    const result = parsePostData('Just a status update');
+    expect(result.author).toBe('Unknown');
+    expect(result.text).toBe('Just a status update');
+  });
+});
+
 // TextChat parser tests
 import { parseMessages } from './TextChat';
 
