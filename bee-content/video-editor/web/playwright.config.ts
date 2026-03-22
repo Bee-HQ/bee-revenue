@@ -26,11 +26,10 @@ export default defineConfig({
 
   webServer: [
     {
-      command: `uv run bee-video serve --port ${BACKEND_PORT}`,
+      command: `PORT=${BACKEND_PORT} npx tsx server/index.ts`,
       port: BACKEND_PORT,
-      cwd: '..',
       reuseExistingServer: true,
-      timeout: 30_000,
+      timeout: 15_000,
     },
     {
       command: `VITE_API_PORT=${BACKEND_PORT} npx vite --port ${FRONTEND_PORT}`,
