@@ -3,8 +3,11 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import multer from 'multer';
 import { store } from '../services/project-store.js';
+import { execFileSync } from 'node:child_process';
+import { readdir } from 'node:fs/promises';
 import { listMediaFiles, validatePath, validateUrl, sanitizeFilename, categorizeFile, probeDuration } from '../lib/media-utils.js';
 import { searchPexels, downloadFile } from '../services/acquisition.js';
+import { runSubprocess, getAllTasks } from '../services/download-tasks.js';
 
 export const mediaRoutes = Router();
 
@@ -134,10 +137,111 @@ mediaRoutes.post('/stock/download', async (req, res, next) => {
     res.json({ status: 'ok', path: relativePath, name: cleanName });
   } catch (err) { next(err); }
 });
-mediaRoutes.get('/download/scripts', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.get('/download/tools', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.post('/download/run-script', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.post('/download/yt-dlp', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.get('/download/status', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.post('/download/create-dirs', notImplemented('Not yet migrated — Step 5'));
-mediaRoutes.post('/generate-clip', notImplemented('Not yet migrated — Step 5'));
+// ---------- Download panel ----------
+
+mediaRoutes.get('/download/scripts', async (req, res, next) => {
+  try {
+    const projectDir = store.getProjectDir();
+    const scripts: Array<{ name: string; path: string; relative_to_project: string }> = [];
+
+    // Search project dir and up to 3 parent levels
+    const searchDirs = [projectDir];
+    let dir = projectDir;
+    for (let i = 0; i < 3; i++) {
+      dir = path.dirname(dir);
+      searchDirs.push(dir);
+    }
+
+    for (const searchDir of searchDirs) {
+      let entries: string[];
+      try { entries = await readdir(searchDir); } catch { continue; }
+      for (const entry of entries) {
+        if (!entry.endsWith('.sh')) continue;
+        if (!/download|fetch/i.test(entry)) continue;
+        const absPath = path.join(searchDir, entry);
+        scripts.push({
+          name: entry,
+          path: absPath,
+          relative_to_project: path.relative(projectDir, absPath),
+        });
+      }
+    }
+
+    res.json(scripts);
+  } catch (err) { next(err); }
+});
+
+mediaRoutes.get('/download/tools', (_req, res) => {
+  function hasCommand(cmd: string): boolean {
+    try { execFileSync('which', [cmd], { stdio: 'pipe' }); return true; } catch { return false; }
+  }
+  res.json({
+    yt_dlp: hasCommand('yt-dlp'),
+    curl: hasCommand('curl'),
+    wget: hasCommand('wget'),
+    ffmpeg: hasCommand('ffmpeg'),
+  });
+});
+
+mediaRoutes.post('/download/run-script', (req, res, next) => {
+  try {
+    const projectDir = store.getProjectDir();
+    const { script_path } = req.body || {};
+    if (!script_path) {
+      res.status(400).json({ detail: 'Missing script_path' });
+      return;
+    }
+
+    const absScript = path.isAbsolute(script_path)
+      ? script_path
+      : path.resolve(projectDir, script_path);
+
+    if (!validatePath(absScript, projectDir) && !validatePath(absScript, path.resolve(projectDir, '..'))) {
+      res.status(403).json({ detail: 'Script path outside allowed directories' });
+      return;
+    }
+
+    const task = runSubprocess('script-download', 'bash', [absScript], projectDir);
+    res.json({ status: 'started', task_id: task.task_id });
+  } catch (err) { next(err); }
+});
+
+mediaRoutes.post('/download/yt-dlp', (req, res, next) => {
+  try {
+    const projectDir = store.getProjectDir();
+    const { url, category = 'footage', filename } = req.body || {};
+
+    if (!url) {
+      res.status(400).json({ detail: 'Missing url' });
+      return;
+    }
+
+    const outputDir = path.join(projectDir, category);
+    const outputTemplate = filename
+      ? path.join(outputDir, filename)
+      : path.join(outputDir, '%(title)s.%(ext)s');
+
+    const taskId = `ytdlp-${Date.now()}`;
+    const args = [
+      '-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]',
+      '--no-playlist',
+      '-o', outputTemplate,
+      url,
+    ];
+
+    const task = runSubprocess(taskId, 'yt-dlp', args, projectDir);
+    res.json({ status: 'started', task_id: task.task_id });
+  } catch (err) { next(err); }
+});
+
+mediaRoutes.get('/download/status', (_req, res) => {
+  res.json(getAllTasks());
+});
+
+// ---------- Stubs (not needed for web editor) ----------
+
+mediaRoutes.post('/download/create-dirs', (_req, res) => {
+  res.json({ status: 'ok', created: [] });
+});
+
+mediaRoutes.post('/generate-clip', notImplemented('AI video generation not yet available'));

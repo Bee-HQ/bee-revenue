@@ -110,7 +110,7 @@ cd web && ./start.sh   # Production (Express serves frontend :8420)
 
 # Tests
 uv run --extra dev pytest tests/ -v          # Python CLI tests
-cd web && npm test                           # Frontend + server vitest (202 tests)
+cd web && npm test                           # Frontend + server vitest (215 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 ```
 

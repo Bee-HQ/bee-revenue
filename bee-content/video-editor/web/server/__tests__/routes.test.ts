@@ -232,11 +232,12 @@ describe('Project routes', () => {
     expect(parsed.segments).toHaveLength(2);
   });
 
-  // 9. POST /api/projects/auto-assign — 501
-  test('POST /api/projects/auto-assign — returns 501', async () => {
+  // 9. POST /api/projects/auto-assign — now implemented (see matcher-download.test.ts)
+  test('POST /api/projects/auto-assign — returns 200', async () => {
+    await loadProject(tmpDir, storyboardPath);
     const res = await request(app).post('/api/projects/auto-assign');
-    expect(res.status).toBe(501);
-    expect(res.body).toHaveProperty('detail');
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
   });
 
   // 10. POST /api/projects/acquire-media — now implemented (see acquisition.test.ts)
