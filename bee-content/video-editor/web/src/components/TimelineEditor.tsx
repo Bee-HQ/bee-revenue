@@ -10,7 +10,7 @@ import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX, EyeOff } from 'lucide-react';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -266,7 +266,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   return (
     <div
       className="border-t border-editor-border bg-editor-bg flex flex-col shrink-0"
-      style={{ height: 250, ...style }}
+      style={{ height: 320, ...style }}
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -373,32 +373,25 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
       {/* Timeline */}
       <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
         {/* Track controls */}
-        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-hidden" style={{ paddingTop: 32 }}>
+        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-y-auto" style={{ paddingTop: 32 }}>
           {markedData.map(row => {
             const state = trackState[row.id] || {};
             return (
-              <div key={row.id} className="flex items-center gap-0.5 px-0.5" style={{ height: 28 }}>
-                <span className="text-[8px] text-gray-500 font-mono w-6 shrink-0">{row.id}</span>
+              <div key={row.id} className="flex items-center gap-0.5 px-0.5" style={{ height: 36 }}>
+                <span className="text-[10px] text-gray-500 font-mono w-7 shrink-0">{row.id}</span>
                 <button
                   onClick={() => useProjectStore.getState().toggleTrackLock(row.id)}
                   className={`p-0.5 rounded ${state.locked ? 'text-red-400' : 'text-gray-600 hover:text-gray-400'}`}
                   title={state.locked ? 'Unlock' : 'Lock'}
                 >
-                  <Lock size={9} />
+                  <Lock size={11} />
                 </button>
                 <button
                   onClick={() => useProjectStore.getState().toggleTrackMute(row.id)}
                   className={`p-0.5 rounded ${state.muted ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
                   title={state.muted ? 'Unmute' : 'Mute'}
                 >
-                  <VolumeX size={9} />
-                </button>
-                <button
-                  onClick={() => useProjectStore.getState().toggleTrackHide(row.id)}
-                  className={`p-0.5 rounded text-gray-600 hover:text-gray-400`}
-                  title="Hide track"
-                >
-                  <EyeOff size={9} />
+                  <VolumeX size={11} />
                 </button>
               </div>
             );
@@ -414,7 +407,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
             onChange={handleChange}
             scale={SCALE}
             scaleWidth={scaleWidth}
-            rowHeight={28}
+            rowHeight={36}
             gridSnap={snapEnabled}
             dragLine={true}
             autoScroll={true}
