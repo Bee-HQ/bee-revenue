@@ -41,7 +41,7 @@ cd web && ./start.sh   # Production (Express serves built frontend :8420)
 
 # Tests
 uv run --extra dev pytest tests/ -v          # Python CLI tests (540+)
-cd web && npm test                           # Frontend + server vitest (199 tests)
+cd web && npm test                           # Frontend + server vitest (202 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 cd web && npx playwright test --ui           # E2E interactive mode
 ```
@@ -280,7 +280,7 @@ All web editor state lives in `.bee-project.json` (`BeeProject` format). Sidecar
 - **API (Python):** FastAPI TestClient — all route groups, security boundaries, edge cases
 - **API (Node.js):** supertest — ProjectStore unit tests, route integration tests, path traversal checks
 
-536 Python CLI tests. 199 frontend + server vitest tests (98 frontend + 24 store + 21 route + 26 TTS + 13 media-utils + 17 acquisition).
+536 Python CLI tests. 202 frontend + server vitest tests (98 frontend + 24 store + 24 route + 26 TTS + 13 media-utils + 17 acquisition).
 
 ## Dependencies
 

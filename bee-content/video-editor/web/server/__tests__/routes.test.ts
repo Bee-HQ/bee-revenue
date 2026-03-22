@@ -115,6 +115,36 @@ describe('Project routes', () => {
     expect(res.body.segments[1].id).toBe('seg-02');
   });
 
+  // 1b. POST /api/projects/load — 404 for non-existent file
+  test('POST /api/projects/load — returns 404 for non-existent storyboard', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: '/no/such/file.md', project_dir: tmpDir });
+
+    expect(res.status).toBe(404);
+    expect(res.body.detail).toContain('not found');
+  });
+
+  // 1c. POST /api/projects/load — works with relative storyboard_path
+  test('POST /api/projects/load — resolves relative storyboard_path against project_dir', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: 'storyboard.md', project_dir: tmpDir });
+
+    expect(res.status).toBe(200);
+    expect(res.body.segments).toHaveLength(2);
+  });
+
+  // 1d. POST /api/projects/load — 404 for non-existent project_dir
+  test('POST /api/projects/load — returns 404 for non-existent project_dir', async () => {
+    const res = await request(app)
+      .post('/api/projects/load')
+      .send({ storyboard_path: 'storyboard.md', project_dir: '/no/such/dir' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.detail).toContain('not found');
+  });
+
   // 2. GET /api/projects/current — after load
   test('GET /api/projects/current — returns loaded project', async () => {
     await loadProject(tmpDir, storyboardPath);

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
 import { store } from '../services/project-store.js';
 import { searchPexels, downloadFile, acquireMedia } from '../services/acquisition.js';
@@ -58,6 +59,16 @@ projectRoutes.post('/load', (req, res, next) => {
     const resolvedPath = path.isAbsolute(storyboard_path)
       ? storyboard_path
       : path.resolve(resolvedDir, storyboard_path);
+
+    if (!fs.existsSync(resolvedDir)) {
+      res.status(404).json({ detail: `Project directory not found: ${resolvedDir}` });
+      return;
+    }
+    if (!fs.existsSync(resolvedPath)) {
+      res.status(404).json({ detail: `Storyboard not found: ${resolvedPath}` });
+      return;
+    }
+
     const project = store.loadFromMarkdown(resolvedPath, resolvedDir);
     res.json(project);
   } catch (err) {
