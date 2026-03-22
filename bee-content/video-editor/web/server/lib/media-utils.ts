@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { execFile } from 'node:child_process';
 import type { MediaFile } from '../../shared/types.js';
 
 const MEDIA_DIRS = [
@@ -88,6 +89,29 @@ export function sanitizeFilename(name: string): string {
   }
 
   return cleaned;
+}
+
+export function probeDuration(filePath: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    execFile(
+      'ffprobe',
+      ['-v', 'quiet', '-print_format', 'json', '-show_format', filePath],
+      { timeout: 10000 },
+      (error, stdout) => {
+        if (error) {
+          resolve(null);
+          return;
+        }
+        try {
+          const data = JSON.parse(stdout);
+          const duration = parseFloat(data?.format?.duration);
+          resolve(isNaN(duration) ? null : duration);
+        } catch {
+          resolve(null);
+        }
+      },
+    );
+  });
 }
 
 export function categorizeFile(ext: string): 'video' | 'audio' | 'image' {

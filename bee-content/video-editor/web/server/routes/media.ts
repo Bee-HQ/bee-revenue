@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import multer from 'multer';
 import { store } from '../services/project-store.js';
-import { listMediaFiles, validatePath, sanitizeFilename, categorizeFile } from '../lib/media-utils.js';
+import { listMediaFiles, validatePath, sanitizeFilename, categorizeFile, probeDuration } from '../lib/media-utils.js';
 
 export const mediaRoutes = Router();
 
@@ -55,7 +55,8 @@ mediaRoutes.post('/upload', upload.single('file'), async (req, res, next) => {
     const type = categorizeFile(ext);
     const relativePath = path.relative(projectDir, targetPath);
 
-    res.json({ status: 'ok', path: relativePath, type, name: filename, duration: null });
+    const duration = type !== 'image' ? await probeDuration(targetPath) : null;
+    res.json({ status: 'ok', path: relativePath, type, name: filename, duration });
   } catch (err) {
     next(err);
   }
