@@ -191,11 +191,11 @@ With Remotion handling preview AND export, many Python processors are now redund
 - Storyboard format — parser, writer, Pydantic models (2000+ lines tested)
 
 **Migration phases:**
-- [x] **Phase 0: JSON project format** — replaced OTIO with `BeeProject` JSON format in the web frontend. TypeScript types (`BeeProject`, `BeeSegment`), markdown parser, all components migrated. Python backend serves new format via `BeeProjectSchema` bridge. OTIO no longer needed in the frontend.
-- [ ] **Phase 1: Add Node.js server** — thin Express/Fastify alongside Python. Serve media files, handle Remotion rendering directly (no Python subprocess hop), stock search (Pexels/Pixabay are just HTTP APIs)
-- [ ] **Phase 2: Move APIs to Node.js** — timeline state, media management, stock search, auto-assign matcher. Frontend talks to Node.js for most things. Python becomes a downstream service.
-- [ ] **Phase 3: Python as TTS service** — Node.js calls Python only for TTS generation. Everything else is Node.js/TypeScript.
-- [ ] **Phase 4: Python optional** — if using only HTTP-based TTS (ElevenLabs, OpenAI), Python is no longer needed. Full TypeScript stack.
+- [x] **Phase 0: JSON project format** — replaced OTIO with `BeeProject` JSON format in the web frontend. TypeScript types (`BeeProject`, `BeeSegment`), markdown parser, all components migrated. OTIO no longer needed in the frontend.
+- [x] **Phase 1: Express server** — Node.js Express backend in `web/server/` replaces Python FastAPI for the web editor. Shared types/parser in `web/shared/`. ProjectStore manages `.bee-project.json` directly. 25 routes + stubs. Python no longer needed to run the web editor (except TTS/stock/matcher — 501 stubs for now).
+- [ ] **Phase 2: Node.js TTS** — replace Python TTS with Node.js SDKs (edge-tts-node, ElevenLabs, OpenAI). Drop kokoro (Python-only).
+- [ ] **Phase 3: Node.js stock + services** — port stock search (Pexels API), auto-assign matcher, acquisition service, download manager to Node.js.
+- [ ] **Phase 4: Python optional** — all web editor functionality in Node.js. Python remains only for CLI users.
 
 **Target architecture:**
 ```
