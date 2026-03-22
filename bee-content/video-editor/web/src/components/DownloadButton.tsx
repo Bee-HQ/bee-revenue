@@ -36,8 +36,8 @@ export function DownloadButton({ segmentId, layer, index, downloadUrl, pexelsUrl
         setMessage(filename);
         toast.success(`Downloaded: ${filename}`);
         // Refresh project to pick up the new src
-        const storyboard = await api.getCurrentProject();
-        useProjectStore.setState({ storyboard });
+        const project = await api.getCurrentProject();
+        useProjectStore.setState({ project });
       }
     } catch (err: unknown) {
       setStatus('error');
