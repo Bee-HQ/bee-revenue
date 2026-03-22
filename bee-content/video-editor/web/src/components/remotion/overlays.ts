@@ -13,6 +13,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   QUOTE_CARD: 4,
   FINANCIAL_CARD: 3,
   TEXT_OVERLAY: 3,
+  TEXT_CHAT: 5,
 };
 
 /** Parse "quote text — Author" into parts */

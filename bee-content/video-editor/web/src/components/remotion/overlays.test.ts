@@ -108,3 +108,31 @@ describe('calculateSegmentPositions', () => {
     expect(positions[1].transitionIn!.durationInFrames).toBe(30); // clamped to 1s segment
   });
 });
+
+// TextChat parser tests
+import { parseMessages } from './TextChat';
+
+describe('parseMessages', () => {
+  test('parses valid JSON messages', () => {
+    const content = JSON.stringify([
+      { from: 'Alex', text: 'Hey' },
+      { from: 'Maggie', text: 'Hi' },
+    ]);
+    const result = parseMessages(content);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ from: 'Alex', text: 'Hey' });
+  });
+
+  test('falls back to raw text on invalid JSON', () => {
+    const result = parseMessages('just plain text');
+    expect(result).toHaveLength(1);
+    expect(result[0].from).toBe('Unknown');
+    expect(result[0].text).toBe('just plain text');
+  });
+
+  test('falls back on wrong JSON shape', () => {
+    const result = parseMessages('{"not": "an array"}');
+    expect(result).toHaveLength(1);
+    expect(result[0].text).toBe('{"not": "an array"}');
+  });
+});

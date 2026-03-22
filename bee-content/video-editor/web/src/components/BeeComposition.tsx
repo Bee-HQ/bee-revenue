@@ -13,6 +13,7 @@ import { FinancialCard } from './remotion/FinancialCard';
 import { TextOverlay } from './remotion/TextOverlay';
 import { TimelineMarker } from './remotion/TimelineMarker';
 import { TransitionRenderer } from './remotion/TransitionRenderer';
+import { TextChat, TextChatOverlay } from './remotion/TextChat';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 
@@ -21,6 +22,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   FINANCIAL_CARD: FinancialCard,
   TEXT_OVERLAY: TextOverlay,
   TIMELINE_MARKER: TimelineMarker,
+  TEXT_CHAT: TextChatOverlay,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -33,6 +35,12 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
   const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
   const kenBurns = seg.visual[0]?.metadata?.ken_burns;
   const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
+
+  // TEXT_CHAT visual: render as full-screen chat conversation
+  if (contentType === 'TEXT_CHAT') {
+    const visual = seg.visual[0];
+    return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
 
   if (!isRealFile(src) || !knownFiles.has(src!)) {
     return <PlaceholderFrame type={contentType} title={seg.title} />;
