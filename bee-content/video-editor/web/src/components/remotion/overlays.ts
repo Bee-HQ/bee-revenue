@@ -13,6 +13,9 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   QUOTE_CARD: 4,
   FINANCIAL_CARD: 3,
   TEXT_OVERLAY: 3,
+  TEXT_CHAT: 5,
+  EVIDENCE_BOARD: 8,
+  MAP: 6,
 };
 
 /** Parse "quote text — Author" into parts */
@@ -40,7 +43,7 @@ export function parseDollarAmount(text: string): { displayValue: string; numeric
 
 /** Parse "Name — Role" for LowerThird adapter */
 export function parseLowerThirdContent(content: string): { name: string; role?: string } {
-  const parts = content.split(/\s*[—–-]\s*/);
+  const parts = content.split(/\s*[—–]\s*/);
   return { name: parts[0]?.trim() || content, role: parts[1]?.trim() || undefined };
 }
 

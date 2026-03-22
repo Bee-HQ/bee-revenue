@@ -13,6 +13,9 @@ import { FinancialCard } from './remotion/FinancialCard';
 import { TextOverlay } from './remotion/TextOverlay';
 import { TimelineMarker } from './remotion/TimelineMarker';
 import { TransitionRenderer } from './remotion/TransitionRenderer';
+import { TextChat, TextChatOverlay } from './remotion/TextChat';
+import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/EvidenceBoard';
+import { AnimatedMap, AnimatedMapOverlay } from './remotion/AnimatedMap';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 
@@ -21,6 +24,9 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   FINANCIAL_CARD: FinancialCard,
   TEXT_OVERLAY: TextOverlay,
   TIMELINE_MARKER: TimelineMarker,
+  TEXT_CHAT: TextChatOverlay,
+  EVIDENCE_BOARD: EvidenceBoardOverlay,
+  MAP: AnimatedMapOverlay,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -33,6 +39,25 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
   const colorFilter = colorPreset ? COLOR_FILTERS[colorPreset] : undefined;
   const kenBurns = seg.visual[0]?.metadata?.ken_burns;
   const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
+
+  // TEXT_CHAT visual: render as full-screen chat conversation
+  if (contentType === 'TEXT_CHAT') {
+    const visual = seg.visual[0];
+    return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
+
+  // MAP visual: render as animated map
+  const MAP_TYPES = new Set(['MAP', 'MAP-FLAT', 'MAP-3D', 'MAP-TACTICAL', 'MAP-PULSE', 'MAP-ROUTE']);
+  if (MAP_TYPES.has(contentType)) {
+    const visual = seg.visual[0];
+    return <AnimatedMap content={visual?.content || ''} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
+
+  // EVIDENCE_BOARD visual: render as full-screen evidence board
+  if (contentType === 'EVIDENCE_BOARD' || contentType === 'EVIDENCE-BOARD') {
+    const visual = seg.visual[0];
+    return <EvidenceBoard content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
 
   if (!isRealFile(src) || !knownFiles.has(src!)) {
     return <PlaceholderFrame type={contentType} title={seg.title} />;
@@ -53,11 +78,12 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration:
       {/* LowerThird -- special case (different props interface) */}
       {seg.overlay.filter(o => o.content_type === 'LOWER_THIRD').map((lt, i) => {
         const { name, role } = parseLowerThirdContent(lt.content);
-        const dur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
+        const defaultDur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
         const offset = lt.time_start ? Math.round(parseTimecode(lt.time_start) * fps) : 0;
+        const clampedDur = Math.min(defaultDur, segDuration - offset);
         return (
-          <Sequence key={`lt-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
-            <LowerThird name={name} role={role} durationInFrames={dur} />
+          <Sequence key={`lt-${i}`} from={offset} durationInFrames={clampedDur}>
+            <LowerThird name={name} role={role} durationInFrames={clampedDur} />
           </Sequence>
         );
       })}
@@ -69,9 +95,10 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: Segment; segDuration:
         const defaultDur = (DEFAULT_DURATIONS[entry.content_type] || 3) * fps;
         const dur = Math.min(defaultDur, segDuration);
         const offset = entry.time_start ? Math.round(parseTimecode(entry.time_start) * fps) : 0;
+        const clampedDur = Math.min(dur, segDuration - offset);
         return (
-          <Sequence key={`ov-${i}`} from={offset} durationInFrames={Math.min(dur, segDuration - offset)}>
-            <Component content={entry.content} metadata={entry.metadata} durationInFrames={dur} />
+          <Sequence key={`ov-${i}`} from={offset} durationInFrames={clampedDur}>
+            <Component content={entry.content} metadata={entry.metadata} durationInFrames={clampedDur} />
           </Sequence>
         );
       })}
@@ -127,10 +154,33 @@ export const BeeComposition: React.FC<{
           );
         }
 
-        // Overlap transitions are rendered between segments (handled below)
         return (
           <Sequence key={seg.id} from={pos.from} durationInFrames={pos.duration} name={seg.title}>
             {segmentContent}
+          </Sequence>
+        );
+      })}
+
+      {/* Overlap mode: render TransitionRenderer during overlap windows */}
+      {transitionMode === 'overlap' && positions.map((pos, i) => {
+        if (i === 0 || !pos.transitionIn) return null;
+        const prevPos = positions[i - 1];
+        const prevSeg = segmentMap.get(prevPos.segId);
+        const curSeg = segmentMap.get(pos.segId);
+        if (!prevSeg || !curSeg) return null;
+
+        const overlapStart = pos.from;
+        const transDur = pos.transitionIn.durationInFrames;
+
+        return (
+          <Sequence key={`trans-${pos.segId}`} from={overlapStart} durationInFrames={transDur}>
+            <TransitionRenderer
+              type={pos.transitionIn.type}
+              durationInFrames={transDur}
+              mode="overlap"
+              outgoing={<SegmentVisual seg={prevSeg} knownFiles={knownFiles} />}
+              incoming={<SegmentVisual seg={curSeg} knownFiles={knownFiles} />}
+            />
           </Sequence>
         );
       })}
