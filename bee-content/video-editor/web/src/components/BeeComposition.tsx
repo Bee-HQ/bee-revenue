@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { AbsoluteFill, Sequence, Video, Img, useVideoConfig } from 'remotion';
 import type { Storyboard } from '../types';
 import { parseTimecode, timeToFrames } from '../adapters/time-utils';
@@ -37,6 +38,42 @@ function PlaceholderFrame({ type, title }: { type: string; title: string }) {
   );
 }
 
+
+/** Video wrapper that catches load/playback errors and falls back to a placeholder */
+function SafeVideo({ src, type, title, style }: { src: string; type: string; title: string; style?: React.CSSProperties }) {
+  const [failed, setFailed] = useState(false);
+  const handleError = useCallback(() => setFailed(true), []);
+
+  if (failed) {
+    return <PlaceholderFrame type={type} title={`${title} (media unavailable)`} />;
+  }
+
+  return (
+    <Video
+      src={src}
+      style={style}
+      onError={handleError}
+    />
+  );
+}
+
+/** Image wrapper that catches load errors and falls back to a placeholder */
+function SafeImg({ src, type, title, style }: { src: string; type: string; title: string; style?: React.CSSProperties }) {
+  const [failed, setFailed] = useState(false);
+  const handleError = useCallback(() => setFailed(true), []);
+
+  if (failed) {
+    return <PlaceholderFrame type={type} title={`${title} (media unavailable)`} />;
+  }
+
+  return (
+    <Img
+      src={src}
+      style={style}
+      onError={handleError}
+    />
+  );
+}
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
 
@@ -107,15 +144,21 @@ export const BeeComposition: React.FC<{ storyboard: Storyboard; mediaFiles?: str
             {!isRealFile(src) || !knownFiles.has(src!) ? (
               <PlaceholderFrame type={seg.visual[0]?.content_type || 'NONE'} title={seg.title} />
             ) : (() => {
+              const contentType = seg.visual[0]?.content_type || 'NONE';
+              const mediaStyle = { width: '100%' as const, height: '100%' as const, objectFit: 'cover' as const };
               const visualContent = isImage ? (
-                <Img
+                <SafeImg
                   src={mediaUrl(src)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  type={contentType}
+                  title={seg.title}
+                  style={mediaStyle}
                 />
               ) : (
-                <Video
+                <SafeVideo
                   src={mediaUrl(src)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  type={contentType}
+                  title={seg.title}
+                  style={mediaStyle}
                 />
               );
 
