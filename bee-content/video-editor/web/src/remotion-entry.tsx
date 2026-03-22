@@ -11,7 +11,7 @@ const Root: React.FC = () => {
       fps={30}
       width={1920}
       height={1080}
-      defaultProps={{ storyboard: null as unknown as Storyboard, mediaFiles: [] as string[], showCaptions: true }}
+      defaultProps={{ storyboard: null as unknown as Storyboard, mediaFiles: [] as string[], showCaptions: true, transitionMode: 'overlap' as const }}
       calculateMetadata={({ props }) => {
         const sb = props.storyboard;
         if (!sb) return { durationInFrames: 1 };
