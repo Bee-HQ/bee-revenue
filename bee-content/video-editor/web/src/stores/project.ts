@@ -82,6 +82,11 @@ interface ProjectState {
   reorderSegments: (fromIndex: number, toIndex: number) => void;
   orderedSegments: () => Segment[];
 
+  transitionMode: 'overlap' | 'fade';
+  computedTotalFrames: number | null;
+  setTransitionMode: (mode: 'overlap' | 'fade') => void;
+  setComputedTotalFrames: (frames: number) => void;
+
   selectedSegment: () => Segment | null;
 }
 
@@ -108,12 +113,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedActionIds: [],
   clipboard: [],
   trackState: {},
+  transitionMode: (() => {
+    try { return (localStorage.getItem('bee-editor-transition-mode') as 'overlap' | 'fade') || 'overlap'; }
+    catch { return 'overlap' as const; }
+  })(),
+  computedTotalFrames: null,
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
   setActiveClipId: (id) => set({ activeClipId: id }),
   setLoopIn: (frame) => set({ loopIn: frame }),
   setLoopOut: (frame) => set({ loopOut: frame }),
+  setTransitionMode: (mode) => {
+    set({ transitionMode: mode });
+    try { localStorage.setItem('bee-editor-transition-mode', mode); } catch {}
+  },
+  setComputedTotalFrames: (frames) => set({ computedTotalFrames: frames }),
 
   loadProject: async (storyboardPath, projectDir) => {
     set({ loading: true, error: null });

@@ -20,6 +20,8 @@ export function RemotionPreview() {
   );
   const loopIn = useProjectStore((s) => s.loopIn);
   const loopOut = useProjectStore((s) => s.loopOut);
+  const computedTotalFrames = useProjectStore(s => s.computedTotalFrames);
+  const transitionMode = useProjectStore(s => s.transitionMode);
   const playerRef = useRef<PlayerRef>(null);
   const playingRef = useRef(false);
   const loopInRef = useRef<number | null>(null);
@@ -34,7 +36,7 @@ export function RemotionPreview() {
   const SPEEDS = [0.5, 1, 1.5, 2];
 
   const totalDuration = storyboard?.total_duration_seconds ?? 0;
-  const totalFrames = Math.max(1, Math.round(totalDuration * FPS));
+  const totalFrames = computedTotalFrames ?? Math.max(1, Math.round(totalDuration * FPS));
 
   // Register playerRef in the store on mount so other components can seek
   useEffect(() => {
@@ -90,7 +92,7 @@ export function RemotionPreview() {
         <Player
           ref={playerRef}
           component={BeeComposition}
-          inputProps={{ storyboard, mediaFiles: mediaFilePaths, showCaptions }}
+          inputProps={{ storyboard, mediaFiles: mediaFilePaths, showCaptions, transitionMode }}
           durationInFrames={totalFrames}
           fps={FPS}
           compositionWidth={1920}
@@ -126,6 +128,20 @@ export function RemotionPreview() {
           title={showCaptions ? 'Hide captions' : 'Show captions'}
         >
           CC
+        </button>
+        <button
+          onClick={() => {
+            const next = transitionMode === 'overlap' ? 'fade' : 'overlap';
+            useProjectStore.getState().setTransitionMode(next);
+          }}
+          className={`text-[10px] px-1.5 py-0.5 rounded border ${
+            transitionMode === 'overlap'
+              ? 'text-blue-400 border-blue-600/50 bg-blue-600/10'
+              : 'text-gray-500 border-editor-border'
+          }`}
+          title={`Transition mode: ${transitionMode}`}
+        >
+          {transitionMode === 'overlap' ? 'X-Fade' : 'Fade'}
         </button>
       </div>
     </div>
