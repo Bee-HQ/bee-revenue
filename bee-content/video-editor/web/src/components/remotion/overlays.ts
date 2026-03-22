@@ -15,6 +15,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   TEXT_OVERLAY: 3,
   TEXT_CHAT: 5,
   EVIDENCE_BOARD: 8,
+  MAP: 6,
 };
 
 /** Parse "quote text — Author" into parts */

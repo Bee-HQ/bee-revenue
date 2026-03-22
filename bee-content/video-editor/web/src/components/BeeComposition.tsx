@@ -15,6 +15,7 @@ import { TimelineMarker } from './remotion/TimelineMarker';
 import { TransitionRenderer } from './remotion/TransitionRenderer';
 import { TextChat, TextChatOverlay } from './remotion/TextChat';
 import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/EvidenceBoard';
+import { AnimatedMap, AnimatedMapOverlay } from './remotion/AnimatedMap';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 
@@ -25,6 +26,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   TIMELINE_MARKER: TimelineMarker,
   TEXT_CHAT: TextChatOverlay,
   EVIDENCE_BOARD: EvidenceBoardOverlay,
+  MAP: AnimatedMapOverlay,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -42,6 +44,13 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
   if (contentType === 'TEXT_CHAT') {
     const visual = seg.visual[0];
     return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
+
+  // MAP visual: render as animated map
+  const MAP_TYPES = new Set(['MAP', 'MAP-FLAT', 'MAP-3D', 'MAP-TACTICAL', 'MAP-PULSE', 'MAP-ROUTE']);
+  if (MAP_TYPES.has(contentType)) {
+    const visual = seg.visual[0];
+    return <AnimatedMap content={visual?.content || ''} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
   }
 
   // EVIDENCE_BOARD visual: render as full-screen evidence board
