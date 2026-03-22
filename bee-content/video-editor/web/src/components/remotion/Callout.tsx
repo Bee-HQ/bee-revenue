@@ -106,7 +106,7 @@ export function parseCalloutData(
     color: (metadata?.color as string) || '#dc2626',
     targetSize: (metadata?.targetSize as number) || 100,
     strokeWidth: (metadata?.strokeWidth as number) || 4,
-    labelPosition: (['auto', 'top', 'bottom', 'left', 'right'].includes(metadata?.labelPosition) ? metadata.labelPosition : 'auto') as CalloutData['labelPosition'],
+    labelPosition: (['auto', 'top', 'bottom', 'left', 'right'].includes(metadata?.labelPosition) ? metadata!.labelPosition : 'auto') as CalloutData['labelPosition'],
   };
 }
 
