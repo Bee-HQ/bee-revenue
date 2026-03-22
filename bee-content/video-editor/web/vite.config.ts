@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  // @ts-expect-error vitest config extends vite config
   test: {
     exclude: ['e2e/**', 'node_modules/**'],
   },
