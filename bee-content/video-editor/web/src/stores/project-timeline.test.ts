@@ -153,3 +153,39 @@ describe('deleteSelectedActions', () => {
     expect(useProjectStore.getState().timelineHistoryIndex).toBe(prevIndex + 1);
   });
 });
+
+describe('copy/paste/duplicate', () => {
+  beforeEach(() => {
+    const rows: TimelineRow[] = [
+      { id: 'V1', actions: [
+        { id: 'a1', start: 0, end: 5, effectId: 'video', data: { segmentId: 's1', src: 'a.mp4', title: 'A', contentType: 'FOOTAGE', layerIndex: 0 } } as any,
+      ]},
+    ];
+    useProjectStore.setState({
+      editorData: rows, selectedActionIds: ['a1'], clipboard: [],
+      currentTimeMs: 10000, timelineHistory: [rows], timelineHistoryIndex: 0,
+    });
+  });
+
+  test('copySelectedActions stores in clipboard', () => {
+    useProjectStore.getState().copySelectedActions();
+    expect(useProjectStore.getState().clipboard).toHaveLength(1);
+    expect(useProjectStore.getState().clipboard[0].id).toBe('a1');
+  });
+
+  test('pasteClipboard inserts at cursor with new IDs', () => {
+    useProjectStore.getState().copySelectedActions();
+    useProjectStore.getState().pasteClipboard();
+    const v1 = useProjectStore.getState().editorData.find(r => r.id === 'V1')!;
+    expect(v1.actions).toHaveLength(2);
+    expect(v1.actions[1].start).toBe(10); // cursor at 10s (10000ms / 1000)
+    expect(v1.actions[1].id).not.toBe('a1'); // new ID
+  });
+
+  test('duplicateSelectedActions copies in-place after original', () => {
+    useProjectStore.getState().duplicateSelectedActions();
+    const v1 = useProjectStore.getState().editorData.find(r => r.id === 'V1')!;
+    expect(v1.actions).toHaveLength(2);
+    expect(v1.actions[1].start).toBe(5); // right after original end
+  });
+});

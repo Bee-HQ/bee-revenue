@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { RefObject } from 'react';
 import type { PlayerRef } from '@remotion/player';
-import type { TimelineRow } from '@xzdarcy/timeline-engine';
+import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
 import type { Effects, MediaFile, Segment, Storyboard } from '../types';
 import { api } from '../api/client';
 import { toast } from './toast';
@@ -65,9 +65,13 @@ interface ProjectState {
   timelineRedo: () => void;
   splitAtPlayhead: () => void;
   selectedActionIds: string[];
+  clipboard: TimelineAction[];
   selectAction: (id: string, shiftKey: boolean) => void;
   clearActionSelection: () => void;
   deleteSelectedActions: () => void;
+  copySelectedActions: () => void;
+  pasteClipboard: () => void;
+  duplicateSelectedActions: () => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
@@ -98,6 +102,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   timelineHistory: [],
   timelineHistoryIndex: -1,
   selectedActionIds: [],
+  clipboard: [],
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
@@ -120,6 +125,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         timelineHistoryIndex: -1,
         segmentOrder: null,
         selectedActionIds: [],
+        clipboard: [],
       });
       get().loadMedia();
       get().loadAssetStatus();
@@ -353,6 +359,72 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().setEditorData(newRows);
     get().pushTimelineHistory(newRows);
     set({ selectedActionIds: [], activeClipId: null });
+  },
+
+  copySelectedActions: () => {
+    const { editorData, selectedActionIds } = get();
+    const sel = new Set(selectedActionIds);
+    const copied: TimelineAction[] = [];
+    for (const row of editorData) {
+      for (const a of row.actions) {
+        if (sel.has(a.id)) copied.push(structuredClone(a));
+      }
+    }
+    set({ clipboard: copied });
+  },
+
+  pasteClipboard: () => {
+    const { clipboard, editorData, currentTimeMs } = get();
+    if (clipboard.length === 0) return;
+    const cursorSec = currentTimeMs / 1000;
+    const earliest = Math.min(...clipboard.map(a => a.start));
+    const offset = cursorSec - earliest;
+
+    // Helper to determine a row's effectId from its id
+    const rowEffectId = (row: { id: string; actions: TimelineAction[] }): string => {
+      if (row.actions.length > 0) return row.actions[0].effectId;
+      const map: Record<string, string> = { V1: 'video', A1: 'narration', A2: 'audio', A3: 'music', OV1: 'overlay' };
+      return map[row.id] || '';
+    };
+
+    const newRows = editorData.map(row => {
+      const toAdd = clipboard
+        .filter(a => a.effectId === rowEffectId(row))
+        .map(a => ({
+          ...structuredClone(a),
+          id: `paste-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          start: a.start + offset,
+          end: a.end + offset,
+          selected: false,
+        }));
+      if (toAdd.length === 0) return row;
+      return { ...row, actions: [...row.actions, ...toAdd] };
+    });
+    get().setEditorData(newRows);
+    get().pushTimelineHistory(newRows);
+  },
+
+  duplicateSelectedActions: () => {
+    const { editorData, selectedActionIds } = get();
+    if (selectedActionIds.length === 0) return;
+    const sel = new Set(selectedActionIds);
+    const newRows = editorData.map(row => {
+      const dupes: TimelineAction[] = [];
+      for (const a of row.actions) {
+        if (sel.has(a.id)) {
+          dupes.push({
+            ...structuredClone(a),
+            id: `dup-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            start: a.end,
+            end: a.end + (a.end - a.start),
+            selected: false,
+          });
+        }
+      }
+      return dupes.length > 0 ? { ...row, actions: [...row.actions, ...dupes] } : row;
+    });
+    get().setEditorData(newRows);
+    get().pushTimelineHistory(newRows);
   },
 
   selectedSegment: () => {
