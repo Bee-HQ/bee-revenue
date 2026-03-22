@@ -158,6 +158,13 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     setContextMenu({ x: e.clientX, y: e.clientY, actionId: action.id });
   }, []);
 
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      setZoomLevel(z => Math.max(1, Math.min(20, z + (e.deltaY > 0 ? -1 : 1))));
+    }
+  }, []);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -251,6 +258,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
       tabIndex={0}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onWheel={handleWheel}
       onPaste={handlePaste}
     >
       {/* Toolbar */}
@@ -404,6 +412,12 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
             onClickRow={handleClickRow}
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
+            onClickTimeArea={(time) => { setCurrentTimeMs(time * 1000); return undefined; }}
+            getScaleRender={(scale) => {
+              const mins = Math.floor(scale / 60);
+              const secs = Math.floor(scale % 60);
+              return <span style={{ fontSize: 10, color: '#999', fontFamily: 'monospace' }}>{mins}:{secs.toString().padStart(2, '0')}</span>;
+            }}
           />
         </div>
       </div>
