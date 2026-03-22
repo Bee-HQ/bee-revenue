@@ -106,13 +106,13 @@ Five internal building blocks composed by all new components:
 - Each style maps to an SVG path generator function (`circlePath()`, `arrowPath()`, `boxPath()`, etc.)
 - `@remotion/shapes` for circle/rect base paths, `@remotion/paths` for length calculation
 - Label text uses `FitText` inside a background pill from `@remotion/rounded-text-box`
-- `target` is `[x, y]` in 1920x1080 composition coordinates
+- `target` is `[x, y]` normalized 0-1 coordinates (e.g., `[0.5, 0.5]` = center). Components scale to composition dimensions internally. This matches `SCREEN_MOCKUP.zoomTarget` for consistency.
 - Quality: `premium` adds glow/shadow + `<Trail>` on draw. `social` uses thicker strokes, bolder text.
 
 **Props:**
 - `content` (string) — label text
 - `style` — callout shape
-- `target` — `[x, y]` position
+- `target` — `[x, y]` normalized 0-1 coordinates
 - `targetSize` — radius/dimensions for circle/box
 - `animation` — entrance mode
 - `color` — accent color (default `#dc2626`)
@@ -177,11 +177,17 @@ Five internal building blocks composed by all new components:
 {
   "visual": [{
     "type": "INFOGRAPHIC",
-    "content": "{\"layout\": \"stats\", \"title\": \"By The Numbers\", \"items\": [{\"label\": \"Victims\", \"value\": \"12\", \"icon\": \"users\"}]}",
-    "preset": "stats"
+    "content": "By The Numbers",
+    "layout": "stats",
+    "items": [
+      { "label": "Victims", "value": "12", "icon": "users" },
+      { "label": "Duration", "value": "8 years", "icon": "clock" }
+    ]
   }]
 }
 ```
+
+Note: Configuration uses top-level fields on entries (`layout`, `items`), not JSON-in-string content. This follows the existing codebase convention documented in CLAUDE.md: "Configuration uses top-level fields on entries (platform, animation, style, coordinates, etc.) -- no nested metadata objects." The `content` field holds the title string.
 
 **Layouts:**
 
@@ -194,18 +200,6 @@ Five internal building blocks composed by all new components:
 | `pyramid` | Stacked horizontal bars, widest at bottom | Hierarchy, ranking |
 | `split` | Left text block, right visual/stat block | Explanation + data |
 
-**Content schema:**
-```json
-{
-  "layout": "stats",
-  "title": "Optional Header",
-  "items": [
-    { "label": "Victims", "value": "12", "icon": "users" },
-    { "label": "Duration", "value": "8 years", "icon": "clock" }
-  ]
-}
-```
-
 **Implementation:**
 - Each layout is a sub-component receiving parsed items
 - Items animate via `StaggerChildren` + `SpringReveal`
@@ -216,10 +210,10 @@ Five internal building blocks composed by all new components:
 - `@remotion/shapes` for card backgrounds, progress bars
 - Quality: `premium` adds card shadows, gradient backgrounds, slower stagger. `social` auto-truncates to 3-4 items, larger text, no connectors.
 
-**Props:**
-- `content` (JSON string) — layout config + items
-- `preset` — layout type
-- `title` — optional header
+**Props (top-level fields on entry):**
+- `content` (string) — title text
+- `layout` — layout type (`comparison` | `process` | `stats` | `list` | `pyramid` | `split`)
+- `items` — array of `{ label, value, icon?, color? }`
 - `color` — accent color scheme
 - `columns` — override grid columns for `stats` layout
 
@@ -378,10 +372,81 @@ web/src/components/remotion/
 
 ## Registration
 
-New components register in `BeeComposition.tsx`:
-- `OVERLAY_COMPONENTS` registry for overlay-capable types
-- `SegmentVisual` routing for visual-mode types (KINETIC_TEXT, INFOGRAPHIC, SCREEN_MOCKUP, DATA_VIZ, TITLE_CARD, THREE_D, LOTTIE as visual)
-- Dual-mode components export both `Component` and `ComponentOverlay` (pattern already used by TextChat, EvidenceBoard, etc.)
+### Overlay Registry
+
+New overlay-capable types added to `OVERLAY_COMPONENTS` in `BeeComposition.tsx`:
+```typescript
+const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
+  // ... existing entries
+  CALLOUT: CalloutOverlay,
+  KINETIC_TEXT: KineticTextOverlay,
+  LOTTIE: LottieOverlay,
+  ATMOSPHERE: Atmosphere,
+  GLITCH: Glitch,
+};
+```
+
+### Visual Registry (new)
+
+Replace the current `SegmentVisual` if/else chain with a `VISUAL_COMPONENTS` registry, matching the overlay pattern:
+```typescript
+const VISUAL_COMPONENTS: Record<string, React.FC<VisualProps>> = {
+  TEXT_CHAT: TextChat,
+  EVIDENCE_BOARD: EvidenceBoard,
+  SOCIAL_POST: SocialPost,
+  // ... existing visual-mode types
+  KINETIC_TEXT: KineticText,
+  INFOGRAPHIC: Infographic,
+  SCREEN_MOCKUP: ScreenMockup,
+  DATA_VIZ: DataViz,
+  TITLE_CARD: TitleCard,
+  THREE_D: ThreeD,
+  LOTTIE: LottieVisual,
+};
+```
+
+This eliminates the growing if/else chain and makes adding visual types consistent with the overlay pattern.
+
+Dual-mode components export both `Component` and `ComponentOverlay` (pattern already used by TextChat, EvidenceBoard, etc.).
+
+### Storyboard Parser Updates
+
+The storyboard parser (`web/shared/storyboard-parser.ts`) normalizes visual types through `VISUAL_TYPE_MAP`. All new visual types must be added to this map (and the duplicate in `web/src/adapters/timeline-adapter.ts`) to pass through un-normalized:
+
+```typescript
+const VISUAL_TYPE_MAP: Record<string, string> = {
+  // ... existing entries
+  'KINETIC_TEXT': 'KINETIC_TEXT',
+  'KINETIC-TEXT': 'KINETIC_TEXT',
+  'INFOGRAPHIC': 'INFOGRAPHIC',
+  'SCREEN_MOCKUP': 'SCREEN_MOCKUP',
+  'SCREEN-MOCKUP': 'SCREEN_MOCKUP',
+  'DATA_VIZ': 'DATA_VIZ',
+  'DATA-VIZ': 'DATA_VIZ',
+  'TITLE_CARD': 'TITLE_CARD',
+  'TITLE-CARD': 'TITLE_CARD',
+  'THREE_D': 'THREE_D',
+  'THREE-D': 'THREE_D',
+  'LOTTIE': 'LOTTIE',
+};
+```
+
+Both hyphenated and underscored forms are mapped, matching the existing pattern.
+
+### Default Durations
+
+Add entries to `DEFAULT_DURATIONS` in `overlays.ts` for new overlay types:
+
+```typescript
+export const DEFAULT_DURATIONS: Record<string, number> = {
+  // ... existing entries
+  CALLOUT: 4,        // seconds
+  KINETIC_TEXT: 5,
+  LOTTIE: 4,
+  ATMOSPHERE: 10,    // atmospheric effects run longer
+  GLITCH: 3,
+};
+```
 
 ## BeeProject Schema Change
 
@@ -396,4 +461,29 @@ interface BeeProject {
 Also add to the `bee-video:project` storyboard JSON block:
 ```json
 {"title": "My Video", "fps": 30, "resolution": [1920, 1080], "quality": "standard"}
+```
+
+### Parser and Persistence Updates
+
+The `quality` field must be handled in:
+
+1. **`web/shared/storyboard-parser.ts`** — destructure `quality` from the `bee-video:project` JSON block alongside `title`, `fps`, `resolution`
+2. **`web/shared/types.ts`** — add `quality?: 'standard' | 'premium' | 'social'` to `BeeProject` interface
+3. **`web/server/services/project-store.ts`** — preserve `quality` during serialization/deserialization (already passes through if typed correctly, but verify)
+
+### FPS Hardcode Fix
+
+The existing `SegmentVisual` hardcodes `Math.round(seg.duration * 30)` for duration calculations. New visual components must use `fps` from `useVideoConfig()` instead. The new `VISUAL_COMPONENTS` registry should pass `fps` and `durationInFrames` as props, computed correctly from `useVideoConfig()`.
+
+## Bundle Size: THREE_D Code Splitting
+
+`@remotion/three`, `@react-three/fiber`, and `three` (~600KB minified) must be dynamically imported via `React.lazy()` so they do not bloat the main bundle. The `ThreeD` component should be a lazy wrapper:
+
+```typescript
+const ThreeDInner = React.lazy(() => import('./ThreeDInner'));
+export const ThreeD: React.FC<VisualProps> = (props) => (
+  <Suspense fallback={<PlaceholderFrame type="THREE_D" title="Loading 3D..." />}>
+    <ThreeDInner {...props} />
+  </Suspense>
+);
 ```
