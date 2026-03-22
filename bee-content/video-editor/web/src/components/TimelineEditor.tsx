@@ -52,8 +52,6 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const [effects, setEffects] = useState<Record<string, any>>({});
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
-  const isPlayingRef = useRef(false);
-  const lastSyncRef = useRef(0);
 
   // Compute scaleWidth so zoom=1 fits the full duration to the container width.
   // Higher zoom levels expand proportionally.
@@ -83,26 +81,6 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const baseScaleWidth = Math.max(20, (containerWidth * SCALE) / totalDuration);
   const scaleWidth = baseScaleWidth * zoomLevel;
 
-  // Track Remotion play/pause state for cursor sync throttling
-  useEffect(() => {
-    const player = useProjectStore.getState().playerRef?.current;
-    if (!player || typeof player.addEventListener !== 'function') return;
-    try {
-      const onPlay = () => { isPlayingRef.current = true; };
-      const onPause = () => { isPlayingRef.current = false; };
-      player.addEventListener('play', onPlay as never);
-      player.addEventListener('pause', onPause as never);
-      return () => {
-        try {
-          player.removeEventListener('play', onPlay as never);
-          player.removeEventListener('pause', onPause as never);
-        } catch {}
-      };
-    } catch {
-      // addEventListener internal crash — isPlayingRef stays false (safe default)
-    }
-  }, [storyboard]);
-
   // Convert storyboard → timeline rows on storyboard change
   // Skip re-conversion when storyboard was updated by the debounced sync callback
   useEffect(() => {
@@ -117,15 +95,11 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     pushTimelineHistory(rows);
   }, [storyboard]);
 
-  // Sync Remotion playback → timeline cursor (throttled during playback)
+  // Sync Remotion playback → timeline cursor.
+  // RemotionPreview polls at 100ms (~10fps), so updates are already throttled at the source.
   useEffect(() => {
     if (!timelineRef.current) return;
-    const now = Date.now();
-    // During playback: throttle to ~5fps to avoid 30fps churn
-    if (isPlayingRef.current && now - lastSyncRef.current < 200) return;
-    lastSyncRef.current = now;
     timelineRef.current.setTime(currentTimeMs / 1000);
-    // reRender() needed for the library to visually update cursor position
     (timelineRef.current as any).reRender?.();
   }, [currentTimeMs]);
 

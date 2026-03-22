@@ -41,77 +41,36 @@ export function RemotionPreview() {
     setPlayerRef(playerRef);
   }, [setPlayerRef]);
 
-  // Listen to player frame updates
+  // Sync Remotion playback → store via polling.
+  // Remotion's addEventListener is unreliable (internal event map may not be initialized),
+  // so we poll getCurrentFrame() directly. We detect playing state by checking if the
+  // frame is advancing, which avoids the seek→setCurrentTimeMs→seekTo feedback loop.
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
 
-    // Guard: addEventListener may not be available in all Remotion/React versions
-    if (typeof player.addEventListener !== 'function') {
-      console.warn('[RemotionPreview] player.addEventListener not available, falling back to polling');
-      const interval = setInterval(() => {
-        try {
-          const frame = player.getCurrentFrame() ?? 0;
-          if (playingRef.current) {
-            useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
-            const li = loopInRef.current;
-            const lo = loopOutRef.current;
-            if (li !== null && lo !== null && frame >= lo) {
-              playerRef.current?.seekTo(li);
-            }
-          }
-        } catch {}
-      }, 100);
-      return () => clearInterval(interval);
-    }
+    let lastFrame = -1;
+    const interval = setInterval(() => {
+      try {
+        const frame = player.getCurrentFrame() ?? 0;
+        const isPlaying = frame !== lastFrame;
+        playingRef.current = isPlaying;
 
-    try {
-      const onFrameChange = (e: { detail: { frame: number } }) => {
-        const frame = e?.detail?.frame ?? 0;
-        // Only update the store while playing — avoids a seek->framechange->setCurrentTimeMs->seekTo loop
-        // Use ref to avoid stale closure and prevent re-registering listeners on every play/pause
-        if (playingRef.current) {
+        if (isPlaying) {
           useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
 
-          // Loop range enforcement: seek back to loopIn when playback reaches loopOut
+          // Loop range enforcement
           const li = loopInRef.current;
           const lo = loopOutRef.current;
           if (li !== null && lo !== null && frame >= lo) {
             playerRef.current?.seekTo(li);
           }
         }
-      };
-      const onPlay = () => { playingRef.current = true; };
-      const onPause = () => { playingRef.current = false; };
+        lastFrame = frame;
+      } catch {}
+    }, 100);
 
-      player.addEventListener('framechange' as any, onFrameChange as never);
-      player.addEventListener('play', onPlay as never);
-      player.addEventListener('pause', onPause as never);
-
-      return () => {
-        try {
-          player.removeEventListener('framechange' as any, onFrameChange as never);
-          player.removeEventListener('play', onPlay as never);
-          player.removeEventListener('pause', onPause as never);
-        } catch {}
-      };
-    } catch {
-      // addEventListener exists but internal event map not initialized — fall back to polling
-      const interval = setInterval(() => {
-        try {
-          const frame = player.getCurrentFrame() ?? 0;
-          if (playingRef.current) {
-            useProjectStore.getState().setCurrentTimeMs(frame * (1000 / FPS));
-            const li = loopInRef.current;
-            const lo = loopOutRef.current;
-            if (li !== null && lo !== null && frame >= lo) {
-              playerRef.current?.seekTo(li);
-            }
-          }
-        } catch {}
-      }, 100);
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [storyboard]);
 
   // When currentTimeMs changes externally (e.g. from segment click), seek the player
