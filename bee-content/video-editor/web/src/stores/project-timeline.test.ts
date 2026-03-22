@@ -189,3 +189,34 @@ describe('copy/paste/duplicate', () => {
     expect(v1.actions[1].start).toBe(5); // right after original end
   });
 });
+
+describe('track state', () => {
+  beforeEach(() => {
+    const rows: TimelineRow[] = [
+      { id: 'V1', actions: [{ id: 'a1', start: 0, end: 5, effectId: 'video' }] },
+      { id: 'A1', actions: [{ id: 'a2', start: 0, end: 5, effectId: 'narration' }] },
+    ];
+    useProjectStore.setState({ editorData: rows, trackState: {}, timelineHistory: [rows], timelineHistoryIndex: 0 });
+  });
+
+  test('toggleTrackLock sets locked state', () => {
+    useProjectStore.getState().toggleTrackLock('V1');
+    expect(useProjectStore.getState().trackState.V1?.locked).toBe(true);
+  });
+
+  test('toggleTrackLock toggles off', () => {
+    useProjectStore.getState().toggleTrackLock('V1');
+    useProjectStore.getState().toggleTrackLock('V1');
+    expect(useProjectStore.getState().trackState.V1?.locked).toBe(false);
+  });
+
+  test('toggleTrackMute sets muted state', () => {
+    useProjectStore.getState().toggleTrackMute('A1');
+    expect(useProjectStore.getState().trackState.A1?.muted).toBe(true);
+  });
+
+  test('toggleTrackHide sets hidden state', () => {
+    useProjectStore.getState().toggleTrackHide('A1');
+    expect(useProjectStore.getState().trackState.A1?.hidden).toBe(true);
+  });
+});

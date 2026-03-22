@@ -10,7 +10,7 @@ import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import { Wand2, Download, Scissors, Magnet, Undo2, Redo2 } from 'lucide-react';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX, EyeOff } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -225,16 +225,25 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     }
   }, []);
 
+  const trackState = useProjectStore(s => s.trackState);
+
   if (!storyboard) return null;
 
   const selectedIds = useProjectStore.getState().selectedActionIds;
-  const markedData = editorData.map(row => ({
-    ...row,
-    actions: row.actions.map(a => ({
-      ...a,
-      selected: selectedIds.includes(a.id),
-    })),
-  }));
+  const markedData = editorData
+    .filter(row => !trackState[row.id]?.hidden)
+    .map(row => {
+      const state = trackState[row.id];
+      return {
+        ...row,
+        actions: row.actions.map(a => ({
+          ...a,
+          selected: selectedIds.includes(a.id),
+          movable: state?.locked ? false : undefined,
+          flexible: state?.locked ? false : undefined,
+        })),
+      };
+    });
 
   return (
     <div
@@ -343,7 +352,41 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
         </button>
       </div>
       {/* Timeline */}
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
+      <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Track controls */}
+        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-hidden" style={{ paddingTop: 32 }}>
+          {markedData.map(row => {
+            const state = trackState[row.id] || {};
+            return (
+              <div key={row.id} className="flex items-center gap-0.5 px-0.5" style={{ height: 28 }}>
+                <span className="text-[8px] text-gray-500 font-mono w-6 shrink-0">{row.id}</span>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackLock(row.id)}
+                  className={`p-0.5 rounded ${state.locked ? 'text-red-400' : 'text-gray-600 hover:text-gray-400'}`}
+                  title={state.locked ? 'Unlock' : 'Lock'}
+                >
+                  <Lock size={9} />
+                </button>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackMute(row.id)}
+                  className={`p-0.5 rounded ${state.muted ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                  title={state.muted ? 'Unmute' : 'Mute'}
+                >
+                  <VolumeX size={9} />
+                </button>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackHide(row.id)}
+                  className={`p-0.5 rounded text-gray-600 hover:text-gray-400`}
+                  title="Hide track"
+                >
+                  <EyeOff size={9} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {/* Timeline canvas */}
+        <div className="flex-1 overflow-hidden">
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
@@ -363,6 +406,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
           />
+        </div>
       </div>
       {contextMenu && (
         <TimelineContextMenu

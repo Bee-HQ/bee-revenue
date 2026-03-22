@@ -66,12 +66,16 @@ interface ProjectState {
   splitAtPlayhead: () => void;
   selectedActionIds: string[];
   clipboard: TimelineAction[];
+  trackState: Record<string, { locked?: boolean; muted?: boolean; hidden?: boolean }>;
   selectAction: (id: string, shiftKey: boolean) => void;
   clearActionSelection: () => void;
   deleteSelectedActions: () => void;
   copySelectedActions: () => void;
   pasteClipboard: () => void;
   duplicateSelectedActions: () => void;
+  toggleTrackLock: (rowId: string) => void;
+  toggleTrackMute: (rowId: string) => void;
+  toggleTrackHide: (rowId: string) => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
@@ -103,6 +107,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   timelineHistoryIndex: -1,
   selectedActionIds: [],
   clipboard: [],
+  trackState: {},
 
   setCurrentTimeMs: (ms) => set({ currentTimeMs: ms }),
   setPlayerRef: (ref) => set({ playerRef: ref }),
@@ -126,6 +131,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         segmentOrder: null,
         selectedActionIds: [],
         clipboard: [],
+        trackState: {},
       });
       get().loadMedia();
       get().loadAssetStatus();
@@ -425,6 +431,22 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
     get().setEditorData(newRows);
     get().pushTimelineHistory(newRows);
+  },
+
+  toggleTrackLock: (rowId) => {
+    const { trackState } = get();
+    const current = trackState[rowId] || {};
+    set({ trackState: { ...trackState, [rowId]: { ...current, locked: !current.locked } } });
+  },
+  toggleTrackMute: (rowId) => {
+    const { trackState } = get();
+    const current = trackState[rowId] || {};
+    set({ trackState: { ...trackState, [rowId]: { ...current, muted: !current.muted } } });
+  },
+  toggleTrackHide: (rowId) => {
+    const { trackState } = get();
+    const current = trackState[rowId] || {};
+    set({ trackState: { ...trackState, [rowId]: { ...current, hidden: !current.hidden } } });
   },
 
   selectedSegment: () => {
