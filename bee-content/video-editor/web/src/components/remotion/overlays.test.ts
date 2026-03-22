@@ -223,3 +223,17 @@ describe('parseMessages', () => {
     expect(result[0].text).toBe('{"not": "an array"}');
   });
 });
+
+import { DEFAULT_DURATIONS } from './overlays';
+
+describe('DEFAULT_DURATIONS for new components', () => {
+  test('CALLOUT has a default duration', () => {
+    expect(DEFAULT_DURATIONS.CALLOUT).toBe(4);
+  });
+  test('KINETIC_TEXT has a default duration', () => {
+    expect(DEFAULT_DURATIONS.KINETIC_TEXT).toBe(5);
+  });
+  test('ATMOSPHERE has long default', () => {
+    expect(DEFAULT_DURATIONS.ATMOSPHERE).toBe(10);
+  });
+});
