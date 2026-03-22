@@ -29,24 +29,35 @@ export interface KineticData {
 // ---------------------------------------------------------------------------
 
 /**
- * Split text on whitespace, detecting **heavy** and *light* emphasis markers.
+ * Parse text with **heavy** and *light* emphasis markers into word objects.
+ * Handles multi-word spans like *DNA evidence* and **Alex Murdaugh**.
  * Returns { text, emphasis } objects with markers stripped.
  */
 export function parseWords(content: string): ParsedWord[] {
   if (content === '') return [{ text: '', emphasis: 'none' }];
 
-  const tokens = content.split(/\s+/);
-  return tokens.map((raw) => {
-    // Check **double** first (greedy)
-    const heavy = raw.match(/^\*\*(.+?)\*\*$/);
-    if (heavy) return { text: heavy[1], emphasis: 'heavy' as Emphasis };
+  const result: ParsedWord[] = [];
+  // Match **heavy spans**, *light spans*, or plain words
+  const regex = /\*\*(.+?)\*\*|\*(.+?)\*|(\S+)/g;
+  let match;
 
-    // Check *single*
-    const light = raw.match(/^\*(.+?)\*$/);
-    if (light) return { text: light[1], emphasis: 'light' as Emphasis };
+  while ((match = regex.exec(content)) !== null) {
+    if (match[1] !== undefined) {
+      // **heavy** — split into individual words, all heavy
+      for (const word of match[1].split(/\s+/)) {
+        if (word) result.push({ text: word, emphasis: 'heavy' });
+      }
+    } else if (match[2] !== undefined) {
+      // *light* — split into individual words, all light
+      for (const word of match[2].split(/\s+/)) {
+        if (word) result.push({ text: word, emphasis: 'light' });
+      }
+    } else if (match[3] !== undefined) {
+      result.push({ text: match[3], emphasis: 'none' });
+    }
+  }
 
-    return { text: raw, emphasis: 'none' as Emphasis };
-  });
+  return result.length > 0 ? result : [{ text: '', emphasis: 'none' }];
 }
 
 /**
@@ -134,10 +145,13 @@ const PunchPreset: React.FC<{
           config: { ...springConfig, overshootClamping: false },
         });
 
-        const emphasisScale =
-          word.emphasis === 'heavy' ? 1.3 : word.emphasis === 'light' ? 1.15 : 1;
-        const scale = progress * emphasisScale;
         const wordColor = word.emphasis !== 'none' ? accentColor : color;
+        // Use fontSize for emphasis instead of scale — scale doesn't affect layout
+        const baseFontSize = 68;
+        const emphasisSize =
+          word.emphasis === 'heavy' ? baseFontSize * 1.3 :
+          word.emphasis === 'light' ? baseFontSize * 1.15 :
+          baseFontSize;
 
         // Exit fade
         const exitOpacity = interpolate(
@@ -152,12 +166,12 @@ const PunchPreset: React.FC<{
             key={i}
             style={{
               display: 'inline-block',
-              fontSize: 68,
+              fontSize: emphasisSize,
               fontWeight: 800,
               fontFamily: 'Arial, Helvetica, sans-serif',
               color: wordColor,
               opacity: progress * exitOpacity,
-              transform: `scale(${scale})`,
+              transform: `scale(${progress})`,
               textShadow: '0 4px 12px rgba(0,0,0,0.6)',
             }}
           >

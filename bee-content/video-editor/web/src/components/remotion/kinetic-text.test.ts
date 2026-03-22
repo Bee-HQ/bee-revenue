@@ -31,6 +31,22 @@ describe('parseWords', () => {
     const words = parseWords('');
     expect(words).toEqual([{ text: '', emphasis: 'none' }]);
   });
+
+  test('handles multi-word *light* emphasis', () => {
+    const words = parseWords('The *DNA evidence* proved it');
+    expect(words).toHaveLength(5);
+    expect(words[1]).toEqual({ text: 'DNA', emphasis: 'light' });
+    expect(words[2]).toEqual({ text: 'evidence', emphasis: 'light' });
+    expect(words[3]).toEqual({ text: 'proved', emphasis: 'none' });
+  });
+
+  test('handles multi-word **heavy** emphasis', () => {
+    const words = parseWords('Meet **Alex Murdaugh** now');
+    expect(words).toHaveLength(4);
+    expect(words[1]).toEqual({ text: 'Alex', emphasis: 'heavy' });
+    expect(words[2]).toEqual({ text: 'Murdaugh', emphasis: 'heavy' });
+    expect(words[3]).toEqual({ text: 'now', emphasis: 'none' });
+  });
 });
 
 describe('parseKineticData', () => {
