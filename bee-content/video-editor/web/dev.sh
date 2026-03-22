@@ -9,6 +9,13 @@ FRONTEND_PORT=${FRONTEND_PORT:-5173}
 lsof -ti:$BACKEND_PORT | xargs kill -9 2>/dev/null || true
 lsof -ti:$FRONTEND_PORT | xargs kill -9 2>/dev/null || true
 
+# Clean stale caches
+rm -rf node_modules/.vite dist
+
+# Fresh frontend build
+echo "Building frontend..."
+npm run build
+
 echo "Starting Express backend on :$BACKEND_PORT..."
 PORT=$BACKEND_PORT npx tsx watch server/index.ts &
 

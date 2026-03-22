@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { circlePath, arrowPath, boxPath, underlinePath, bracketPath, parseCalloutData } from './Callout';
+import { circlePath, arrowPath, arrowHeadPoints, boxPath, underlinePath, bracketPath, parseCalloutData } from './Callout';
 
 describe('Callout path generators', () => {
   test('circlePath generates valid SVG path', () => {
@@ -12,6 +12,13 @@ describe('Callout path generators', () => {
     const d = arrowPath(100, 100, 500, 500);
     expect(d).toMatch(/^M/);
     expect(d).toContain('Q');
+  });
+
+  test('arrowHeadPoints returns three comma-separated coordinate pairs', () => {
+    const pts = arrowHeadPoints(100, 100, 500, 500);
+    const coords = pts.split(' ');
+    expect(coords).toHaveLength(3);
+    coords.forEach(c => expect(c).toMatch(/^[\d.]+,[\d.]+$/));
   });
 
   test('boxPath generates rect path', () => {

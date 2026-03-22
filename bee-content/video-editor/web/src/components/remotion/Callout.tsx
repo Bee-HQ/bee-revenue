@@ -25,6 +25,31 @@ export function arrowPath(ox: number, oy: number, tx: number, ty: number): strin
   return `M ${ox} ${oy} Q ${mx + perpX} ${my + perpY} ${tx} ${ty}`;
 }
 
+/** Arrowhead triangle points string for <polygon>, oriented along the curve tangent at the tip */
+export function arrowHeadPoints(ox: number, oy: number, tx: number, ty: number, size = 18): string {
+  // Tangent at tip of quadratic bezier = direction from control point to endpoint
+  const mx = (ox + tx) / 2;
+  const my = (oy + ty) / 2;
+  const perpX = -(ty - oy) * 0.15;
+  const perpY = (tx - ox) * 0.15;
+  const cx = mx + perpX;
+  const cy = my + perpY;
+  const dx = tx - cx;
+  const dy = ty - cy;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  // Two wing points rotated ±30° from the reverse direction
+  const ang = Math.PI / 6;
+  const cos = Math.cos(ang);
+  const sin = Math.sin(ang);
+  const x1 = tx - size * (ux * cos - uy * sin);
+  const y1 = ty - size * (uy * cos + ux * sin);
+  const x2 = tx - size * (ux * cos + uy * sin);
+  const y2 = ty - size * (uy * cos - ux * sin);
+  return `${tx},${ty} ${x1},${y1} ${x2},${y2}`;
+}
+
 /** Rounded rectangle centered on (cx, cy) with half-widths hw/hh and corner radius r */
 export function boxPath(cx: number, cy: number, hw: number, hh: number, r: number): string {
   const cr = Math.min(r, hw, hh);
@@ -186,6 +211,12 @@ function CalloutVisual({
   const d = buildPath(data);
   const drawEnd = Math.round(fps * 0.8);
 
+  // Arrowhead for arrow style
+  const isArrow = data.style === 'arrow';
+  const headPoints = isArrow
+    ? arrowHeadPoints(data.targetX - 200, data.targetY - 200, data.targetX, data.targetY)
+    : '';
+
   // Exit fade over last 15 frames
   const exitOpacity = interpolate(
     frame,
@@ -194,47 +225,63 @@ function CalloutVisual({
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
-  // Label position
+  // Label position (in 1920x1080 SVG coordinates)
   const pos = computeLabelPosition(data);
+  const labelX = pos.left;
+  const labelY = pos.top ?? (1080 - (pos.bottom ?? 0));
 
-  const labelEl = data.label ? (
-    <div
-      style={{
-        position: 'absolute',
-        top: pos.top,
-        bottom: pos.bottom,
-        left: pos.left,
-        transform: 'translateX(-50%)',
-        color: '#fff',
-        fontSize: 28,
-        fontWeight: 600,
-        fontFamily: 'Arial, sans-serif',
-        textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {data.label}
-    </div>
-  ) : null;
+  // SVG label element — shares viewBox coordinate space with the path
+  function SvgLabel() {
+    if (!data.label) return null;
+    return (
+      <>
+        {/* Background pill */}
+        <rect
+          x={labelX - 8}
+          y={labelY - 6}
+          width={data.label.length * 16 + 16}
+          height={38}
+          rx={6}
+          fill="rgba(0,0,0,0.8)"
+          transform={`translate(${-(data.label.length * 16 + 16) / 2}, 0)`}
+        />
+        {/* Left accent bar */}
+        <rect
+          x={labelX - (data.label.length * 16 + 16) / 2 - 8}
+          y={labelY - 6}
+          width={3}
+          height={38}
+          rx={1.5}
+          fill={data.color}
+        />
+        <text
+          x={labelX}
+          y={labelY + 22}
+          textAnchor="middle"
+          fill="#fff"
+          fontSize={26}
+          fontWeight={600}
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          {data.label}
+        </text>
+      </>
+    );
+  }
+
+  // Shared SVG container with path + label
+  const svgStyle: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' };
 
   // Render based on animation mode
   if (data.animation === 'pop') {
     return (
       <AbsoluteFill style={{ opacity: exitOpacity, background }}>
         <SpringReveal direction="scale">
-          <svg
-            viewBox="0 0 1920 1080"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-          >
-            <path
-              d={d}
-              fill="none"
-              stroke={data.color}
-              strokeWidth={data.strokeWidth}
-              strokeLinecap="round"
-            />
+          <svg viewBox="0 0 1920 1080" style={svgStyle}>
+            <path d={d} fill="none" stroke={data.color} strokeWidth={data.strokeWidth} strokeLinecap="round" />
+            {isArrow && <polygon points={headPoints} fill={data.color} />}
+            <SvgLabel />
           </svg>
-          {labelEl}
         </SpringReveal>
       </AbsoluteFill>
     );
@@ -248,24 +295,21 @@ function CalloutVisual({
 
     return (
       <AbsoluteFill style={{ opacity: fadeIn * exitOpacity, background }}>
-        <svg
-          viewBox="0 0 1920 1080"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        >
-          <path
-            d={d}
-            fill="none"
-            stroke={data.color}
-            strokeWidth={data.strokeWidth}
-            strokeLinecap="round"
-          />
+        <svg viewBox="0 0 1920 1080" style={svgStyle}>
+          <path d={d} fill="none" stroke={data.color} strokeWidth={data.strokeWidth} strokeLinecap="round" />
+          {isArrow && <polygon points={headPoints} fill={data.color} />}
+          <SvgLabel />
         </svg>
-        {labelEl}
       </AbsoluteFill>
     );
   }
 
   // Default: draw animation using DrawPath primitive
+  // Arrowhead appears when the line finishes drawing
+  const headOpacity = isArrow
+    ? interpolate(frame, [drawEnd - 3, drawEnd], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+    : 0;
+
   return (
     <AbsoluteFill style={{ opacity: exitOpacity, background }}>
       <DrawPath
@@ -274,7 +318,11 @@ function CalloutVisual({
         strokeWidth={data.strokeWidth}
         color={data.color}
       />
-      {labelEl}
+      {/* Label + arrowhead as SVG overlay on top of DrawPath */}
+      <svg viewBox="0 0 1920 1080" style={svgStyle}>
+        {isArrow && <polygon points={headPoints} fill={data.color} opacity={headOpacity} />}
+        <SvgLabel />
+      </svg>
     </AbsoluteFill>
   );
 }
