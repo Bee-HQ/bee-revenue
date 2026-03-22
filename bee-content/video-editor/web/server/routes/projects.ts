@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { store } from '../services/project-store.js';
 import { searchPexels, downloadFile, acquireMedia } from '../services/acquisition.js';
+import { autoAssignMedia } from '../services/matcher.js';
 import { sanitizeFilename } from '../lib/media-utils.js';
 import type { BeeProject, BeeSegment } from '../../shared/types.js';
 
@@ -198,9 +199,15 @@ projectRoutes.post('/download-entry', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /auto-assign — not yet migrated
-projectRoutes.post('/auto-assign', (_req, res) => {
-  res.status(501).json({ detail: 'Not yet migrated' });
+// POST /auto-assign — match media files to segments by keywords
+projectRoutes.post('/auto-assign', (req, res, next) => {
+  try {
+    const project = store.get();
+    const projectDir = store.getProjectDir();
+    const result = autoAssignMedia(project, projectDir);
+    store.save();
+    res.json({ status: 'ok', ...result });
+  } catch (err) { next(err); }
 });
 
 // POST /acquire-media — batch stock acquisition
