@@ -115,7 +115,7 @@ For `image_to_video` and image-based segments:
 The full pipeline for producing a video from a v2 storyboard:
 
 ```
-1. import-md   → Load storyboard markdown → OTIO project file
+1. import-md   → Load storyboard markdown → project JSON
 2. init        → Create output directories and production state
 3. graphics    → Generate lower thirds, timeline markers, quote/financial cards
 4. narration   → Generate TTS narration (edge / kokoro / openai / elevenlabs)
@@ -257,13 +257,15 @@ Clips are auto-registered when downloaded via `fetch-stock`. The library lives a
 
 ### Helper Scripts
 
-The easiest way to run the editor:
+The web editor runs on Node.js — no Python needed.
 
 ```bash
-# Development mode — starts backend + Vite frontend with hot reload
+cd web
+
+# Development mode — Express backend + Vite frontend with hot reload
 ./dev.sh
 
-# Production mode — builds frontend (if needed) and serves everything
+# Production mode — builds frontend, Express serves everything
 ./start.sh
 
 # Force rebuild frontend before starting
@@ -281,17 +283,18 @@ Environment variables:
 ### Manual startup
 
 ```bash
-# Development mode (frontend hot reload via Vite)
-uv run bee-video serve --dev
-# Then in another terminal:
-cd web && npm run dev
+cd web
 
-# Production mode (serves built frontend)
-cd web && npm run build
-uv run bee-video serve
+# Development mode
+npm run server:dev &    # Express backend on :8420
+npm run dev             # Vite frontend on :5173
+
+# Production mode
+npm run build           # Build frontend
+npm run server          # Express serves built frontend on :8420
 ```
 
-The web UI features a full NLE timeline (DesignCombo SDK, V1/A1/A2/A3/OV1 tracks), Remotion Player for composited video preview with real-time overlay rendering, a tabbed right sidebar (Media / Properties / AI), drag-and-drop media assignment, stock footage search, clip property editing (color grade, volume, trim, transitions), JKL shuttle playback, split at playhead (S key), and pipeline actions via the production dropdown.
+The web UI features a full NLE timeline (react-timeline-editor, V1/A1/A2/A3/OV1 tracks), Remotion Player for composited video preview with real-time overlay rendering, a tabbed right sidebar (Media / Properties / AI), drag-and-drop media assignment, stock footage search, clip property editing (color grade, volume, trim, transitions), JKL shuttle playback, split at playhead (S key), and pipeline actions via the production dropdown. Project data uses the `BeeProject` JSON format with times in seconds and media paths inline on entries.
 
 ### Screenshots
 
@@ -372,7 +375,7 @@ formats/    Processors
             └ ai_video.py
 ```
 
-- **`formats/`**: `ParsedStoryboard` — the runtime model. Bidirectional `.md` ↔ OTIO conversion.
+- **`formats/`**: `ParsedStoryboard` — the Python runtime model. Web frontend uses `BeeProject` JSON format (converted via backend bridge).
 - **Processors**: Stateless functions wrapping FFmpeg, Pillow, TTS, stock APIs, scene detection.
 - **Services**: Production pipeline orchestration (no business logic — calls processors, manages state).
 - **Adapters**: Typer CLI, FastAPI + React web UI. Both delegate to the same service functions.

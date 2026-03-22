@@ -35,15 +35,13 @@ uv run bee-video validate -p ./proj                         # Validate project s
 uv run bee-video stock-list                                 # List tracked stock clips
 uv run bee-video stock-check "aerial farm"                  # Check for clip reuse
 
-# Web editor
-./dev.sh        # Dev mode (backend :8420 + frontend :5173 hot reload)
-./start.sh      # Production (single server :8420, built frontend)
+# Web editor (Node.js — no Python needed)
+cd web && ./dev.sh     # Dev mode (Express :8420 + Vite :5173 hot reload)
+cd web && ./start.sh   # Production (Express serves built frontend :8420)
 
 # Tests
-uv run --extra dev pytest tests/ -v          # All backend tests (540+)
-./test.sh                                    # Backend tests + frontend type check
-uv run --extra dev pytest tests/FILE -v      # Single file
-cd web && npm test                           # Frontend vitest (30 tests)
+uv run --extra dev pytest tests/ -v          # Python CLI tests (540+)
+cd web && npm test                           # Frontend + server vitest (143 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 cd web && npx playwright test --ui           # E2E interactive mode
 ```
@@ -51,29 +49,25 @@ cd web && npx playwright test --ui           # E2E interactive mode
 ## Architecture
 
 ```
-Adapters (CLI / FastAPI + React)
-    │
-Services (production, compositor, matcher, acquisition)
-    │
-┌───┴───┐
-Parsers    Processors
-└ formats/     ├ ffmpeg.py
-  (canonical)  ├ graphics.py
-               ├ tts.py
-               ├ captions.py
-               ├ maps.py
-               ├ scene_detect.py
-               ├ media_search.py
-               └ ai_video.py
+CLI (Typer)                    Web Editor (React + Express)
+    │                              │
+Python Services                 web/server/ (Express)
+    │                           ├── ProjectStore (.bee-project.json)
+┌───┴───┐                      ├── routes/ (projects, media, production)
+formats/    Processors          └── web/shared/ (types, parser)
+(Pydantic)  ├ ffmpeg.py
+            ├ tts.py            web/src/ (React frontend)
+            └ ...               ├── Remotion (preview + render)
+                                └── Zustand + Timeline
 ```
 
-**Adapters** are thin protocol translators. CLI (Typer) and Web (FastAPI + React) both delegate to the same service functions.
+**Two backends:** The Python CLI (`bee-video`) uses its own services/processors. The web editor uses a Node.js Express server in `web/server/` that reads/writes `.bee-project.json` directly — no Python bridge needed.
 
-**Services** resolve targets, call processors, manage state. No FFmpeg commands, no Pillow drawing — just orchestration.
+**Shared code:** Types (`BeeProject`, `BeeSegment`) and the markdown parser live in `web/shared/`, imported by both the React frontend and the Express server.
 
-**`formats/` package** is the canonical storyboard representation. `ParsedStoryboard` is the runtime model shared by all services and routes. Data flow: `.otio file → from_otio() → ParsedStoryboard → services → processors`.
+**Python `formats/` package** remains the canonical representation for CLI workflows. `ParsedStoryboard` (Pydantic) powers all CLI services and routes.
 
-**Processors** are stateless functions wrapping external tools. All I/O, no orchestration.
+**Processors** are stateless functions wrapping external tools (FFmpeg, TTS, Pillow). CLI-only — the web editor uses Remotion for rendering.
 
 ## Storyboard Format (v2)
 
@@ -193,7 +187,7 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 **Layout:** Left sidebar (segment list) + center (Remotion Player above react-timeline-editor NLE timeline) + right tabbed sidebar (Media / Properties / AI).
 
 **Key features:**
-- Load `.md` or `.otio` storyboard → react-timeline-editor multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
+- Load `.md` storyboard → react-timeline-editor multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
 - Remotion Player shows composited video preview with 14 animated overlay/visual components (see Remotion Components below)
 - Clip property panel (right sidebar Props tab): color grade picker, volume slider, trim inputs, transition picker
 - AI panel (right sidebar AI tab): B-Roll stock search from narration, caption generation, auto color grade suggestions
@@ -205,7 +199,7 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 - Toast notifications (success/error/info/warning with auto-dismiss)
 - Keyboard shortcuts panel (press `?`)
 - Loading skeletons during initial load
-- Export menu: markdown or clean OTIO
+- Export menu: markdown or project JSON
 - Remotion-based render: `POST /render-remotion` or `node web/render.mjs` for pixel-perfect MP4
 - Dark/light theme toggle (Sun/Moon button in header, CSS variables, persisted to localStorage)
 - Resizable preview/timeline split (drag handle, height clamped 120px–60vh, persisted to localStorage)
@@ -235,16 +229,17 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 | PictureInPicture | `PIP` visual/overlay | Corner PiP, side-by-side, top-bottom with any source combo |
 | AudioVisualization | `WAVEFORM`, `AUDIO_VIS` | Animated bars/waveform/pulse for 911 calls with background media |
 
-Components use JSON content in `LayerEntry.content` and configuration via `LayerEntry.metadata` fields (platform, animation, style, coordinates, waypoints, etc.). All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
+Components receive content via `OverlayEntry.content` or `VisualEntry` fields. Configuration uses top-level fields on entries (platform, animation, style, coordinates, etc.) — no nested `metadata` objects. All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
 
-**Key API routes:**
-- `POST /api/projects/load` — load storyboard (`.md` or `.otio`)
-- `PUT /api/projects/update-segment` — update any segment property
-- `GET /api/media/list` — list project media by category
-- `POST /api/production/{graphics|narration|assemble|composite|captions}` — generate assets
-- `POST /api/stock/search` / `POST /api/stock/download` — stock footage
-- `POST /render-remotion` — Remotion-based pixel-perfect MP4 render
-- `GET /api/production/status` — phase + file counts
+**Key API routes (Express server in `web/server/`):**
+- `POST /api/projects/load` — load storyboard `.md` → `.bee-project.json`
+- `GET /api/projects/current` — return current project state
+- `PUT /api/projects/update-segment` — update segment properties
+- `GET /api/media` — list project media by category
+- `POST /api/media/upload` — upload media file
+- `GET /api/media/file` — serve media file for preview
+- `POST /api/production/render-remotion` — Remotion MP4 render
+- `GET /api/production/effects` — available presets/transitions
 
 ## Known Gaps & Planned Work
 
@@ -271,10 +266,10 @@ my-project/
 │   └── final/          # final_assembled.mp4
 ├── stock/              # Downloaded stock footage
 ├── generated/          # AI-generated clips
-└── production_state.json # Pipeline state (OTIO)
+└── .bee-project.json    # Project state (web editor)
 ```
 
-Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are deprecated — all state lives in the OTIO file.
+All web editor state lives in `.bee-project.json` (`BeeProject` format). Sidecar files are deprecated.
 
 ## Test Patterns
 
@@ -282,14 +277,16 @@ Sidecar files (`assignments.json`, `voice.json`, `segment-order.json`) are depre
 - **Graphics:** Mock Pillow → verify function calls + output paths
 - **FFmpeg:** Mock subprocess.run → verify filter strings (no real video)
 - **Services:** Temp directories → integration-style pipeline calls
-- **API:** FastAPI TestClient — all route groups, security boundaries, edge cases
+- **API (Python):** FastAPI TestClient — all route groups, security boundaries, edge cases
+- **API (Node.js):** supertest — ProjectStore unit tests, route integration tests, path traversal checks
 
-536 backend tests across multiple files. Run with `uv run --extra dev pytest tests/ -v`. 70 frontend vitest tests (`cd web && npx vitest run`).
+536 Python CLI tests. 143 frontend + server vitest tests (98 frontend + 24 store + 21 route integration).
 
 ## Dependencies
 
 **Core:** typer, rich, pillow, edge-tts, pydantic, opentimelineio, httpx, pysubs2
-**Web (backend):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
+**Web (backend — Python, CLI only):** fastapi, uvicorn, python-multipart (`uv sync --extra web`)
+**Web (backend — Node.js, web editor):** express, cors, multer, tsx
 **Web (frontend):** @xzdarcy/react-timeline-editor, @xzdarcy/timeline-engine, remotion, @remotion/player, @remotion/cli, @remotion/bundler, @remotion/renderer, maplibre-gl, lucide-react, vitest
 **TTS extras:** kokoro + soundfile (`--extra tts-kokoro`), openai (`--extra tts-openai`), elevenlabs (`--extra tts-elevenlabs`)
 **Maps:** py-staticmaps (`--extra maps`)

@@ -188,14 +188,14 @@ With Remotion handling preview AND export, many Python processors are now redund
 
 **What Python still uniquely provides:**
 - TTS generation — `edge-tts` (free, cloud) and `kokoro` (free, local) are Python-only libraries
-- OTIO persistence — `opentimelineio` is a Python library with no JS equivalent
-- Storyboard format — parser, writer, Pydantic models, OTIO converters (2000+ lines tested)
+- Storyboard format — parser, writer, Pydantic models (2000+ lines tested)
 
 **Migration phases:**
-- [ ] **Phase 1: Add Node.js server** — thin Express/Fastify alongside Python. Serve media files, handle Remotion rendering directly (no Python subprocess hop), stock search (Pexels/Pixabay are just HTTP APIs)
-- [ ] **Phase 2: Move APIs to Node.js** — timeline state, media management, stock search, auto-assign matcher. Frontend talks to Node.js for most things. Python becomes a downstream service.
-- [ ] **Phase 3: Python as TTS + OTIO service** — Node.js calls Python only for TTS generation and OTIO save/load. Everything else is Node.js/TypeScript.
-- [ ] **Phase 4: Python optional** — if using only HTTP-based TTS (ElevenLabs, OpenAI) and a custom JSON format instead of OTIO, Python is no longer needed. Full TypeScript stack.
+- [x] **Phase 0: JSON project format** — replaced OTIO with `BeeProject` JSON format in the web frontend. TypeScript types (`BeeProject`, `BeeSegment`), markdown parser, all components migrated. OTIO no longer needed in the frontend.
+- [x] **Phase 1: Express server** — Node.js Express backend in `web/server/` replaces Python FastAPI for the web editor. Shared types/parser in `web/shared/`. ProjectStore manages `.bee-project.json` directly. 25 routes + stubs. Python no longer needed to run the web editor (except TTS/stock/matcher — 501 stubs for now).
+- [ ] **Phase 2: Node.js TTS** — replace Python TTS with Node.js SDKs (edge-tts-node, ElevenLabs, OpenAI). Drop kokoro (Python-only).
+- [ ] **Phase 3: Node.js stock + services** — port stock search (Pexels API), auto-assign matcher, acquisition service, download manager to Node.js.
+- [ ] **Phase 4: Python optional** — all web editor functionality in Node.js. Python remains only for CLI users.
 
 **Target architecture:**
 ```
@@ -204,10 +204,9 @@ Frontend (React)
 Node.js (Express/Fastify)
 ├── Remotion (preview + export) — no more subprocess hop
 ├── Media serving, stock search, auto-assign
-├── Timeline state, storyboard JSON
+├── Timeline state, .bee-project.json
 └── Calls Python service for:
-    ├── TTS (edge-tts, kokoro)
-    └── OTIO save/load
+    └── TTS (edge-tts, kokoro)
 ```
 
 ---

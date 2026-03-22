@@ -104,14 +104,13 @@ uv run bee-video voice-lock elevenlabs --voice Daniel       # Lock TTS voice for
 uv run bee-video rough-cut storyboard.md -p ./proj          # Fast 720p rough cut
 uv run bee-video validate -p ./proj                         # Validate project structure
 
-# Web editor
-./dev.sh        # Dev mode (backend :8420 + frontend :5173)
-./start.sh      # Production (single server :8420)
+# Web editor (Node.js — no Python needed)
+cd web && ./dev.sh     # Dev mode (Express :8420 + Vite :5173)
+cd web && ./start.sh   # Production (Express serves frontend :8420)
 
 # Tests
-./test.sh                                    # Backend + frontend type check
-uv run --extra dev pytest tests/ -v          # Backend only
-cd web && npm test                           # Frontend vitest
+uv run --extra dev pytest tests/ -v          # Python CLI tests
+cd web && npm test                           # Frontend + server vitest (143 tests)
 cd web && npx playwright test                # E2E tests (11 Playwright tests)
 ```
 
@@ -123,7 +122,7 @@ Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
 
 **Processors:** FFmpeg (17 functions — trim, concat, color grade, transitions, Ken Burns, PiP, speed, text overlay, audio mix), Pillow (lower thirds, timeline markers, financial cards), TTS (edge/kokoro/openai/elevenlabs).
 
-**Two parsers:** Assembly guide (flat time-coded table → `Project`) and storyboard (shot-by-shot with 6 layers → `Storyboard`). Unified via `assembly_guide_to_storyboard()` converter.
+**Two parsers:** Assembly guide (flat time-coded table → `Project`) and storyboard (shot-by-shot with 6 layers → `Storyboard`). Unified via `assembly_guide_to_storyboard()` converter. Web frontend uses `BeeProject` JSON format (TypeScript types, markdown parser at `web/src/lib/storyboard-parser.ts`).
 
 ### Key Details
 
@@ -131,7 +130,7 @@ Adapters (CLI / FastAPI + React) → Services → Parsers + Processors
 - 12 color presets, 30+ xfade transitions, 7 Ken Burns effects
 - 4 TTS engines (edge=free/cloud, kokoro=free/local, openai=paid/best, elevenlabs=paid/free tier)
 - Web UI: React 19 + Zustand + Tailwind, NLE-style segment editor with drag-drop media assignment
-- 391 tests across 20 test files
+- 98 frontend vitest tests, 536+ backend tests
 - System requirement: FFmpeg must be installed and on PATH
 
 ### Content Production Pipeline (Claude Code Skills)
