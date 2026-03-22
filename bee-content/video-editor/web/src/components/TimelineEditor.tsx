@@ -10,7 +10,7 @@ import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX, EyeOff } from 'lucide-react';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -392,13 +392,6 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
                   title={state.muted ? 'Unmute' : 'Mute'}
                 >
                   <VolumeX size={11} />
-                </button>
-                <button
-                  onClick={() => useProjectStore.getState().toggleTrackHide(row.id)}
-                  className={`p-0.5 rounded text-gray-600 hover:text-gray-400`}
-                  title="Hide track"
-                >
-                  <EyeOff size={11} />
                 </button>
               </div>
             );
