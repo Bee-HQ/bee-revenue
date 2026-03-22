@@ -45,4 +45,5 @@ echo "Starting Bee Video Editor on :$PORT"
 echo "http://localhost:$PORT"
 echo ""
 
-exec uv run bee-video serve --port "$PORT"
+cd web
+exec STATIC_DIR=dist PORT=$PORT npx tsx server/index.ts
