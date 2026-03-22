@@ -14,6 +14,7 @@ import { TextOverlay } from './remotion/TextOverlay';
 import { TimelineMarker } from './remotion/TimelineMarker';
 import { TransitionRenderer } from './remotion/TransitionRenderer';
 import { TextChat, TextChatOverlay } from './remotion/TextChat';
+import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/EvidenceBoard';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 
@@ -23,6 +24,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   TEXT_OVERLAY: TextOverlay,
   TIMELINE_MARKER: TimelineMarker,
   TEXT_CHAT: TextChatOverlay,
+  EVIDENCE_BOARD: EvidenceBoardOverlay,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -40,6 +42,12 @@ function SegmentVisual({ seg, knownFiles }: { seg: Segment; knownFiles: Set<stri
   if (contentType === 'TEXT_CHAT') {
     const visual = seg.visual[0];
     return <TextChat content={visual?.content || '[]'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
+  }
+
+  // EVIDENCE_BOARD visual: render as full-screen evidence board
+  if (contentType === 'EVIDENCE_BOARD' || contentType === 'EVIDENCE-BOARD') {
+    const visual = seg.visual[0];
+    return <EvidenceBoard content={visual?.content || '{}'} metadata={visual?.metadata} durationInFrames={Math.round(seg.duration_seconds * 30)} mode="visual" />;
   }
 
   if (!isRealFile(src) || !knownFiles.has(src!)) {

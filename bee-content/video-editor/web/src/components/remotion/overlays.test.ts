@@ -109,6 +109,35 @@ describe('calculateSegmentPositions', () => {
   });
 });
 
+// EvidenceBoard parser tests
+import { parseBoardData } from './EvidenceBoard';
+
+describe('parseBoardData', () => {
+  test('parses valid JSON', () => {
+    const content = JSON.stringify({
+      people: [{ name: 'Alex' }, { name: 'Maggie' }],
+      connections: [{ from: 'Alex', to: 'Maggie', label: 'married' }],
+    });
+    const result = parseBoardData(content);
+    expect(result.people).toHaveLength(2);
+    expect(result.connections).toHaveLength(1);
+    expect(result.connections[0].label).toBe('married');
+  });
+
+  test('falls back to comma-separated names', () => {
+    const result = parseBoardData('Alex, Maggie, Paul');
+    expect(result.people).toHaveLength(3);
+    expect(result.people[0].name).toBe('Alex');
+    expect(result.connections).toHaveLength(0);
+  });
+
+  test('handles invalid JSON', () => {
+    const result = parseBoardData('not json at all');
+    expect(result.people).toHaveLength(1);
+    expect(result.people[0].name).toBe('not json at all');
+  });
+});
+
 // TextChat parser tests
 import { parseMessages } from './TextChat';
 
