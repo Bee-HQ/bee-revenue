@@ -51,4 +51,14 @@ describe('parseCalloutData', () => {
     const result = parseCalloutData('', { animation: 'pop' });
     expect(result.animation).toBe('pop');
   });
+
+  test('reads labelPosition from metadata', () => {
+    const result = parseCalloutData('label', { labelPosition: 'right' });
+    expect(result.labelPosition).toBe('right');
+  });
+
+  test('defaults labelPosition to auto', () => {
+    const result = parseCalloutData('label', {});
+    expect(result.labelPosition).toBe('auto');
+  });
 });

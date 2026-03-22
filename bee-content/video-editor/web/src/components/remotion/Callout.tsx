@@ -77,6 +77,7 @@ export interface CalloutData {
   color: string;
   targetSize: number;
   strokeWidth: number;
+  labelPosition: 'auto' | 'top' | 'bottom' | 'left' | 'right';
 }
 
 const VALID_STYLES = new Set(['circle', 'arrow', 'box', 'underline', 'bracket']);
@@ -105,6 +106,7 @@ export function parseCalloutData(
     color: (metadata?.color as string) || '#dc2626',
     targetSize: (metadata?.targetSize as number) || 100,
     strokeWidth: (metadata?.strokeWidth as number) || 4,
+    labelPosition: (['auto', 'top', 'bottom', 'left', 'right'].includes(metadata?.labelPosition) ? metadata.labelPosition : 'auto') as CalloutData['labelPosition'],
   };
 }
 
@@ -138,13 +140,25 @@ function buildPath(data: CalloutData): string {
 // Label positioning
 // ---------------------------------------------------------------------------
 
-function labelPosition(data: CalloutData): { top?: number; bottom?: number; left: number } {
-  const { targetY, targetX } = data;
-  // Prefer label below the target; flip to above if too close to bottom edge
-  if (targetY > 800) {
-    return { top: targetY - data.targetSize - 60, left: targetX };
+function computeLabelPosition(data: CalloutData): { top?: number; bottom?: number; left: number } {
+  const { targetY, targetX, targetSize, labelPosition: pos } = data;
+  switch (pos) {
+    case 'top':
+      return { top: targetY - targetSize - 60, left: targetX };
+    case 'bottom':
+      return { top: targetY + targetSize + 20, left: targetX };
+    case 'left':
+      return { top: targetY, left: targetX - targetSize - 120 };
+    case 'right':
+      return { top: targetY, left: targetX + targetSize + 20 };
+    case 'auto':
+    default:
+      // Prefer below, flip above if near bottom edge
+      if (targetY > 800) {
+        return { top: targetY - targetSize - 60, left: targetX };
+      }
+      return { top: targetY + targetSize + 20, left: targetX };
   }
-  return { top: targetY + data.targetSize + 20, left: targetX };
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +189,7 @@ function CalloutVisual({
   );
 
   // Label position
-  const pos = labelPosition(data);
+  const pos = computeLabelPosition(data);
 
   const labelEl = data.label ? (
     <div
