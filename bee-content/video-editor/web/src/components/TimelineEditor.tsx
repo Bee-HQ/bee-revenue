@@ -6,10 +6,11 @@ import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
 import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
 import { renderTimelineAction } from './TimelineActionRenderer';
+import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
-import { Wand2, Download, Scissors, Magnet, Undo2, Redo2 } from 'lucide-react';
+import { Wand2, Download, Scissors, Magnet, Undo2, Redo2, Lock, VolumeX, EyeOff } from 'lucide-react';
 
 // Module-level — outside TimelineEditor component
 function addActionToTimeline(path: string, type: string, cursorSec: number, duration?: number | null) {
@@ -42,7 +43,6 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const editorData = useProjectStore(s => s.editorData);
   const setEditorData = useProjectStore(s => s.setEditorData);
   const pushTimelineHistory = useProjectStore(s => s.pushTimelineHistory);
-  const setActiveClipId = useProjectStore(s => s.setActiveClipId);
   const setCurrentTimeMs = useProjectStore(s => s.setCurrentTimeMs);
   const currentTimeMs = useProjectStore(s => s.currentTimeMs);
   const timelineRef = useRef<TimelineState>(null);
@@ -50,6 +50,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [effects, setEffects] = useState<Record<string, any>>({});
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; actionId: string } | null>(null);
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
 
@@ -140,12 +141,21 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     setCurrentTimeMs(time * 1000);
   }, []);
 
-  const handleClickAction = useCallback((_e: any, { action }: { action: TimelineAction }) => {
-    setActiveClipId(action.id);
+  const handleClickAction = useCallback((e: React.MouseEvent, { action }: { action: TimelineAction }) => {
+    useProjectStore.getState().selectAction(action.id, e.shiftKey);
   }, []);
 
   const handleClickRow = useCallback(() => {
-    setActiveClipId(null);
+    useProjectStore.getState().clearActionSelection();
+  }, []);
+
+  const handleContextMenuAction = useCallback((e: React.MouseEvent, { action }: { action: TimelineAction }) => {
+    e.preventDefault();
+    const { selectedActionIds } = useProjectStore.getState();
+    if (!selectedActionIds.includes(action.id)) {
+      useProjectStore.getState().selectAction(action.id, false);
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY, actionId: action.id });
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -215,7 +225,24 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     }
   }, []);
 
+  const trackState = useProjectStore(s => s.trackState);
+  const selectedIds = useProjectStore(s => s.selectedActionIds);
+
   if (!storyboard) return null;
+  const markedData = editorData
+    .filter(row => !trackState[row.id]?.hidden)
+    .map(row => {
+      const state = trackState[row.id];
+      return {
+        ...row,
+        actions: row.actions.map(a => ({
+          ...a,
+          selected: selectedIds.includes(a.id),
+          movable: state?.locked ? false : undefined,
+          flexible: state?.locked ? false : undefined,
+        })),
+      };
+    });
 
   return (
     <div
@@ -324,11 +351,45 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
         </button>
       </div>
       {/* Timeline */}
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
+      <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Track controls */}
+        <div className="w-16 shrink-0 border-r border-editor-border bg-editor-surface flex flex-col overflow-hidden" style={{ paddingTop: 32 }}>
+          {markedData.map(row => {
+            const state = trackState[row.id] || {};
+            return (
+              <div key={row.id} className="flex items-center gap-0.5 px-0.5" style={{ height: 28 }}>
+                <span className="text-[8px] text-gray-500 font-mono w-6 shrink-0">{row.id}</span>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackLock(row.id)}
+                  className={`p-0.5 rounded ${state.locked ? 'text-red-400' : 'text-gray-600 hover:text-gray-400'}`}
+                  title={state.locked ? 'Unlock' : 'Lock'}
+                >
+                  <Lock size={9} />
+                </button>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackMute(row.id)}
+                  className={`p-0.5 rounded ${state.muted ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                  title={state.muted ? 'Unmute' : 'Mute'}
+                >
+                  <VolumeX size={9} />
+                </button>
+                <button
+                  onClick={() => useProjectStore.getState().toggleTrackHide(row.id)}
+                  className={`p-0.5 rounded text-gray-600 hover:text-gray-400`}
+                  title="Hide track"
+                >
+                  <EyeOff size={9} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {/* Timeline canvas */}
+        <div className="flex-1 overflow-hidden">
           <Timeline
             style={{ width: '100%', height: '100%' }}
             ref={timelineRef}
-            editorData={editorData}
+            editorData={markedData}
             effects={effects}
             onChange={handleChange}
             scale={SCALE}
@@ -339,11 +400,21 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
             autoScroll={true}
             getActionRender={renderTimelineAction}
             onClickActionOnly={handleClickAction}
+            onContextMenuAction={handleContextMenuAction}
             onClickRow={handleClickRow}
             onCursorDrag={handleCursorDrag}
             onCursorDragEnd={handleCursorDragEnd}
           />
+        </div>
       </div>
+      {contextMenu && (
+        <TimelineContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          actionId={contextMenu.actionId}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

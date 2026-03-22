@@ -35,6 +35,8 @@ export function renderTimelineAction(action: TimelineAction, row: TimelineRow) {
         overflow: 'hidden',
         borderRadius: 2,
         cursor: 'pointer',
+        outline: beeAction.selected ? '2px solid #3b82f6' : 'none',
+        outlineOffset: -1,
       }}
     >
       {isFirstAction && (

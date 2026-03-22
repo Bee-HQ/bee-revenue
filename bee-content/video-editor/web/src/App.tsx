@@ -46,10 +46,40 @@ export default function App() {
         useProjectStore.getState().timelineRedo();
       }
 
+      // Copy (Ctrl+C)
+      if (mod && e.key === 'c') {
+        const { selectedActionIds } = useProjectStore.getState();
+        if (selectedActionIds.length > 0) {
+          e.preventDefault();
+          useProjectStore.getState().copySelectedActions();
+        }
+      }
+
+      // Paste (Ctrl+V) — only if clipboard has content
+      if (mod && e.key === 'v') {
+        const { clipboard } = useProjectStore.getState();
+        if (clipboard.length > 0) {
+          e.preventDefault();
+          useProjectStore.getState().pasteClipboard();
+        }
+      }
+
+      // Duplicate (Ctrl+D)
+      if (mod && e.key === 'd') {
+        e.preventDefault();
+        useProjectStore.getState().duplicateSelectedActions();
+      }
+
       // Split at playhead
       if (e.key === 's' && !mod) {
         e.preventDefault();
         useProjectStore.getState().splitAtPlayhead();
+      }
+
+      // Delete / Backspace — delete selected clips
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !mod) {
+        e.preventDefault();
+        useProjectStore.getState().deleteSelectedActions();
       }
 
       // Space — play/pause
