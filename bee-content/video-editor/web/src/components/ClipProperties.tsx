@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
+import { formatSeconds } from '../adapters/time-utils';
 import { Check } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -24,14 +25,14 @@ const TRANSITIONS = [
 
 export function ClipProperties() {
   const activeClipId = useProjectStore(s => s.activeClipId);
-  const storyboard = useProjectStore(s => s.storyboard);
+  const project = useProjectStore(s => s.project);
   const effects = useProjectStore(s => s.effects);
 
   useEffect(() => {
     if (!effects) useProjectStore.getState().loadEffects();
   }, [effects]);
 
-  if (!activeClipId || !storyboard) {
+  if (!activeClipId || !project) {
     return (
       <div className="p-3 text-center text-[10px] text-gray-600">
         Select a clip on the timeline
@@ -53,7 +54,7 @@ export function ClipProperties() {
   const clipType = parts[2];
   const layerIndex = parts[3] === 'empty' ? -1 : parseInt(parts[3]);
 
-  const segment = storyboard.segments.find(s => s.id === segmentId);
+  const segment = project.segments.find(s => s.id === segmentId);
   if (!segment) {
     return (
       <div className="p-3 text-center text-[10px] text-gray-600">
@@ -67,7 +68,7 @@ export function ClipProperties() {
       <div className="px-3 py-2 bg-editor-surface border-b border-editor-border">
         <div className="text-[10px] font-bold text-gray-300">{segment.title}</div>
         <div className="text-[9px] text-gray-500">
-          {segment.start} -- {segment.end} | {segment.duration_seconds}s
+          {formatSeconds(segment.start)} -- {formatSeconds(segment.start + segment.duration)} | {segment.duration}s
         </div>
       </div>
 
@@ -102,7 +103,7 @@ function ColorGradeSection({ segmentId, visualIndex, segment }: {
   segmentId: string; visualIndex: number; segment: any;
 }) {
   const visual = segment.visual[visualIndex];
-  const currentColor = visual?.metadata?.color || null;
+  const currentColor = visual?.color || null;
 
   const handleSelect = async (preset: string | null) => {
     try {
@@ -111,7 +112,7 @@ function ColorGradeSection({ segmentId, visualIndex, segment }: {
       });
       toast.success(preset ? `Color: ${preset}` : 'Color cleared');
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -157,7 +158,7 @@ function KenBurnsSection({ segmentId, visualIndex, segment }: {
   segmentId: string; visualIndex: number; segment: any;
 }) {
   const visual = segment.visual[visualIndex];
-  const currentEffect = visual?.metadata?.ken_burns || 'none';
+  const currentEffect = visual?.kenBurns || 'none';
 
   const handleSelect = async (effect: string) => {
     try {
@@ -166,7 +167,7 @@ function KenBurnsSection({ segmentId, visualIndex, segment }: {
       });
       toast.success(effect === 'none' ? 'Ken Burns cleared' : `Ken Burns: ${effect}`);
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -190,22 +191,25 @@ function TrimSection({ segmentId, visualIndex, segment }: {
   segmentId: string; visualIndex: number; segment: any;
 }) {
   const visual = segment.visual[visualIndex];
-  const [tcIn, setTcIn] = useState(visual?.metadata?.tc_in || '');
-  const [tcOut, setTcOut] = useState(visual?.metadata?.out || '');
+  const [trimIn, setTrimIn] = useState<string>(visual?.trim?.[0] != null ? String(visual.trim[0]) : '');
+  const [trimOut, setTrimOut] = useState<string>(visual?.trim?.[1] != null ? String(visual.trim[1]) : '');
 
   // Sync local state when segment data changes
   useEffect(() => {
-    setTcIn(visual?.metadata?.tc_in || '');
-    setTcOut(visual?.metadata?.out || '');
-  }, [visual?.metadata?.tc_in, visual?.metadata?.out]);
+    setTrimIn(visual?.trim?.[0] != null ? String(visual.trim[0]) : '');
+    setTrimOut(visual?.trim?.[1] != null ? String(visual.trim[1]) : '');
+  }, [visual?.trim?.[0], visual?.trim?.[1]]);
 
-  const handleBlur = async (field: 'tc_in' | 'out', value: string) => {
+  const handleBlur = async () => {
     try {
+      const inSec = trimIn !== '' ? parseFloat(trimIn) : null;
+      const outSec = trimOut !== '' ? parseFloat(trimOut) : null;
+      const trim = inSec != null || outSec != null ? [inSec ?? 0, outSec ?? 0] : null;
       await api.updateSegment(segmentId, {
-        visual_updates: [{ index: visualIndex, [field]: value || null }],
+        visual_updates: [{ index: visualIndex, trim }],
       });
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -213,20 +217,20 @@ function TrimSection({ segmentId, visualIndex, segment }: {
 
   return (
     <div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Trim Points</div>
+      <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Trim Points (seconds)</div>
       <div className="flex items-center gap-2">
         <label className="text-[9px] text-gray-500">In</label>
         <input
-          type="text" value={tcIn} placeholder="HH:MM:SS.mmm"
-          onChange={e => setTcIn(e.target.value)}
-          onBlur={e => handleBlur('tc_in', e.target.value)}
+          type="number" value={trimIn} placeholder="0"
+          onChange={e => setTrimIn(e.target.value)}
+          onBlur={handleBlur}
           className="flex-1 bg-editor-bg border border-editor-border rounded px-1.5 py-0.5 text-[10px] font-mono text-gray-300 focus:border-editor-accent outline-none"
         />
         <label className="text-[9px] text-gray-500">Out</label>
         <input
-          type="text" value={tcOut} placeholder="HH:MM:SS.mmm"
-          onChange={e => setTcOut(e.target.value)}
-          onBlur={e => handleBlur('out', e.target.value)}
+          type="number" value={trimOut} placeholder="end"
+          onChange={e => setTrimOut(e.target.value)}
+          onBlur={handleBlur}
           className="flex-1 bg-editor-bg border border-editor-border rounded px-1.5 py-0.5 text-[10px] font-mono text-gray-300 focus:border-editor-accent outline-none"
         />
       </div>
@@ -248,9 +252,9 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
     entry = layerIndex >= 0 ? segment.music[layerIndex] : null;
   }
 
-  const currentVolume = entry?.metadata?.volume ?? 1.0;
-  const currentFadeIn = entry?.metadata?.fade_in ?? 0;
-  const currentFadeOut = entry?.metadata?.fade_out ?? 0;
+  const currentVolume = entry?.volume ?? 1.0;
+  const currentFadeIn = (entry as any)?.fade_in ?? 0;
+  const currentFadeOut = (entry as any)?.fade_out ?? 0;
 
   const [volume, setVolume] = useState(currentVolume);
   const [fadeIn, setFadeIn] = useState(currentFadeIn);
@@ -279,7 +283,7 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
           audio_updates: [{ index: layerIndex, volume: val }],
         });
         const sb = await api.getCurrentProject();
-        useProjectStore.setState({ storyboard: sb });
+        useProjectStore.setState({ project: sb });
       } catch (e: any) {
         toast.error(e.message);
       }
@@ -294,7 +298,7 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
         audio_updates: [{ index: layerIndex, [field]: val }],
       });
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -305,7 +309,7 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
       <div>
         <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-1">Narration</div>
         <div className="text-[10px] text-gray-400 italic leading-relaxed max-h-16 overflow-y-auto">
-          {segment.audio.find((a: any) => a.content_type === 'NAR')?.content || 'No narration text'}
+          {segment.audio.find((a: any) => a.type === 'NAR')?.text || 'No narration text'}
         </div>
       </div>
     );
@@ -344,9 +348,9 @@ function VolumeSection({ segmentId, clipType, layerIndex, segment }: {
 }
 
 function TransitionSection({ segmentId, segment }: { segmentId: string; segment: any }) {
-  const trans = segment.transition[0];
-  const currentType = trans?.content_type?.toLowerCase() || 'none';
-  const currentDuration = parseFloat(trans?.content?.replace('s', '') || '1.0');
+  const trans = segment.transition;
+  const currentType = trans?.type?.toLowerCase() || 'none';
+  const currentDuration = trans?.duration ?? 1.0;
 
   const [type, setType] = useState(currentType);
   const [duration, setDuration] = useState(currentDuration);
@@ -364,7 +368,7 @@ function TransitionSection({ segmentId, segment }: { segmentId: string; segment:
         transition_in: newType === 'none' ? null : { type: newType, duration: newDuration },
       });
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: any) {
       toast.error(e.message);
     }

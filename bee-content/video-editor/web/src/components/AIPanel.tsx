@@ -20,12 +20,12 @@ const COLOR_SUGGESTIONS: Record<string, string> = {
 };
 
 export function AIPanel() {
-  const storyboard = useProjectStore(s => s.storyboard);
+  const project = useProjectStore(s => s.project);
   const activeClipId = useProjectStore(s => s.activeClipId);
 
   // Find the selected segment from the active clip id
   const segmentId = activeClipId?.match(/^(.+)-(v|nar|audio|music|ov)-/)?.[1];
-  const segment = storyboard?.segments.find(s => s.id === segmentId) ?? null;
+  const segment = project?.segments.find(s => s.id === segmentId) ?? null;
 
   return (
     <div className="flex flex-col h-full">
@@ -51,7 +51,7 @@ function BRollSection({ segment }: { segment: Segment | null }) {
   const [downloading, setDownloading] = useState<number | null>(null);
 
   // Auto-populate query from narration text
-  const narText = segment?.audio?.find(a => a.content_type === 'NAR')?.content || '';
+  const narText = segment?.audio?.find(a => a.type === 'NAR')?.text || '';
 
   const handleSearch = async () => {
     const q = query || narText.substring(0, 50);
@@ -80,7 +80,7 @@ function BRollSection({ segment }: { segment: Segment | null }) {
       await api.assignMedia(segment.id, 'visual', r.path, 0);
       toast.success(`B-Roll assigned: ${r.name}`);
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: unknown) {
       toast.error(`Download failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -161,7 +161,7 @@ function CaptionSection() {
       await api.generateCaptions(style);
       toast.success(`Captions generated (${style} style)`);
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: unknown) {
       toast.error(`Caption generation failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -206,8 +206,8 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
     if (!seg) return null;
     const text = [
       seg.title,
-      ...seg.visual.map(v => v.content),
-      ...seg.audio.map(a => a.content),
+      ...seg.visual.map(v => v.src || ''),
+      ...seg.audio.map(a => a.text || a.src || ''),
     ].join(' ').toLowerCase();
 
     for (const [keyword, preset] of Object.entries(COLOR_SUGGESTIONS)) {
@@ -226,14 +226,14 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
       });
       toast.success(`Applied color: ${suggested}`);
       const sb = await api.getCurrentProject();
-      useProjectStore.setState({ storyboard: sb });
+      useProjectStore.setState({ project: sb });
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const handleApplyAll = async () => {
-    const storyboard = useProjectStore.getState().storyboard;
+    const storyboard = useProjectStore.getState().project;
     if (!storyboard) return;
     let applied = 0;
     for (const seg of storyboard.segments) {
@@ -247,7 +247,7 @@ function ColorSuggestSection({ segment }: { segment: Segment | null }) {
     }
     toast.success(`Applied color grades to ${applied} segments`);
     const sb = await api.getCurrentProject();
-    useProjectStore.setState({ storyboard: sb });
+    useProjectStore.setState({ project: sb });
   };
 
   return (

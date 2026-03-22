@@ -8,7 +8,7 @@ import { timeToFrames } from '../adapters/time-utils';
 const FPS = 30;
 
 export function RemotionPreview() {
-  const storyboard = useProjectStore((s) => s.storyboard);
+  const project = useProjectStore((s) => s.project);
   const mediaFiles = useProjectStore((s) => s.mediaFiles);
   const currentTimeMs = useProjectStore((s) => s.currentTimeMs);
   const setPlayerRef = useProjectStore((s) => s.setPlayerRef);
@@ -35,7 +35,7 @@ export function RemotionPreview() {
 
   const SPEEDS = [0.5, 1, 1.5, 2];
 
-  const totalDuration = storyboard?.total_duration_seconds ?? 0;
+  const totalDuration = project?.segments.reduce((sum, s) => sum + s.duration, 0) ?? 0;
   const totalFrames = computedTotalFrames ?? Math.max(1, Math.round(totalDuration * FPS));
 
   // Register playerRef in the store on mount so other components can seek
@@ -73,7 +73,7 @@ export function RemotionPreview() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [storyboard]);
+  }, [project]);
 
   // When currentTimeMs changes externally (e.g. from segment click), seek the player
   useEffect(() => {
@@ -83,7 +83,7 @@ export function RemotionPreview() {
     }
   }, [currentTimeMs]);
 
-  if (!storyboard) return null;
+  if (!project) return null;
 
   return (
     <div className="flex-1 flex flex-col bg-black min-h-0">
@@ -92,7 +92,7 @@ export function RemotionPreview() {
         <Player
           ref={playerRef}
           component={BeeComposition}
-          inputProps={{ storyboard, mediaFiles: mediaFilePaths, showCaptions, transitionMode }}
+          inputProps={{ storyboard: project, mediaFiles: mediaFilePaths, showCaptions, transitionMode }}
           durationInFrames={totalFrames}
           fps={FPS}
           compositionWidth={1920}

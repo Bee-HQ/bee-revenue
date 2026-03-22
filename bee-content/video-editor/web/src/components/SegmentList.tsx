@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useProjectStore } from '../stores/project';
 import type { Segment } from '../types';
 import { SkeletonList } from './SkeletonCard';
-import { parseTimecode, timeToMs } from '../adapters/time-utils';
+import { formatSeconds, timeToMs } from '../adapters/time-utils';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 
 const VISUAL_TYPE_DOT: Record<string, string> = {
@@ -39,15 +39,14 @@ function SegmentRow({
   const toggleSegmentSelection = useProjectStore(s => s.toggleSegmentSelection);
 
   const isSelected = selectedSegmentIds.includes(segment.id);
-  const hasAssignments = Object.keys(segment.assigned_media).length > 0;
-  const assignmentCount = Object.keys(segment.assigned_media).length;
+  const hasAssignments = segment.visual.filter(v => v.src).length + segment.audio.filter(a => a.src).length + segment.music.filter(m => m.src).length > 0;
+  const assignmentCount = segment.visual.filter(v => v.src).length + segment.audio.filter(a => a.src).length + segment.music.filter(m => m.src).length;
 
   const handleClick = (e: React.MouseEvent) => {
     toggleSegmentSelection(segment.id, e.shiftKey);
 
     // Seek Remotion player to segment start via store — RemotionPreview handles the actual seekTo
-    const startSeconds = parseTimecode(segment.start);
-    const ms = timeToMs(startSeconds);
+    const ms = timeToMs(segment.start);
     useProjectStore.getState().setCurrentTimeMs(ms);
   };
 
@@ -72,10 +71,10 @@ function SegmentRow({
     >
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-mono text-gray-500">
-          {segment.start}-{segment.end}
+          {formatSeconds(segment.start)}-{formatSeconds(segment.start + segment.duration)}
         </span>
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-600">{segment.duration_seconds}s</span>
+          <span className="text-[10px] text-gray-600">{segment.duration}s</span>
           {hasAssignments && (
             <span className="text-[10px] bg-editor-accent/20 text-blue-400 px-1 rounded">
               {assignmentCount}
@@ -84,17 +83,14 @@ function SegmentRow({
         </div>
       </div>
       <div className="text-xs text-gray-300 truncate mt-0.5">{segment.title}</div>
-      {segment.subsection && segment.subsection !== segment.title && (
-        <div className="text-[10px] text-gray-600 truncate">{segment.subsection}</div>
-      )}
       {/* Visual type dots + completeness */}
       <div className="flex items-center gap-1 mt-1">
         <div className="flex gap-0.5">
           {segment.visual.map((v, i) => (
             <span
               key={i}
-              className={`w-2 h-2 rounded-full ${VISUAL_TYPE_DOT[v.content_type] || 'bg-gray-600'}`}
-              title={v.content_type}
+              className={`w-2 h-2 rounded-full ${VISUAL_TYPE_DOT[v.type] || 'bg-gray-600'}`}
+              title={v.type}
             />
           ))}
           {segment.audio.length > 0 && (
@@ -104,7 +100,7 @@ function SegmentRow({
         {/* Completeness bar */}
         {(() => {
           const totalLayers = segment.visual.length + segment.audio.length + (segment.overlay?.length || 0);
-          const assignedLayers = Object.keys(segment.assigned_media).length;
+          const assignedLayers = segment.visual.filter(v => v.src).length + segment.audio.filter(a => a.src).length + segment.music.filter(m => m.src).length;
           const pct = totalLayers > 0 ? Math.round((assignedLayers / totalLayers) * 100) : 0;
           return totalLayers > 0 ? (
             <div className="flex-1 h-0.5 bg-editor-border rounded-full overflow-hidden" title={`${assignedLayers}/${totalLayers} layers assigned`}>
@@ -118,7 +114,7 @@ function SegmentRow({
 }
 
 export function SegmentList() {
-  const storyboard = useProjectStore(s => s.storyboard);
+  const project = useProjectStore(s => s.project);
   const loading = useProjectStore(s => s.loading);
   const reorderSegments = useProjectStore(s => s.reorderSegments);
   const selectedSegmentIds = useProjectStore(s => s.selectedSegmentIds);
@@ -126,7 +122,7 @@ export function SegmentList() {
   const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
-  if (!storyboard) {
+  if (!project) {
     return (
       <div className="flex flex-col h-full">
         <div className="px-3 py-2 border-b border-editor-border flex items-center justify-between shrink-0">
@@ -137,7 +133,7 @@ export function SegmentList() {
     );
   }
 
-  const segments = storyboard.segments;
+  const segments = project.segments;
 
   const handleDragStart = (index: number) => {
     setDragFromIndex(index);
@@ -199,7 +195,7 @@ export function SegmentList() {
               {selectionCount} selected
             </span>
           )}
-          <span className="text-[10px] text-gray-600">{storyboard.total_segments}</span>
+          <span className="text-[10px] text-gray-600">{project.segments.length}</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">

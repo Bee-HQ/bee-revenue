@@ -1,4 +1,4 @@
-import type { DownloadScriptInfo, DownloadStatus, DownloadTools, Effects, MediaListResponse, ProductionStatus, Storyboard } from '../types';
+import type { BeeProject, DownloadScriptInfo, DownloadStatus, DownloadTools, Effects, MediaListResponse, ProductionStatus } from '../types';
 
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -31,14 +31,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  loadProject(storyboardPath: string, projectDir: string = '.'): Promise<Storyboard> {
+  loadProject(storyboardPath: string, projectDir: string = '.'): Promise<BeeProject> {
     return request('/projects/load', {
       method: 'POST',
       body: JSON.stringify({ storyboard_path: storyboardPath, project_dir: projectDir }),
     });
   },
 
-  getCurrentProject(): Promise<Storyboard> {
+  getCurrentProject(): Promise<BeeProject> {
     return request('/projects/current');
   },
 

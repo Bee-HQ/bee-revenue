@@ -4,7 +4,7 @@ import type { TimelineState } from '@xzdarcy/react-timeline-editor';
 import '@xzdarcy/react-timeline-editor/dist/react-timeline-editor.css';
 import type { TimelineRow, TimelineAction } from '@xzdarcy/timeline-engine';
 import { useProjectStore } from '../stores/project';
-import { storyboardToTimeline, timelineToStoryboard } from '../adapters/timeline-adapter';
+import { projectToTimeline, timelineToProject } from '../adapters/timeline-adapter';
 import { renderTimelineAction } from './TimelineActionRenderer';
 import { TimelineContextMenu } from './TimelineContextMenu';
 import { ProductionDropdown } from './ProductionDropdown';
@@ -39,7 +39,7 @@ function addActionToTimeline(path: string, type: string, cursorSec: number, dura
 }
 
 export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
-  const storyboard = useProjectStore(s => s.storyboard);
+  const project = useProjectStore(s => s.project);
   const editorData = useProjectStore(s => s.editorData);
   const setEditorData = useProjectStore(s => s.setEditorData);
   const pushTimelineHistory = useProjectStore(s => s.pushTimelineHistory);
@@ -82,19 +82,19 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const baseScaleWidth = Math.max(20, (containerWidth * SCALE) / totalDuration);
   const scaleWidth = baseScaleWidth * zoomLevel;
 
-  // Convert storyboard → timeline rows on storyboard change
-  // Skip re-conversion when storyboard was updated by the debounced sync callback
+  // Convert project → timeline rows on project change
+  // Skip re-conversion when project was updated by the debounced sync callback
   useEffect(() => {
-    if (!storyboard) return;
+    if (!project) return;
     if (syncingRef.current) {
       syncingRef.current = false;
       return;
     }
-    const { rows, effects: eff } = storyboardToTimeline(storyboard);
+    const { rows, effects: eff } = projectToTimeline(project);
     setEditorData(rows);
     setEffects(eff);
     pushTimelineHistory(rows);
-  }, [storyboard]);
+  }, [project]);
 
   // Sync Remotion playback → timeline cursor.
   // RemotionPreview polls at 100ms (~10fps), so updates are already throttled at the source.
@@ -111,22 +111,34 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(async () => {
       try {
-        const sb = useProjectStore.getState().storyboard;
+        const sb = useProjectStore.getState().project;
         if (!sb) return;
-        const updated = timelineToStoryboard(newData, sb);
+        const updated = timelineToProject(newData, sb);
         for (const seg of updated.segments) {
           const original = sb.segments.find(s => s.id === seg.id);
           if (!original) continue;
-          for (const [key, path] of Object.entries(seg.assigned_media)) {
-            if (original.assigned_media[key] !== path) {
-              const [layer, indexStr] = key.split(':');
-              await api.assignMedia(seg.id, layer, path, parseInt(indexStr));
+          // Check visual src changes
+          seg.visual.forEach((v, i) => {
+            if (v.src && v.src !== original.visual[i]?.src) {
+              api.assignMedia(seg.id, 'visual', v.src, i);
             }
-          }
+          });
+          // Check audio src changes
+          seg.audio.forEach((a, i) => {
+            if (a.src && a.src !== original.audio[i]?.src) {
+              api.assignMedia(seg.id, 'audio', a.src, i);
+            }
+          });
+          // Check music src changes
+          seg.music.forEach((m, i) => {
+            if (m.src && m.src !== original.music[i]?.src) {
+              api.assignMedia(seg.id, 'music', m.src, i);
+            }
+          });
         }
         syncingRef.current = true;
         const freshSb = await api.getCurrentProject();
-        useProjectStore.setState({ storyboard: freshSb });
+        useProjectStore.setState({ project: freshSb });
       } catch (e) {
         console.error('Timeline sync failed:', e);
       }
@@ -235,7 +247,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
   const trackState = useProjectStore(s => s.trackState);
   const selectedIds = useProjectStore(s => s.selectedActionIds);
 
-  if (!storyboard) return null;
+  if (!project) return null;
   const markedData = editorData
     .filter(row => !trackState[row.id]?.hidden)
     .map(row => {
@@ -272,7 +284,7 @@ export function TimelineEditor({ style }: { style?: React.CSSProperties }) {
               toast.success(`Auto-assigned ${r.assigned} segments`);
               const sb = await api.getCurrentProject();
               syncingRef.current = true;
-              useProjectStore.setState({ storyboard: sb });
+              useProjectStore.setState({ project: sb });
             } catch (e: unknown) {
               toast.error(e instanceof Error ? e.message : String(e));
             }
