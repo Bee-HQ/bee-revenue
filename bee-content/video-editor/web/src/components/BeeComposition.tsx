@@ -112,7 +112,7 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDurati
     <>
       {/* LowerThird -- special case (different props interface) */}
       {seg.overlay.filter(o => o.type === 'LOWER_THIRD').map((lt, i) => {
-        const { name, role } = parseLowerThirdContent(lt.content);
+        const { name, role } = parseLowerThirdContent(lt.content, lt);
         const defaultDur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
         const offset = lt.startOffset ? Math.round(lt.startOffset * fps) : 0;
         const clampedDur = Math.min(defaultDur, segDuration - offset);

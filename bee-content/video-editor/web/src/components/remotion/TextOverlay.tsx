@@ -2,13 +2,14 @@
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 import type { OverlayProps } from './overlays';
 
-export const TextOverlay: React.FC<OverlayProps> = ({ content, durationInFrames }) => {
+export const TextOverlay: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();
+  const displayText = content || metadata?.text || '';
 
   // Typewriter: reveal characters over first 60% of duration
   const typingEnd = Math.floor(durationInFrames * 0.6);
-  const charsToShow = Math.floor(interpolate(frame, [0, typingEnd], [0, content.length], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }));
-  const visibleText = content.slice(0, charsToShow);
+  const charsToShow = Math.floor(interpolate(frame, [0, typingEnd], [0, displayText.length], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }));
+  const visibleText = displayText.slice(0, charsToShow);
 
   // Blinking cursor
   const cursorVisible = frame < typingEnd ? Math.floor(frame / 8) % 2 === 0 : false;

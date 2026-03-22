@@ -3,10 +3,10 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import type { OverlayProps } from './overlays';
 import { parseDollarAmount } from './overlays';
 
-export const FinancialCard: React.FC<OverlayProps> = ({ content, durationInFrames }) => {
+export const FinancialCard: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { displayValue, numericValue, description } = parseDollarAmount(content);
+  const { displayValue, numericValue, description } = parseDollarAmount(content, metadata);
 
   const slideUp = spring({ frame, fps, config: { stiffness: 180, damping: 18 } });
   const translateY = interpolate(slideUp, [0, 1], [100, 0]);

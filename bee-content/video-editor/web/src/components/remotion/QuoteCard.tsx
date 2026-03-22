@@ -10,7 +10,7 @@ const ACCENT_COLORS: Record<string, string> = {
 export const QuoteCard: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { quote, author } = parseQuoteContent(content);
+  const { quote, author } = parseQuoteContent(content, metadata);
   const accentColor = ACCENT_COLORS[metadata?.color || 'red'] || ACCENT_COLORS.red;
 
   const backdropOpacity = interpolate(frame, [0, 10], [0, 0.8], { extrapolateRight: 'clamp' });
