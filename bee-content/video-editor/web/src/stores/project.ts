@@ -67,6 +67,7 @@ interface ProjectState {
   selectedActionIds: string[];
   selectAction: (id: string, shiftKey: boolean) => void;
   clearActionSelection: () => void;
+  deleteSelectedActions: () => void;
   assignMedia: (segmentId: string, layer: string, mediaPath: string, layerIndex?: number) => Promise<void>;
   assignMediaBatch: (layer: string, mediaPath: string) => Promise<void>;
   updateSegmentConfig: (segmentId: string, updates: Record<string, unknown>) => Promise<void>;
@@ -340,6 +341,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   clearActionSelection: () => set({ selectedActionIds: [], activeClipId: null }),
+
+  deleteSelectedActions: () => {
+    const { editorData, selectedActionIds } = get();
+    if (selectedActionIds.length === 0) return;
+    const sel = new Set(selectedActionIds);
+    const newRows = editorData.map(row => ({
+      ...row,
+      actions: row.actions.filter(a => !sel.has(a.id)),
+    }));
+    get().setEditorData(newRows);
+    get().pushTimelineHistory(newRows);
+    set({ selectedActionIds: [], activeClipId: null });
+  },
 
   selectedSegment: () => {
     const { storyboard, selectedSegmentIds } = get();

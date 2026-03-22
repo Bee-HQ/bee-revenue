@@ -52,6 +52,12 @@ export default function App() {
         useProjectStore.getState().splitAtPlayhead();
       }
 
+      // Delete / Backspace — delete selected clips
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !mod) {
+        e.preventDefault();
+        useProjectStore.getState().deleteSelectedActions();
+      }
+
       // Space — play/pause
       if (e.key === ' ' && !mod) {
         e.preventDefault();

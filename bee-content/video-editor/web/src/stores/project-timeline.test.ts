@@ -123,3 +123,33 @@ describe('multi-select', () => {
     expect(useProjectStore.getState().selectedActionIds).toEqual([]);
   });
 });
+
+describe('deleteSelectedActions', () => {
+  beforeEach(() => {
+    const rows: TimelineRow[] = [
+      { id: 'V1', actions: [
+        { id: 'a1', start: 0, end: 5, effectId: 'video' },
+        { id: 'a2', start: 5, end: 10, effectId: 'video' },
+      ]},
+    ];
+    useProjectStore.setState({ editorData: rows, selectedActionIds: ['a1'], timelineHistory: [rows], timelineHistoryIndex: 0 });
+  });
+
+  test('removes selected action', () => {
+    useProjectStore.getState().deleteSelectedActions();
+    const v1 = useProjectStore.getState().editorData.find(r => r.id === 'V1')!;
+    expect(v1.actions).toHaveLength(1);
+    expect(v1.actions[0].id).toBe('a2');
+  });
+
+  test('clears selection after delete', () => {
+    useProjectStore.getState().deleteSelectedActions();
+    expect(useProjectStore.getState().selectedActionIds).toEqual([]);
+  });
+
+  test('pushes to history', () => {
+    const prevIndex = useProjectStore.getState().timelineHistoryIndex;
+    useProjectStore.getState().deleteSelectedActions();
+    expect(useProjectStore.getState().timelineHistoryIndex).toBe(prevIndex + 1);
+  });
+});
