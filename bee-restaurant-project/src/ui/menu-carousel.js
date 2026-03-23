@@ -7,12 +7,12 @@ export function createMenuCarousel(container, { total, onChange }) {
   dotsEl.style.cssText = `
     position: fixed; bottom: 5.5rem; left: 0; right: 0; z-index: 100;
     display: flex; justify-content: center; gap: 6px;
-    pointer-events: none;
   `;
   for (let i = 0; i < total; i++) {
     const dot = document.createElement('div');
-    dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${i === 0 ? '#7a7aff' : '#444'};transition:background 0.2s;`;
+    dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${i === 0 ? '#7a7aff' : '#444'};transition:background 0.2s;cursor:pointer;`;
     dot.dataset.index = i;
+    dot.addEventListener('click', () => goTo(i));
     dotsEl.appendChild(dot);
   }
   container.appendChild(dotsEl);
@@ -46,6 +46,12 @@ export function createMenuCarousel(container, { total, onChange }) {
     }
   }, { passive: true });
 
+  function onKeyDown(e) {
+    if (e.key === 'ArrowRight') { goTo(current + 1); hint.style.opacity = '0'; }
+    else if (e.key === 'ArrowLeft') { goTo(current - 1); hint.style.opacity = '0'; }
+  }
+  window.addEventListener('keydown', onKeyDown);
+
   function goTo(index) {
     const len = total;
     current = ((index % len) + len) % len;
@@ -55,8 +61,13 @@ export function createMenuCarousel(container, { total, onChange }) {
     onChange(current);
   }
 
+  function destroy() {
+    window.removeEventListener('keydown', onKeyDown);
+  }
+
   return {
     current() { return current; },
     goTo,
+    destroy,
   };
 }

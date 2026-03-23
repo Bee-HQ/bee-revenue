@@ -90,12 +90,32 @@ describe('detectFeatures', () => {
     expect(features.canNativeAR).toBe(true);
   });
 
-  it('marks canNativeAR true for Android with WebXR', () => {
+  it('marks canNativeAR true for Android with camera', () => {
     const features = detectFeatures({
       userAgent: 'Chrome Android',
       mediaDevices: { getUserMedia: () => {} },
       xrSystem: { isSessionSupported: () => Promise.resolve(true) },
       platform: 'Android',
+    });
+    expect(features.canNativeAR).toBe(true);
+  });
+
+  it('marks canNativeAR false for desktop Chrome with WebXR', () => {
+    const features = detectFeatures({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      mediaDevices: { getUserMedia: () => {} },
+      xrSystem: { isSessionSupported: () => Promise.resolve(true) },
+      platform: 'MacIntel',
+    });
+    expect(features.canNativeAR).toBe(false);
+  });
+
+  it('marks canNativeAR true for Android with camera (no WebXR needed)', () => {
+    const features = detectFeatures({
+      userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36',
+      mediaDevices: { getUserMedia: () => {} },
+      xrSystem: null,
+      platform: 'Linux armv8l',
     });
     expect(features.canNativeAR).toBe(true);
   });
