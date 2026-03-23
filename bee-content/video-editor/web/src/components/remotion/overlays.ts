@@ -44,6 +44,8 @@ export const NAMED_COLORS: Record<string, string> = {
   gold: '#d97706',
   green: '#16a34a',
   white: '#ffffff',
+  magenta: '#e91e8a',
+  pink: '#ec4899',
 };
 
 export function resolveColor(color: string): string {
