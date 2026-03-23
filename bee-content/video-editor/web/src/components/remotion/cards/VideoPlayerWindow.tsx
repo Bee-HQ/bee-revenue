@@ -22,7 +22,7 @@ export function parseVideoPlayerData(
   let description: string | undefined;
 
   if (!content && metadata) {
-    title = metadata.title || '';
+    title = metadata.title || metadata.text || '';
     description = metadata.description || undefined;
   } else {
     const parts = content.split(/\s*[—–]\s*/);
@@ -41,9 +41,6 @@ export function parseVideoPlayerData(
 }
 
 function PlaybackControls({ scrubberPosition }: { scrubberPosition: number }) {
-  const barWidth = 400;
-  const filledWidth = barWidth * scrubberPosition;
-
   return (
     <div style={{
       height: 36, background: '#1a1a1a', display: 'flex',
