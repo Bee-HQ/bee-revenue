@@ -17,11 +17,8 @@ Read before reviewing:
    - Valid JSON block structure
    - Visual/audio/overlay type definitions
    - Required fields per type
-3. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - Act percentages
-   - Visual rules (no shot > 12 seconds, Ken Burns on stills, etc.)
-   - Audio rules (levels, music continuity)
-   - Production rules section
+
+Production rules are inlined below in the review checklist.
 
 ## Review Checklist
 
@@ -36,7 +33,7 @@ Read before reviewing:
 ### 2. Visual Completeness
 
 For each segment's `visual` array:
-- **Type valid?** Must be one of: FOOTAGE, STOCK, PHOTO, MAP, GRAPHIC, GENERATED, WAVEFORM, BLACK
+- **Type valid?** Must be one of: FOOTAGE, STOCK, PHOTO, MAP, GRAPHIC, GENERATED, WAVEFORM, BLACK, PIP, PHOTO_VIEWER, BULLET_LIST, INFO_CARD, NOTEPAD, KINETIC_TEXT, CALLOUT, TEXT_CHAT, SOCIAL_POST, EVIDENCE_BOARD
 - **Source assignment:** Count segments with `"src": null` vs assigned. Report the ratio.
 - **Required fields:** FOOTAGE needs `src`/`in`/`out` (or null). MAP needs `style`. PHOTO needs `ken_burns`.
 - **Duration rule:** No single visual should last more than 12 seconds (from production rules). Flag violations.
@@ -53,8 +50,19 @@ For each segment's `audio` array:
 ### 4. Overlay Completeness
 
 - **Lower thirds:** Does every character's first appearance have a LOWER_THIRD overlay?
-- **Type valid?** Must be one of: LOWER_THIRD, TIMELINE_MARKER, QUOTE_CARD, FINANCIAL_CARD, TEXT_OVERLAY
+- **Type valid?** Must be one of: LOWER_THIRD, TIMELINE_MARKER, QUOTE_CARD, FINANCIAL_CARD, TEXT_OVERLAY, KINETIC_TEXT, CAPTION, TEXT_CHAT, SOCIAL_POST, EVIDENCE_BOARD, SOURCE_BADGE, MAP_ANNOTATION, DRAMATIC_QUOTE, PHOTO_VIEWER, BULLET_LIST, INFO_CARD, NOTEPAD, CALLOUT, PIP
 - **Duration:** LOWER_THIRD should have duration 4-6 seconds
+- **KINETIC_TEXT:** Must have `text` and `preset` (punch, flow, stack, highlight). Check that `**emphasis**` markers are balanced.
+- **TEXT_CHAT:** Must have `platform` and `messages` array with sender/text/sent fields.
+- **SOCIAL_POST:** Must have `platform`, `author`, and `text`.
+- **EVIDENCE_BOARD:** Must have `people` array and `connections` array with from/to/label fields.
+- **PHOTO_VIEWER:** Must have `content` (Name — Role or JSON array for multi-card). Check `animation` is valid (slide-up, slide-left, scale).
+- **SOURCE_BADGE:** Must have `content` (ACTUAL, REENACTMENT, ACTUAL PHOTO, etc.). Should appear on real footage segments.
+- **DRAMATIC_QUOTE:** Must have `content` (the quote text). Optional `color` (red default), `italic` (true default).
+- **BULLET_LIST:** Must have `content` (newline-separated items or JSON array). Optional `accent` (red default), `style` (stagger default).
+- **INFO_CARD:** Must have `content` (JSON with sections array). Optional `src` for photo, `photoSide`.
+- **NOTEPAD:** Must have `content` (newline-separated text). Optional `animation` (typewriter default), `windowTitle`.
+- **MAP_ANNOTATION:** Must have `content` (JSON array of shapes with type/coords). Optional `color` (red default).
 
 ### 5. Transitions
 

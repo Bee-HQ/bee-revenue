@@ -20,7 +20,7 @@ function parseTimecode(tc: string): number {
 
 // ---------- Visual type normalization ----------
 
-const VISUAL_TYPE_MAP: Record<string, string> = {
+export const VISUAL_TYPE_MAP: Record<string, string> = {
   // Maps
   'MAP-FLAT': 'MAP', 'MAP-3D': 'MAP', 'MAP-TACTICAL': 'MAP',
   'MAP-PULSE': 'MAP', 'MAP-ROUTE': 'MAP',
@@ -28,16 +28,19 @@ const VISUAL_TYPE_MAP: Record<string, string> = {
   'BROLL-DARK': 'STOCK', 'BROLL-LIGHT': 'STOCK', 'BROLL': 'STOCK',
   // Real footage
   'COURTROOM': 'FOOTAGE', 'INTERROGATION': 'FOOTAGE', 'BODYCAM': 'FOOTAGE',
-  // Generated graphics
-  'PIP-SINGLE': 'GRAPHIC', 'PIP-DUAL': 'GRAPHIC', 'MUGSHOT-CARD': 'GRAPHIC',
-  'POLICE-DB': 'GRAPHIC', 'DESKTOP-PHOTOS': 'GRAPHIC',
-  'EVIDENCE-CLOSEUP': 'GRAPHIC', 'EVIDENCE-DISPLAY': 'GRAPHIC',
-  'BODY-DIAGRAM': 'GRAPHIC', 'DOCUMENT-MOCKUP': 'GRAPHIC',
+  // Generated graphics (legacy codes → new Remotion component types)
+  'PIP-SINGLE': 'PHOTO_VIEWER', 'PIP-DUAL': 'PHOTO_VIEWER',
+  'MUGSHOT-CARD': 'INFO_CARD', 'SPLIT-INFO': 'INFO_CARD',
+  'POLICE-DB': 'NOTEPAD', 'DOCUMENT-MOCKUP': 'NOTEPAD',
+  'EVIDENCE-CLOSEUP': 'MAP_ANNOTATION',
+  // Graphics that stay as GRAPHIC (no Remotion component)
+  'DESKTOP-PHOTOS': 'GRAPHIC', 'EVIDENCE-DISPLAY': 'GRAPHIC',
+  'BODY-DIAGRAM': 'GRAPHIC',
   'TEXT-CHAT': 'TEXT_CHAT', 'TEXT_CHAT': 'TEXT_CHAT',
   'SOCIAL-POST': 'SOCIAL_POST', 'SOCIAL_POST': 'SOCIAL_POST',
   'EVIDENCE-BOARD': 'EVIDENCE_BOARD', 'EVIDENCE_BOARD': 'EVIDENCE_BOARD',
   'FLOW-DIAGRAM': 'GRAPHIC',
-  'CENSOR-BLUR': 'GRAPHIC', 'SPLIT-INFO': 'GRAPHIC',
+  'CENSOR-BLUR': 'GRAPHIC',
   'BRAND-STING': 'GRAPHIC', 'DISCLAIMER': 'GRAPHIC', 'TRAILER': 'GRAPHIC',
   // Audio visualization
   'WAVEFORM-AERIAL': 'WAVEFORM', 'WAVEFORM-DARK': 'WAVEFORM',
@@ -64,6 +67,7 @@ const VISUAL_TYPE_MAP: Record<string, string> = {
   'INFO_CARD': 'INFO_CARD', 'INFO-CARD': 'INFO_CARD',
   'NOTEPAD': 'NOTEPAD',
   'MAP_ANNOTATION': 'MAP_ANNOTATION', 'MAP-ANNOTATION': 'MAP_ANNOTATION',
+  'DRAMATIC_QUOTE': 'DRAMATIC_QUOTE', 'DRAMATIC-QUOTE': 'DRAMATIC_QUOTE',
   // Standard types pass through
   'FOOTAGE': 'FOOTAGE', 'STOCK': 'STOCK', 'PHOTO': 'PHOTO',
   'MAP': 'MAP', 'GRAPHIC': 'GRAPHIC', 'WAVEFORM': 'WAVEFORM',

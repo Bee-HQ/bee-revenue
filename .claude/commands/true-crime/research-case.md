@@ -31,25 +31,104 @@ Ask: "Where should I save the research?"
 
 **Read before researching:**
 
-1. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - **Phase 1: Case Selection Criteria** — the viability requirements you're researching toward:
-     - 20+ minutes of real footage (dealbreaker)
-     - Clear victim + clear suspect (dealbreaker)
-     - Suspect confronted on camera (dealbreaker)
-     - Self-incriminating moment (strongly preferred)
-     - 2+ separate audio sources (strongly preferred)
-     - Financial angle, multiple witnesses, visual location (preferred)
-   - **Section 1.2: Case Archetypes** — understand the four archetypes so you can recommend one in Section 8
-   - **Footage Mix Targets** — know what percentage of each footage type is needed per archetype
-
-2. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/case-research.md`
+1. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/case-research.md`
    - Read this as the gold standard for depth, structure, and level of detail
    - Match the specificity: exact dates, exact dollar amounts, verbatim quotes, direct URLs
 
-3. **Reference footage sources** — `bee-content/discovery/true-crime/cases/alex-murdaugh/footage-sources.md`
+2. **Reference footage sources** — `bee-content/discovery/true-crime/cases/alex-murdaugh/footage-sources.md`
    - Read this as the gold standard for the footage-sources document
 
-Keep the formula's dealbreakers in mind throughout research — if you discover early that a case has no real footage or no suspect confrontation, flag it immediately rather than completing the full research.
+Keep the case selection dealbreakers (below) in mind throughout research — if you discover early that a case has no real footage or no suspect confrontation, flag it immediately rather than completing the full research.
+
+## Case Selection Criteria
+
+<!-- Inlined from screenplay-storyboard-formula.md Phase 1 -->
+
+### Universal Requirements
+
+Every case must have these regardless of archetype:
+
+| Requirement | Why | Dealbreaker? |
+|-------------|-----|-------------|
+| 20+ minutes of real footage (any type) | The format needs real audio/video to work — below 60% real content, it becomes a slideshow | Yes |
+| Clear victim + clear suspect | Audience needs someone to root for + against | Yes |
+| Suspect confronted on camera (interview, interrogation, trial, OR bodycam) | The confrontation IS the video's centerpiece — format doesn't matter, the power shift does | Yes |
+| Self-incriminating moment | The money shot — suspect catches themselves on tape/record | Strongly preferred |
+| 2+ separate audio sources (911, bodycam, interview, trial) | Creates audio variety and contradiction timeline | Strongly preferred |
+| Financial angle ($$ amounts) | Title bait + concrete stakes | Preferred |
+| Multiple witnesses with conflicting info | Builds investigation tension | Preferred |
+| Property/location with visual interest | Thumbnail + aerial shots | Preferred |
+
+### Case Archetypes
+
+Not all cases look the same. Identify which archetype fits, then use that archetype's footage targets and act adaptations.
+
+#### Archetype A: Bodycam-Domestic (the Thetford model)
+
+The original formula case. A domestic crime with extensive bodycam, a suspect who cooperates on camera, and a progressive investigation leading to body discovery.
+
+| Property | Value |
+|----------|-------|
+| Primary footage | Bodycam (55%+) |
+| Confrontation type | Bodycam face-to-face — detective visits suspect |
+| Act 3 centerpiece | Extended bodycam conversation where power shifts in real time |
+| Best for | Domestic homicide, missing persons with body recovery, welfare-check-to-murder cases |
+
+#### Archetype B: Trial-Centric (the Murdaugh model)
+
+High-profile case with a televised trial as the primary footage source. Bodycam is supplementary, not dominant.
+
+| Property | Value |
+|----------|-------|
+| Primary footage | Trial testimony (35-40%) + interrogation clips (10-15%) |
+| Confrontation type | Cross-examination — prosecutor dismantles defendant on the stand |
+| Act 3 centerpiece | Extended trial testimony/cross-examination with real audio exchanges |
+| Act 1 adaptation | Longer setup needed (dynasty, backstory) — may require 15-20% instead of 12% |
+| Visual adaptation | Heavier stock B-roll, photos, maps for exposition sections. Stock can reach 15-20% |
+| Best for | High-profile trials, family dynasty/corruption cases |
+
+#### Archetype C: Interrogation-Centric (the JCS model)
+
+The interrogation IS the content. A long recorded interview where the suspect's story unravels in real time.
+
+| Property | Value |
+|----------|-------|
+| Primary footage | Interrogation room footage (40-50%) |
+| Confrontation type | Extended interrogation — detective breaks suspect over hours |
+| Structural inversion | The confrontation becomes Acts 2-3; investigation is backstory |
+| Act 3 centerpiece | The moment the suspect cracks or lawyers up |
+| Visual adaptation | Static camera angles need more overlay work (quote cards, behavioral annotation) |
+| Best for | Cases with long recorded interrogations, false confessions, behavioral analysis content |
+
+#### Archetype D: Cold Case / Forensic
+
+Non-linear timeline spanning years. No bodycam from the original incident.
+
+| Property | Value |
+|----------|-------|
+| Primary footage | Mixed — news footage, later-era bodycam/interviews, court proceedings |
+| Confrontation type | Arrest + interrogation based on accumulated evidence, OR courtroom testimony |
+| Structural adaptation | Act 1 must establish TWO timelines (original crime + reopening) |
+| Timeline handling | Use TIMELINE_MARKER heavily — anchor the viewer in which era |
+| Visual adaptation | More historical photos, news clippings, heavy narrator reliance |
+| Best for | Cold case DNA hits, cases reopened after new witness testimony, serial cases spanning years |
+
+### Footage Mix Targets by Archetype
+
+| Category | A: Bodycam-Domestic | B: Trial-Centric | C: Interrogation | D: Cold Case |
+|----------|---------------------|-------------------|-------------------|--------------|
+| Primary real footage | 55% (bodycam) | 38% (trial) | 45% (interrogation) | 30% (mixed) |
+| Secondary real footage | 3% (interrogation) | 12% (interrogation/bodycam) | 8% (bodycam/911) | 12% (later-era footage) |
+| Audio visualizations | 15% | 10% | 10% | 10% |
+| Maps & location | 8% | 8% | 5% | 8% |
+| Photos/PIP | 5% | 8% | 5% | 12% |
+| Stock B-roll | 4% | 12% | 10% | 13% |
+| Graphics/cards | 7% | 9% | 14% (behavioral annotations) | 12% |
+| **Total real content** | **73%** | **60%** | **63%** | **52%** |
+
+**Critical ratio:** Total real content should target **60%+** for archetypes A-C. Archetype D floor is **50%** — compensate with more frequent real audio integration.
+
+**Cases that WON'T work (any archetype):** Single-source investigations with no audio variety, purely forensic cases with no human drama, cases where the suspect is never confronted on camera.
 
 ## Research Process
 

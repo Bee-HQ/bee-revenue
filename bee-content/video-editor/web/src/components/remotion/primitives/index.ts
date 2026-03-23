@@ -5,3 +5,4 @@ export { DrawPath } from './DrawPath';
 export { FitText } from './FitText';
 export { StaggerChildren } from './StaggerChildren';
 export { CountUp } from './CountUp';
+export { CornerBrackets } from './CornerBrackets';
