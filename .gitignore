@@ -21,3 +21,11 @@ uv.lock
 *.otio
 test-results/
 package-lock.json
+
+# Local working directories
+footage/
+frames/
+output/
+logs/
+remux-cache/
+.superpowers/
