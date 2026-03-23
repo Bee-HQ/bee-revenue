@@ -200,6 +200,190 @@
 }
 ```
 
+## P0 Components
+
+### seg-21 | PhotoViewerCard Single
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "PHOTO_VIEWER", "content": "Craig Thetford — Victim", "animation": "slide-up"}],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-22 | PhotoViewerCard Multi
+
+```bee-video:segment
+{
+  "visual": [{"type": "PHOTO_VIEWER", "src": null, "content": "[{\"name\":\"Bill Caisse\",\"role\":\"Ex-husband\"},{\"name\":\"Scott Griffin\",\"role\":\"Neighbor\"}]", "animation": "slide-up"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-23 | SourceBadge
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "SOURCE_BADGE", "content": "REENACTMENT"}],
+  "music": [],
+  "duration": 5
+}
+```
+
+### seg-24 | SourceBadge top-right
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "SOURCE_BADGE", "content": "ACTUAL PHOTO", "position": "top-right"}],
+  "music": [],
+  "duration": 5
+}
+```
+
+### seg-25 | BulletList Stagger
+
+```bee-video:segment
+{
+  "visual": [{"type": "BULLET_LIST", "src": null, "content": "INTENTIONALLY SHOT CRAIG\nMOVED AND HID THE BODY\nLIED ABOUT HIS WHEREABOUTS\nLOOTED SHARED ASSETS", "accent": "red", "style": "stagger"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-26 | BulletList Cascade Teal
+
+```bee-video:segment
+{
+  "visual": [{"type": "BULLET_LIST", "src": null, "content": "Found the weapon\nRecovered DNA evidence\nMatched fingerprints\nPhone records confirmed", "accent": "teal", "style": "cascade"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-27 | InfoCard with sections
+
+```bee-video:segment
+{
+  "visual": [{"type": "INFO_CARD", "src": null, "content": "{\"sections\":[{\"header\":\"Charges\",\"body\":\"First degree murder\\nSecond degree murder\"},{\"header\":\"Sentence\",\"body\":\"Life in prison without parole\"}]}", "photoSide": "right"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 7
+}
+```
+
+### seg-28 | InfoCard no photo
+
+```bee-video:segment
+{
+  "visual": [{"type": "INFO_CARD", "src": null, "content": "{\"sections\":[{\"header\":\"Timeline\",\"body\":\"June 7: Murders committed\"},{\"header\":\"Investigation\",\"body\":\"June 8: Bodies discovered\"},{\"header\":\"Arrest\",\"body\":\"October 14: Murdaugh arrested\"}]}", "photoSide": "none"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 7
+}
+```
+
+## P1 Components
+
+### seg-29 | Caption Keyword Coloring
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [{"type": "NAR", "src": null, "text": "Or is that {red:blood} on the floor? She had {red:multiple injuries} on the {teal:property}"}],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-30 | NotepadWindow Typewriter
+
+```bee-video:segment
+{
+  "visual": [{"type": "NOTEPAD", "src": null, "content": "Previous Phone Call:\n- said her mom is crazy\n- thinks she might've poisoned Craig\n- Current whereabouts unknown", "animation": "typewriter", "windowTitle": "Case Notes"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 8
+}
+```
+
+### seg-31 | NotepadWindow Lines
+
+```bee-video:segment
+{
+  "visual": [{"type": "NOTEPAD", "src": null, "content": "Key Evidence:\n1. Blood spatter pattern\n2. Shell casings matched\n3. Phone location data\n4. Financial motive confirmed", "animation": "lines", "windowTitle": "Evidence Summary"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 7
+}
+```
+
+### seg-32 | NotepadWindow with AnimatedBG
+
+```bee-video:segment
+{
+  "visual": [{"type": "NOTEPAD", "src": null, "content": "Witness Statement:\n- Saw suspect leave at 10:15 PM\n- Vehicle was a dark SUV\n- Heard two shots fired", "animation": "typewriter", "background": "animated-teal"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 8
+}
+```
+
+### seg-33 | PhotoViewerCard with AnimatedBG
+
+```bee-video:segment
+{
+  "visual": [{"type": "PHOTO_VIEWER", "src": null, "content": "Deana Thetford — Suspect", "animation": "slide-up", "background": "animated-red"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-34 | MapAnnotation
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "MAP_ANNOTATION", "content": "[{\"type\":\"circle\",\"x\":0.35,\"y\":0.4,\"r\":0.05},{\"type\":\"path\",\"points\":[[0.35,0.4],[0.5,0.45],[0.65,0.5]]},{\"type\":\"rect\",\"x\":0.6,\"y\":0.35,\"w\":0.15,\"h\":0.12}]", "color": "red"}],
+  "music": [],
+  "duration": 7
+}
+```
+
+### seg-35 | MapAnnotation Teal
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "MAP_ANNOTATION", "content": "[{\"type\":\"circle\",\"x\":0.5,\"y\":0.5,\"r\":0.08},{\"type\":\"circle\",\"x\":0.3,\"y\":0.3,\"r\":0.04}]", "color": "teal"}],
+  "music": [],
+  "duration": 6
+}
+```
+
 ## Combination Tests
 
 ### seg-17 | LowerThird + QuoteCard stacked
