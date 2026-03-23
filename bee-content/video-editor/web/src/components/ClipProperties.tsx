@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { toast } from '../stores/toast';
 import { formatSeconds } from '../adapters/time-utils';
 import { Check } from 'lucide-react';
+import { TransformSection } from './TransformSection';
 
 const COLOR_PRESETS = [
   'dark_crime', 'surveillance', 'noir', 'bodycam', 'cold_blue',
@@ -73,6 +74,10 @@ export function ClipProperties() {
       </div>
 
       <div className="p-3 space-y-3">
+        {(clipType === 'v' || clipType === 'ov') && layerIndex >= 0 && (
+          <TransformSection segmentId={segmentId} clipType={clipType as 'v' | 'ov'} layerIndex={layerIndex} segment={segment} />
+        )}
+
         {clipType === 'v' && layerIndex >= 0 && (
           <ColorGradeSection segmentId={segmentId} visualIndex={layerIndex} segment={segment} />
         )}
