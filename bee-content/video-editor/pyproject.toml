@@ -36,3 +36,13 @@ tts-elevenlabs = ["elevenlabs"]
 captions-precise = ["openai-whisper"]
 animation = ["lottie>=0.7.0"]
 maps = ["py-staticmaps>=0.4.0"]
+dub = [
+    "yt-dlp",
+    "anthropic",
+    "elevenlabs",
+    "openai",
+]
+dub-local = [
+    "demucs",
+    "pyannote-audio",
+]
