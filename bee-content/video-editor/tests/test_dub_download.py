@@ -28,3 +28,11 @@ class TestDownload:
             import pytest
             with pytest.raises(RuntimeError):
                 download_video("https://youtube.com/watch?v=abc", out)
+
+    def test_error_includes_stderr(self, tmp_path):
+        out = tmp_path / "source.mp4"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stderr="video not found")
+            import pytest
+            with pytest.raises(RuntimeError, match="video not found"):
+                download_video("https://youtube.com/watch?v=abc", out)

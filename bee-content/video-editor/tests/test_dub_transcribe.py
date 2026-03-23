@@ -30,3 +30,13 @@ class TestTranscribe:
         with patch("bee_video_editor.services.dub.transcribe._whisper_api") as mock_api:
             transcribe_audio(audio_path, output_path)
             mock_api.assert_not_called()
+
+    def test_raises_without_api_key(self, tmp_path):
+        audio_path = tmp_path / "source.mp4"
+        audio_path.touch()
+        output_path = tmp_path / "transcript.json"
+        import os
+        import pytest
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+                transcribe_audio(audio_path, output_path, engine="whisper")

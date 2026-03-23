@@ -1,7 +1,7 @@
 import json
 from unittest.mock import patch, MagicMock
 from pathlib import Path
-from bee_video_editor.services.dub.diarize import diarize_segments
+from bee_video_editor.services.dub.diarize import diarize_segments, _best_speaker
 
 
 class TestDiarize:
@@ -45,3 +45,27 @@ class TestDiarize:
         with patch("bee_video_editor.services.dub.diarize._diarize_pyannote") as mock:
             diarize_segments(tmp_path / "source.mp4", transcript_path, output_path, tmp_path / "voices")
             mock.assert_not_called()
+
+
+class TestBestSpeaker:
+    def test_exact_match(self):
+        seg = {"start_ms": 0, "end_ms": 5000}
+        turns = [{"start_ms": 0, "end_ms": 5000, "speaker": "speaker_0"}]
+        assert _best_speaker(seg, turns) == "speaker_0"
+
+    def test_partial_overlap_picks_largest(self):
+        seg = {"start_ms": 2000, "end_ms": 8000}
+        turns = [
+            {"start_ms": 0, "end_ms": 4000, "speaker": "speaker_0"},    # 2000ms overlap
+            {"start_ms": 3000, "end_ms": 10000, "speaker": "speaker_1"},  # 5000ms overlap
+        ]
+        assert _best_speaker(seg, turns) == "speaker_1"
+
+    def test_no_overlap_returns_unknown(self):
+        seg = {"start_ms": 0, "end_ms": 1000}
+        turns = [{"start_ms": 5000, "end_ms": 10000, "speaker": "speaker_0"}]
+        assert _best_speaker(seg, turns) == "speaker_unknown"
+
+    def test_empty_turns(self):
+        seg = {"start_ms": 0, "end_ms": 5000}
+        assert _best_speaker(seg, []) == "speaker_unknown"

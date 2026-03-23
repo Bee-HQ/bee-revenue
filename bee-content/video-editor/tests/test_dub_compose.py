@@ -44,3 +44,24 @@ class TestCompose:
         with patch("subprocess.run") as mock_run:
             compose_dubbed_video(source, trans_path, tts_dir, output)
             mock_run.assert_not_called()
+
+    def test_handles_missing_tts_segments(self, tmp_path):
+        source, trans_path, tts_dir, output = self._setup(tmp_path)
+        # Delete one segment file — only seg_001.mp3 remains
+        (tts_dir / "seg_000.mp3").unlink()
+
+        def _fake_run(cmd, **kwargs):
+            # Create the output file so rename/downstream calls don't fail
+            out = Path(cmd[-1])
+            if not out.suffix == ".txt":
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.touch()
+            return MagicMock(returncode=0)
+
+        with patch("subprocess.run", side_effect=_fake_run):
+            compose_dubbed_video(
+                source_video=source, translations_path=trans_path,
+                tts_dir=tts_dir, output_path=output, subtitles=False,
+            )
+            # Output file should have been produced
+            assert output.exists()

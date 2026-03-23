@@ -40,3 +40,12 @@ class TestTranslate:
         with patch("bee_video_editor.services.dub.translate._translate_claude") as mock:
             translate_segments(diarization_path, output_path, lang="es")
             mock.assert_not_called()
+
+    def test_raises_without_api_key(self, tmp_path):
+        diarization_path = self._make_diarization(tmp_path)
+        output_path = tmp_path / "translations" / "es.json"
+        import os
+        import pytest
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
+                translate_segments(diarization_path, output_path, lang="es")

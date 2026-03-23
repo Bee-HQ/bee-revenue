@@ -50,3 +50,14 @@ class TestTTS:
             mock.return_value = True
             generate_dubbed_audio(trans_path, manifest_path, tts_dir, status)
             assert mock.call_count == 1
+
+    def test_failed_segment_tracked(self, tmp_path):
+        trans_path, manifest_path, tts_dir, status = self._setup(tmp_path)
+        with patch("bee_video_editor.services.dub.tts._generate_segment") as mock, \
+             patch("elevenlabs.ElevenLabs") as mock_elevenlabs, \
+             patch.dict("os.environ", {"ELEVENLABS_API_KEY": "test-key"}):
+            mock_elevenlabs.return_value = MagicMock()
+            mock.side_effect = RuntimeError("ElevenLabs API timeout")
+            generate_dubbed_audio(trans_path, manifest_path, tts_dir, status)
+            assert status.get("seg_000", "tts") == SegmentState.FAILED
+            assert "API timeout" in status.get_error("seg_000", "tts")
