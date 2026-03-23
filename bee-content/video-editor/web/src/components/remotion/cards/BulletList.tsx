@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { useQuality } from '../primitives/QualityContext';
+import { CornerBrackets } from '../primitives';
 import type { OverlayProps } from '../overlays';
 
 export interface BulletListData {
@@ -76,19 +77,20 @@ function BulletListVisual({
               marginLeft: indent,
               background: 'rgba(0, 0, 0, 0.75)',
               padding: '14px 24px',
-              borderLeft: `3px solid ${accentColor}`,
               alignSelf: 'flex-start',
             }}>
-              <span style={{
-                color: '#fff',
-                fontSize,
-                fontWeight: 800,
-                fontFamily: "'Arial Black', Arial, sans-serif",
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-              }}>
-                {item}
-              </span>
+              <CornerBrackets color={accentColor}>
+                <span style={{
+                  color: '#fff',
+                  fontSize,
+                  fontWeight: 800,
+                  fontFamily: "'Arial Black', Arial, sans-serif",
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                }}>
+                  {item}
+                </span>
+              </CornerBrackets>
             </div>
           );
         })}

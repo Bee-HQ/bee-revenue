@@ -60,12 +60,11 @@ export function parsePhotoViewerData(
   };
 }
 
-function MacWindowChrome({ title, children, nameLabel, roleLabel, nameLabelStyle }: {
+function MacWindowChrome({ title, children, nameLabel, roleLabel }: {
   title: string;
   children: React.ReactNode;
   nameLabel: string;
   roleLabel?: string;
-  nameLabelStyle?: React.CSSProperties;
 }) {
   return (
     <div style={{
@@ -94,22 +93,26 @@ function MacWindowChrome({ title, children, nameLabel, roleLabel, nameLabelStyle
           <span key={m} style={{ color: '#aaa', fontSize: 11, fontFamily: 'system-ui, Arial, sans-serif' }}>{m}</span>
         ))}
       </div>
-      {/* Photo area */}
-      {children}
-      {/* Name label */}
-      <div style={{
-        background: '#1a1a1a', padding: '10px 16px', borderTop: '1px solid #333',
-        ...nameLabelStyle,
-      }}>
+      {/* Photo area with name overlaid at bottom */}
+      <div style={{ position: 'relative' }}>
+        {children}
         <div style={{
-          color: '#fff', fontSize: 18, fontWeight: 700,
-          fontFamily: 'Arial, Helvetica, sans-serif', letterSpacing: 1,
-        }}>{nameLabel}</div>
-        {roleLabel && (
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+          padding: '24px 16px 12px',
+        }}>
           <div style={{
-            color: '#999', fontSize: 12, fontFamily: 'Arial, Helvetica, sans-serif', marginTop: 2,
-          }}>{roleLabel}</div>
-        )}
+            color: '#fff', fontSize: 24, fontWeight: 700,
+            fontFamily: 'Arial, Helvetica, sans-serif', letterSpacing: 1,
+            textShadow: '0 2px 8px rgba(0,0,0,0.7)',
+          }}>{nameLabel}</div>
+          {roleLabel && (
+            <div style={{
+              color: '#ccc', fontSize: 13, fontFamily: 'Arial, Helvetica, sans-serif', marginTop: 2,
+              textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+            }}>{roleLabel}</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -162,14 +165,6 @@ function PhotoViewerCardVisual({
     extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
   });
 
-  // Name label slide up
-  const nameLabelY = interpolate(frame, [20, 30].map(f => Math.round(f * timingMultiplier)), [20, 0], {
-    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
-  });
-  const nameLabelOpacity = interpolate(frame, [20, 30].map(f => Math.round(f * timingMultiplier)), [0, 1], {
-    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
-  });
-
   const cardWidth = data.cards.length === 1 ? 420 : 360;
   const staggerDelay = Math.round(8 * timingMultiplier);
 
@@ -191,7 +186,7 @@ function PhotoViewerCardVisual({
 
           return (
             <div key={i} style={{ width: cardWidth, opacity: cardOpacity }}>
-              <MacWindowChrome title={data.windowTitle} nameLabel={card.name} roleLabel={card.role} nameLabelStyle={{ opacity: nameLabelOpacity, transform: `translateY(${nameLabelY}px)` }}>
+              <MacWindowChrome title={data.windowTitle} nameLabel={card.name} roleLabel={card.role}>
                 <div style={{ opacity: photoOpacity }}>
                   <PhotoArea src={card.src} />
                 </div>

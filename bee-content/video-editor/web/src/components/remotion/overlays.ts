@@ -41,6 +41,7 @@ export const NAMED_COLORS: Record<string, string> = {
   red: '#dc2626',
   teal: '#0d9488',
   gold: '#d97706',
+  green: '#16a34a',
   white: '#ffffff',
 };
 
