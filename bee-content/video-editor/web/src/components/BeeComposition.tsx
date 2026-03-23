@@ -24,6 +24,7 @@ import { QualityProvider } from './remotion/primitives';
 import { CalloutOverlay, Callout } from './remotion/Callout';
 import { KineticTextOverlay, KineticText } from './remotion/KineticText';
 import { SourceBadge } from './remotion/SourceBadge';
+import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -40,11 +41,13 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   CALLOUT: CalloutOverlay,
   KINETIC_TEXT: KineticTextOverlay,
   SOURCE_BADGE: SourceBadge,
+  BULLET_LIST: BulletListOverlay,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   KINETIC_TEXT: KineticText,
   CALLOUT: Callout,
+  BULLET_LIST: BulletList,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
