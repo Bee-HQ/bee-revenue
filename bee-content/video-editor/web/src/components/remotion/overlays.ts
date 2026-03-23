@@ -35,6 +35,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   THREE_D: 8,
   NOTEPAD: 6,
   MAP_ANNOTATION: 6,
+  DRAMATIC_QUOTE: 4,
 };
 
 export const NAMED_COLORS: Record<string, string> = {

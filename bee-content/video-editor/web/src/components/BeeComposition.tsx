@@ -21,6 +21,7 @@ import { CalloutOverlay, Callout } from './remotion/overlays/Callout';
 import { KineticTextOverlay, KineticText } from './remotion/overlays/KineticText';
 import { SourceBadge } from './remotion/overlays/SourceBadge';
 import { MapAnnotation } from './remotion/overlays/MapAnnotation';
+import { DramaticQuote } from './remotion/overlays/DramaticQuote';
 // visuals/
 import { TextChat, TextChatOverlay } from './remotion/visuals/TextChat';
 import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/visuals/EvidenceBoard';
@@ -54,6 +55,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   INFO_CARD: InfoCardOverlay,
   NOTEPAD: NotepadWindowOverlay,
   MAP_ANNOTATION: MapAnnotation,
+  DRAMATIC_QUOTE: DramaticQuote,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
