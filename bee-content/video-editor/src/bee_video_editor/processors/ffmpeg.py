@@ -613,6 +613,25 @@ def concat_with_transitions(
     return output_path
 
 
+def extract_audio(
+    input_path: str | Path,
+    output_path: str | Path,
+    codec: str = "mp3",
+    bitrate: str = "192k",
+) -> Path:
+    """Extract audio stream from a video file."""
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    args = [
+        "-i", str(input_path),
+        "-vn", "-acodec", codec, "-b:a", bitrate,
+        str(output_path),
+    ]
+    run_ffmpeg(args)
+    return output_path
+
+
 def concat_segments(
     segment_paths: list[str | Path],
     output_path: str | Path,
