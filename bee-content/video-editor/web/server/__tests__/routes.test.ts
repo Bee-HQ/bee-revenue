@@ -200,7 +200,7 @@ describe('Project routes', () => {
     // First verify the fixture has overlays — if not, use a segment that does
     const before = await request(app).get('/api/projects/current');
     const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
-    if (!segWithOverlay) return; // skip if fixture has no overlays
+    expect(segWithOverlay).toBeDefined();
 
     const res = await request(app)
       .put('/api/projects/update-segment')
@@ -222,7 +222,7 @@ describe('Project routes', () => {
 
     const before = await request(app).get('/api/projects/current');
     const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
-    if (!segWithOverlay) return;
+    expect(segWithOverlay).toBeDefined();
 
     // Set initial transform
     await request(app)
@@ -251,7 +251,7 @@ describe('Project routes', () => {
 
     const before = await request(app).get('/api/projects/current');
     const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
-    if (!segWithOverlay) return;
+    expect(segWithOverlay).toBeDefined();
 
     // Set then reset
     await request(app)
@@ -288,6 +288,54 @@ describe('Project routes', () => {
     const after = await request(app).get('/api/projects/current');
     const seg = after.body.segments.find((s: any) => s.id === 'seg-01');
     expect(seg.visual[0].transform).toEqual({ scale: 0.8, rotation: -5 });
+  });
+
+  test('PUT /api/projects/update-segment — visual_updates transform deep-merges', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    // Set initial transform with scale + rotation
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: 'seg-01',
+        updates: { visual_updates: [{ index: 0, transform: { scale: 1.5, rotation: 10 } }] },
+      });
+
+    // Update only scale — rotation should be preserved
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: 'seg-01',
+        updates: { visual_updates: [{ index: 0, transform: { scale: 0.8 } }] },
+      });
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === 'seg-01');
+    expect(seg.visual[0].transform.scale).toBe(0.8);
+    expect(seg.visual[0].transform.rotation).toBe(10); // preserved from first update
+  });
+
+  test('PUT /api/projects/update-segment — visual_updates transform null resets', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    // Set transform then reset with null
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: 'seg-01',
+        updates: { visual_updates: [{ index: 0, transform: { scale: 1.5 } }] },
+      });
+
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: 'seg-01',
+        updates: { visual_updates: [{ index: 0, transform: null }] },
+      });
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === 'seg-01');
+    expect(seg.visual[0].transform).toBeUndefined();
   });
 
   // 6. PUT /api/projects/reorder
