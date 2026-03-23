@@ -38,6 +38,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   MAP_ANNOTATION: 6,
   DRAMATIC_QUOTE: 4,
   PHONE_MOCKUP: 6,
+  DESKTOP_MONTAGE: 10,
 };
 
 export const NAMED_COLORS: Record<string, string> = {
