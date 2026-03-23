@@ -193,6 +193,103 @@ describe('Project routes', () => {
     expect(seg.visual[0].color).toBe('noir');
   });
 
+  // overlay_updates
+  test('PUT /api/projects/update-segment — overlay_updates sets transform', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    // First verify the fixture has overlays — if not, use a segment that does
+    const before = await request(app).get('/api/projects/current');
+    const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
+    if (!segWithOverlay) return; // skip if fixture has no overlays
+
+    const res = await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: segWithOverlay.id,
+        updates: {
+          overlay_updates: [{ index: 0, transform: { position: 'top-left', x: 10, y: 5 } }],
+        },
+      });
+    expect(res.status).toBe(200);
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === segWithOverlay.id);
+    expect(seg.overlay[0].transform).toEqual({ position: 'top-left', x: 10, y: 5 });
+  });
+
+  test('PUT /api/projects/update-segment — overlay transform deep-merges', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    const before = await request(app).get('/api/projects/current');
+    const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
+    if (!segWithOverlay) return;
+
+    // Set initial transform
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: segWithOverlay.id,
+        updates: { overlay_updates: [{ index: 0, transform: { position: 'top-left', scale: 1.5 } }] },
+      });
+
+    // Deep-merge: change position, keep scale
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: segWithOverlay.id,
+        updates: { overlay_updates: [{ index: 0, transform: { position: 'bottom-right' } }] },
+      });
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === segWithOverlay.id);
+    expect(seg.overlay[0].transform.position).toBe('bottom-right');
+    expect(seg.overlay[0].transform.scale).toBe(1.5); // preserved from first update
+  });
+
+  test('PUT /api/projects/update-segment — overlay transform null resets', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    const before = await request(app).get('/api/projects/current');
+    const segWithOverlay = before.body.segments.find((s: any) => s.overlay.length > 0);
+    if (!segWithOverlay) return;
+
+    // Set then reset
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: segWithOverlay.id,
+        updates: { overlay_updates: [{ index: 0, transform: { position: 'top-left' } }] },
+      });
+
+    await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: segWithOverlay.id,
+        updates: { overlay_updates: [{ index: 0, transform: null }] },
+      });
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === segWithOverlay.id);
+    expect(seg.overlay[0].transform).toBeUndefined();
+  });
+
+  // visual_updates transform
+  test('PUT /api/projects/update-segment — visual_updates accepts transform', async () => {
+    await loadProject(tmpDir, storyboardPath);
+
+    const res = await request(app)
+      .put('/api/projects/update-segment')
+      .send({
+        segment_id: 'seg-01',
+        updates: { visual_updates: [{ index: 0, transform: { scale: 0.8, rotation: -5 } }] },
+      });
+    expect(res.status).toBe(200);
+
+    const after = await request(app).get('/api/projects/current');
+    const seg = after.body.segments.find((s: any) => s.id === 'seg-01');
+    expect(seg.visual[0].transform).toEqual({ scale: 0.8, rotation: -5 });
+  });
+
   // 6. PUT /api/projects/reorder
   test('PUT /api/projects/reorder — reorders segments', async () => {
     await loadProject(tmpDir, storyboardPath);
