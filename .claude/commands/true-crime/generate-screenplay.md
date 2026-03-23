@@ -96,6 +96,8 @@ sentence that carries the tension forward.
 - `[VISUAL-CODE]` — at least one visual code from the bible
 - Either `**NARRATOR:**` text OR `>> **SPEAKER:**` dialog (or both)
 - `[LOWER-THIRD: "Name — Role"]` on first appearance of each character
+- `[SOURCE-BADGE: "ACTUAL"]` on scenes using real footage (bodycam, interrogation, courtroom)
+- `[DRAMATIC-QUOTE: "Quote"]` for dramatic splash quotes on footage (large italic colored text, no bg box)
 
 ### Format conventions:
 - `**NARRATOR:**` for narration (present tense, third person)
@@ -104,6 +106,15 @@ sentence that carries the tension forward.
 - `[VISUAL-CODE: qualifier]` when source is known (e.g., `[FOOTAGE: bodycam]`)
 - Act headers: `## ACT N: TITLE (start - end)`
 - Scene headers: `### Scene Title (start - end)`
+
+**New visual codes (Remotion components):**
+- `[PHOTO-VIEWER: "Name — Role"]` — macOS-style photo window (replaces `[PIP-SINGLE]`)
+- `[DRAMATIC-QUOTE: "Quote text"]` — large colored italic text splash on footage
+- `[SOURCE-BADGE: "REENACTMENT"]` or `[SOURCE-BADGE: "ACTUAL"]` — corner label for footage type
+- `[NOTEPAD: "Investigation Notes"]` — macOS text editor with typewriter animation (replaces `[POLICE-DB]`, `[DOCUMENT-MOCKUP]`)
+- `[BULLET-LIST]` — staggered reveal text bars with corner brackets (charges, summaries)
+- `[INFO-CARD]` — split photo + structured sections (replaces `[MUGSHOT-CARD]`, `[SPLIT-INFO]`)
+- `[MAP-ANNOTATION]` — red SVG circles/arrows on footage (replaces `[EVIDENCE-CLOSEUP]` red highlights)
 
 ## Generation Rules
 
@@ -152,20 +163,44 @@ Apply the archetype's act percentages to the target runtime:
 ### Visual tagging
 
 Tag every scene with visual codes from the bible. Common patterns:
-- 911 calls → `[WAVEFORM-AERIAL]`
+
+**Footage & atmosphere:**
+- 911 calls → `[WAVEFORM-AERIAL]` (bars style, aerial background)
+- 911 calls (alt) → `[WAVEFORM-BARS]` (bars, dark background) or `[WAVEFORM-PULSE]` (pulsing rings)
 - Bodycam footage → `[BODYCAM]` or `[FOOTAGE: bodycam]`
 - Interrogation → `[INTERROGATION]`
 - Trial testimony → `[COURTROOM]`
 - B-roll/atmosphere → `[BROLL-DARK]` or `[BROLL-WARM]`
-- Character intros → `[PIP-SINGLE]` + `[LOWER-THIRD: "Name — Role"]`
-- Locations → `[MAP-FLAT]`, `[MAP-TACTICAL]`, `[MAP-ROUTE]`
-- Evidence → `[EVIDENCE-DISPLAY]`, `[DOCUMENT-MOCKUP]`
+
+**People & character intros:**
+- Character intros → `[PHOTO-VIEWER: "Name — Role"]` (macOS window chrome) + `[LOWER-THIRD: "Name — Role"]`
+- Side-by-side comparison → `[PHOTO-VIEWER-DUAL]` (two photos in viewer windows)
+- Picture-in-picture → `[PIP-CORNER: position]` (position: bottom-right, bottom-left, top-right, top-left)
+- Legacy: `[PIP-SINGLE]` and `[PIP-SPLIT]` still accepted, map to `PHOTO_VIEWER`
+
+**Locations & maps:**
+- Static location → `[MAP-FLAT]`, `[MAP-TACTICAL]`
+- Dramatic location reveal → `[MAP-FLY-TO: location]` (cinematic zoom from globe)
+- Location orbit → `[MAP-ORBIT: location]` (rotating aerial view)
+- Travel route → `[MAP-ROUTE]`
+
+**Evidence & information:**
+- Evidence → `[EVIDENCE-DISPLAY]`, `[NOTEPAD: "title"]` (replaces `[DOCUMENT-MOCKUP]`)
+- Evidence highlights → `[MAP-ANNOTATION]` (red circles/arrows on footage, replaces `[EVIDENCE-CLOSEUP]`)
 - Financial reveals → `[FINANCIAL-CARD: "$Amount — Description"]`
 - Key quotes → `[QUOTE-CARD: "Quote" — Speaker]`
-- Text messages → `[TEXT-CHAT]`
-- Social media → `[SOCIAL-POST]`
-- Timelines → `[TIMELINE-SEQUENCE]`
+- Charges/sentencing → `[INFO-CARD]` (split photo + sections, replaces `[MUGSHOT-CARD]`)
+- Charge lists → `[BULLET-LIST]` (staggered reveal bars)
+- Text messages → `[TEXT-CHAT: platform]` (platform: imessage, android, generic)
+- Social media → `[SOCIAL-POST: platform]` (platform: facebook, instagram, twitter)
 - Connections → `[EVIDENCE-BOARD]`
+- Footage type label → `[SOURCE-BADGE: "ACTUAL"]` or `[SOURCE-BADGE: "REENACTMENT"]`
+
+**Text & emphasis:**
+- Dramatic emphasis → `[KINETIC-TEXT: "Key phrase" — preset]` (preset: punch, flow, stack, highlight)
+- Dramatic quote splash → `[DRAMATIC-QUOTE: "Quote"]` (large colored italic text on footage)
+- Timelines → `[TIMELINE-SEQUENCE]`
+- Captions for real audio → `[CAPTION: style]` (style: karaoke, phrase) — supports `{red:keyword}` color markup
 
 ### Real audio integration
 

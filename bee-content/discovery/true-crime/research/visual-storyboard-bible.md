@@ -191,20 +191,22 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 ## 3. Character & People Elements
 
-### [PIP-SINGLE] Single File Viewer Photo Overlay
+### [PIP-SINGLE] / [PHOTO-VIEWER] Single File Viewer Photo Overlay
 
-**What:** One person's photo in a "File Viewer" window chrome, overlaid on background footage.
+**What:** One person's photo in a macOS-style "File Viewer" window chrome, overlaid on background footage.
 
 | Property | Value |
 |----------|-------|
-| Window chrome | "File Viewer" title bar (dark gray) |
+| Window chrome | macOS-style title bar with traffic light buttons (dark gray) |
 | Photo size | ~350-450px wide |
 | Position | Left side of frame |
 | Name label | White text below photo (first name or full name) |
-| Animation | Fade in (0.5s), hold 4-8 seconds, fade out |
+| Animation | Slide-up (0.5s), hold 4-8 seconds, fade out |
 | Background | Bodycam footage, aerial, or B-roll continues playing |
 
 **When to use:** Introducing or referencing a person during narration or phone calls.
+
+> **Remotion component:** Maps to `PHOTO_VIEWER` type. In the bee-video storyboard format, use `"type": "PHOTO_VIEWER"` with `"content": "Name — Role"` and `"animation": "slide-up"`. The `[PIP-SINGLE]` code is still accepted and automatically maps to `PHOTO_VIEWER`.
 
 **Photo selection guidelines:**
 - **Victims:** Warm, humanizing photo. Smiling, with family/pets. Sometimes B&W for emotional weight.
@@ -213,9 +215,9 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 ---
 
-### [PIP-DUAL] Dual File Viewer Photos (Side by Side)
+### [PIP-DUAL] / [PHOTO-VIEWER-DUAL] Dual File Viewer Photos (Side by Side)
 
-**What:** Two File Viewer photos positioned side by side, showing the relationship between two people.
+**What:** Two macOS-style File Viewer photos positioned side by side, showing the relationship between two people.
 
 | Property | Value |
 |----------|-------|
@@ -225,6 +227,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 | Background | [MAP-3D] Google Earth oblique view or dark B-roll |
 
 **When to use:** During phone calls where both parties are identified (caller + subject, detective + witness). Establishes the relationship visually.
+
+> **Remotion component:** Maps to `PHOTO_VIEWER` type with a JSON array content. Use `"type": "PHOTO_VIEWER"` with `"content": "[{\"name\":\"Name1\"},{\"name\":\"Name2\"}]"` for dual layout.
 
 ---
 
@@ -242,6 +246,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 | Duration | 5-8 seconds |
 
 **When to use:** Resolution section — final charges and sentencing information.
+
+> **Remotion component:** Maps to `INFO_CARD` type. Use `"type": "INFO_CARD"` with `"content": "{\"sections\":[{\"label\":\"Charges\",\"items\":[...]},{\"label\":\"Sentence\",\"items\":[...]}]}"` and `"src": "mugshot.jpg"`, `"photoSide": "right"`.
 
 ---
 
@@ -295,6 +301,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 **When to use:** When narrator describes detectives researching background, running database checks, looking up records. Bridges narration-heavy investigation sections with no available real footage.
 
+> **Remotion component:** Maps to `NOTEPAD` type. Use `"type": "NOTEPAD"` with `"content": "Name: ...\nAge: ...\nDetails: ..."`, `"animation": "typewriter"`, and optionally `"windowTitle": "Police Database"`. The NOTEPAD component renders a macOS-style text editor window with typewriter text animation.
+
 **Variations:**
 - Different search results for different people (victim, suspect, witnesses)
 - Update the "Details" field as the investigation progresses
@@ -335,6 +343,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 | Animation | Circle/arrow fades in 0.5s after clip starts |
 
 **When to use:** When evidence needs viewer attention directed to a specific detail.
+
+> **Remotion component:** The red circle/arrow annotations can be rendered with `MAP_ANNOTATION` type. Use `"type": "MAP_ANNOTATION"` with `"content": "[{\"type\":\"circle\",\"x\":500,\"y\":300,\"r\":60},{\"type\":\"arrow\",\"x1\":600,\"y1\":400,\"x2\":700,\"y2\":300}]"` and `"color": "red"` as an overlay on the footage.
 
 ---
 
@@ -387,6 +397,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 
 **When to use:** When referencing specific documents, text messages, court filings, or lists of evidence/charges.
 
+> **Remotion component:** Maps to `NOTEPAD` type. Use `"type": "NOTEPAD"` with `"content": "document text..."`, `"animation": "typewriter"`, and `"windowTitle": "Court Filing"` (or appropriate title). The NOTEPAD renders a macOS-style text editor window.
+
 ---
 
 ### [SPLIT-INFO] Split-Screen Information Panel
@@ -401,6 +413,8 @@ ImageDraw.Draw(img).text((960, 540), "DR. INSANITY",
 | Purpose | Presents key facts alongside visual context without interrupting footage flow |
 
 **When to use:** When introducing a new character with extensive background info, or when presenting timeline/facts that need context from the footage.
+
+> **Remotion component:** Maps to `INFO_CARD` type. Use `"type": "INFO_CARD"` with `"content": "{\"sections\":[{\"label\":\"Background\",\"items\":[...]}]}"`, `"src": "photo.jpg"`, and `"photoSide": "right"`.
 
 ---
 
@@ -631,6 +645,64 @@ Also vary the character elements during calls:
 | Position | Bottom-center |
 | Animation | Word-by-word or phrase-by-phrase highlight |
 | Present | Throughout entire video (narrator + real audio) |
+| Color markup | Supports `{red:keyword}` inline markup for emphasis (renders keyword in red) |
+| Stroke mode | `stroke` style renders text with outline only (no background box) |
+
+> **Remotion component:** Enhanced `CAPTION` overlay now supports `{red:keyword}` color markup in narration text for emphasizing key words. Use `"style": "stroke"` for outline-only rendering without a background box.
+
+---
+
+### [DRAMATIC-QUOTE] Large Quote Splash
+
+**What:** Large colored italic text splash displayed directly on footage — no card, no background box.
+
+| Property | Value |
+|----------|-------|
+| Text | Large italic, ~72-96pt |
+| Color | Red (#DC3232) default, or accent color |
+| Position | Center of frame |
+| Background | None — text overlays directly on footage |
+| Duration | 3-5 seconds |
+| Animation | Fade in with slight scale |
+
+**When to use:** For maximum-impact quotes that should feel visceral and immediate. Unlike `[QUOTE-CARD]` which has a dark card background, this renders raw text on the footage itself. Best for short, punchy quotes.
+
+> **Remotion component:** `DRAMATIC_QUOTE` type. Use `"type": "DRAMATIC_QUOTE"`, `"content": "Quote text"`, `"color": "red"`, `"italic": true`.
+
+---
+
+### [BULLET-LIST] Staggered Text Bars
+
+**What:** A list of items revealed one at a time with staggered animation, styled with corner brackets.
+
+| Property | Value |
+|----------|-------|
+| Layout | Vertical stack of text bars |
+| Accent | Red (#DC3232) corner brackets |
+| Animation | Items stagger in one by one (0.3s apart) |
+| Background | Semi-transparent dark bars |
+| Duration | 4-8 seconds |
+
+**When to use:** Presenting charges, evidence lists, key facts, or summaries. More visually dynamic than a static text card.
+
+> **Remotion component:** `BULLET_LIST` type. Use `"type": "BULLET_LIST"`, `"content": "item1\nitem2\nitem3"`, `"accent": "red"`, `"style": "stagger"`.
+
+---
+
+### [SOURCE-BADGE] Footage Type Label
+
+**What:** Small corner label identifying the type of footage being shown (e.g., "ACTUAL FOOTAGE" or "REENACTMENT").
+
+| Property | Value |
+|----------|-------|
+| Position | Top-right corner |
+| Text | Uppercase label (ACTUAL, REENACTMENT, BODYCAM, etc.) |
+| Style | Small white text on semi-transparent dark pill |
+| Duration | Persistent while footage plays |
+
+**When to use:** On every clip of real footage to establish credibility, or on reenactment footage to distinguish it from reality.
+
+> **Remotion component:** `SOURCE_BADGE` type. Use `"type": "SOURCE_BADGE"`, `"content": "ACTUAL"` or `"content": "REENACTMENT"`.
 
 ---
 
@@ -684,6 +756,21 @@ ffmpeg -vf "eq=brightness=-0.08:saturation=0.6:contrast=1.2,colorbalance=bs=0.1:
 ### [LETTERBOX] Cinematic Black Bars
 Top and bottom. ~60-80px each. Creates 2.35:1 widescreen feel. Applied to footage, NOT to full-screen graphics.
 
+### [WATERMARK] Channel Logo / Text
+
+**What:** Persistent channel logo or text watermark in a corner of the frame.
+
+| Property | Value |
+|----------|-------|
+| Position | Bottom-right (default) or configurable |
+| Opacity | 30-50% — visible but non-distracting |
+| Content | Channel logo image or text name |
+| Duration | Entire video (persistent) |
+
+**When to use:** Every video. Prevents unauthorized re-uploads and provides brand presence.
+
+> **Remotion component:** Configured at the project level in project settings, not per-segment. The `Watermark` component renders persistently across all segments.
+
 ---
 
 ## 9. Screenplay Visual Tagging Reference
@@ -701,28 +788,30 @@ VISUAL: [BRAND-STING] → [DISCLAIMER] → [MAP-FLAT] wide establishing
 DURATION: 10 seconds
 
 [SCENE 3: LOCATION ESTABLISHING]
-VISUAL: [MAP-FLAT] zoom in → [MAP-PULSE] with [PIP-SINGLE] victim → [WAVEFORM-AERIAL]
+VISUAL: [MAP-FLAT] zoom in → [MAP-PULSE] with [PHOTO-VIEWER: "Victim — Missing Person"] → [WAVEFORM-AERIAL]
 AUDIO: Narrator "It's a late May evening in Cloudcroft, New Mexico..."
 DURATION: 20 seconds
 
 [SCENE 4: FIRST 911 CALL]
-VISUAL: [WAVEFORM-AERIAL] property bg + [PIP-DUAL] caller + victim
+VISUAL: [WAVEFORM-AERIAL] property bg + [PHOTO-VIEWER-DUAL] caller + victim
+OVERLAY: [SOURCE-BADGE: "ACTUAL"]
 AUDIO: 911 call recording
 CAPTION: [CAPTION-ANIMATED]
 DURATION: 90 seconds
 
 [SCENE 5: OFFICERS ARRIVE]
 VISUAL: Bodycam footage + [LOWER-THIRD] "Deputy Pensor — Otero County Sheriff"
+OVERLAY: [SOURCE-BADGE: "ACTUAL"]
 AUDIO: Bodycam audio + narrator bridges
 DURATION: 3 minutes
 
 [SCENE 12: DETECTIVE RESEARCHES BACKGROUND]
-VISUAL: [POLICE-DB] search results for victim → [DESKTOP-PHOTOS] missing person flyer
+VISUAL: [NOTEPAD: "Case File — Background Check"] search results for victim → [DESKTOP-PHOTOS] missing person flyer
 AUDIO: Narrator describing investigation
 DURATION: 60 seconds
 
 [SCENE 18: DAMNING QUOTE FROM EX-HUSBAND]
-VISUAL: [QUOTE-CARD] "If I could kill Craig and get away with it, I'd do it."
+VISUAL: [DRAMATIC-QUOTE: "If I could kill Craig and get away with it, I'd do it."]
 AUDIO: Phone call recording of ex-husband
 DURATION: 5 seconds (hold on quote)
 
@@ -732,12 +821,14 @@ AUDIO: First-person sponsor read
 DURATION: 90 seconds
 
 [SCENE 30: BODY FOUND]
-VISUAL: Bodycam night footage + [PIP-SINGLE] victim + [CENSOR-BLUR]
+VISUAL: Bodycam night footage + [PHOTO-VIEWER: "Victim"] + [CENSOR-BLUR]
+OVERLAY: [SOURCE-BADGE: "ACTUAL"], [MAP-ANNOTATION: red circle on discovery location]
 AUDIO: Bodycam audio + narrator
 DURATION: 2 minutes
 
 [SCENE 32: CHARGES]
-VISUAL: [MUGSHOT-CARD] suspect mugshot + charges/sentence
+VISUAL: [INFO-CARD] suspect mugshot + charges/sentence sections
+OVERLAY: [BULLET-LIST] charge items
 AUDIO: Narrator reading charges
 DURATION: 8 seconds
 ```
@@ -798,31 +889,37 @@ Before production, gather or generate these assets:
 - [ ] Evidence photos/documents (if available from court filings)
 - [ ] Forensic/autopsy report (for body diagram reference) → [BODY-DIAGRAM]
 
-### Must Generate (Pillow / FFmpeg / Google Earth)
+### Must Generate (Remotion Components / Pillow / FFmpeg / Google Earth)
 - [ ] Brand sting frame → [BRAND-STING]
 - [ ] Disclaimer card → [DISCLAIMER]
 - [ ] Satellite views (flat + 3D) → [MAP-FLAT], [MAP-3D]
 - [ ] Tactical map with red roads → [MAP-TACTICAL]
 - [ ] Red pulse animation frames → [MAP-PULSE]
-- [ ] File Viewer PIP overlays (per character) → [PIP-SINGLE], [PIP-DUAL]
-- [ ] Police Database mockup(s) → [POLICE-DB]
+- [ ] Photo viewer overlays (per character) → [PHOTO-VIEWER] / [PIP-SINGLE] → `PHOTO_VIEWER`
+- [ ] Dual photo viewer (per phone call pair) → [PHOTO-VIEWER-DUAL] / [PIP-DUAL] → `PHOTO_VIEWER`
+- [ ] Notepad/database mockup(s) → [NOTEPAD] / [POLICE-DB] → `NOTEPAD`
 - [ ] Desktop Photo Viewer mockup(s) → [DESKTOP-PHOTOS]
 - [ ] Lower thirds (per character) → [LOWER-THIRD]
 - [ ] Quote cards (teal accent) → [QUOTE-CARD]
+- [ ] Dramatic quote splashes → [DRAMATIC-QUOTE] → `DRAMATIC_QUOTE`
 - [ ] Timeline markers → [TIMELINE-MARKER]
 - [ ] Financial cards → [FINANCIAL-CARD]
-- [ ] Charges/sentence card → [MUGSHOT-CARD]
+- [ ] Info card with charges/sentence → [INFO-CARD] / [MUGSHOT-CARD] → `INFO_CARD`
+- [ ] Bullet list (charges, summaries) → [BULLET-LIST] → `BULLET_LIST`
+- [ ] Source badges (footage type) → [SOURCE-BADGE] → `SOURCE_BADGE`
+- [ ] Map annotations (red circles/arrows) → [MAP-ANNOTATION] → `MAP_ANNOTATION`
 - [ ] 911 waveform visualizations → [WAVEFORM-AERIAL]
 - [ ] Evidence display shots (bokeh bg) → [EVIDENCE-DISPLAY]
 - [ ] Body diagram illustration → [BODY-DIAGRAM]
-- [ ] Document/phone mockups → [DOCUMENT-MOCKUP]
-- [ ] Split info panels → [SPLIT-INFO]
+- [ ] Document/phone mockups → [NOTEPAD] / [DOCUMENT-MOCKUP] → `NOTEPAD`
+- [ ] Split info panels → [INFO-CARD] / [SPLIT-INFO] → `INFO_CARD`
 - [ ] Text message recreations (if applicable) → [TEXT-CHAT]
 - [ ] Social media post mockups (if applicable) → [SOCIAL-POST]
 - [ ] Connection/evidence board (if 5+ people) → [EVIDENCE-BOARD]
 - [ ] Financial/process flow diagram (if applicable) → [FLOW-DIAGRAM]
 - [ ] Animated timeline (if case spans 6+ months) → [TIMELINE-SEQUENCE]
 - [ ] Headline montage (if high-profile case) → [NEWS-MONTAGE]
-- [ ] Animated captions (ASS/SRT file) → [CAPTION-ANIMATED]
+- [ ] Animated captions (with `{red:keyword}` color markup) → [CAPTION-ANIMATED]
+- [ ] Watermark (channel branding) → [WATERMARK] — project config
 - [ ] Background music selection
 - [ ] TTS narration audio (ElevenLabs or equivalent)

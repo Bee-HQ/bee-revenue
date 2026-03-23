@@ -28,6 +28,7 @@
 | 2026-03-16 | **Case archetypes:** Removed universal bodycam dealbreaker. Added 4 case archetypes (bodycam-domestic, trial-centric, interrogation-centric, cold-case) with per-type footage mix targets and act adaptations. | Murdaugh case stress test + critique |
 | 2026-03-16 | **Open loop hierarchy:** Added anchor/structural/micro loop classification with early-resolution fallback guidance. | Critique analysis |
 | 2026-03-16 | **Sponsor optional:** Sponsor break marked as optional throughout (master template, archetype table, section 2.6, production checklist, appendix template). Added no-sponsor transition guidance. | Madhu feedback |
+| 2026-03-22 | **New Remotion components:** Updated visual codes to map to built components — PHOTO_VIEWER (replaces PIP-SINGLE/DUAL), NOTEPAD (replaces POLICE-DB/DOCUMENT-MOCKUP), INFO_CARD (replaces MUGSHOT-CARD/SPLIT-INFO), MAP_ANNOTATION (replaces EVIDENCE-CLOSEUP), DRAMATIC_QUOTE, BULLET_LIST, SOURCE_BADGE, WATERMARK. Enhanced CAPTION with {red:keyword} color markup. | Remotion component build |
 | 2026-03-16 | **New visual elements:** Added [TEXT-CHAT], [SOCIAL-POST], [TIMELINE-SEQUENCE], [EVIDENCE-BOARD], [FLOW-DIAGRAM], [NEWS-MONTAGE] to catalog + bible. | Critique: missing visual elements for text evidence, social media, financial flows, complex relationship webs |
 | 2026-03-16 | **Act 1 visual palette expanded:** Progressive escalation rewritten — base palette now includes maps, photos, lower thirds, B-roll, document mockups from the start. Escalation = layering complexity, not withholding element types. | Critique: Act 1 too visually impoverished for exposition-heavy Archetype B/D cases |
 | 2026-03-16 | **Audio break rule:** Added 90-second max narrator stretch rule (Section 5.1.1). No narration should run 2+ minutes without a real audio clip. Added to production checklist. | Critique: Murdaugh screenplay had 3.5 min narrator-only stretches |
@@ -434,7 +435,7 @@ CLIMAX BEAT 2: The Tip (42:00-44:00)
 CLIMAX BEAT 3: The Search (44:00-47:00)
 → Search warrant executed — bodycam tactical entry
 → [EVIDENCE-DISPLAY] — composed evidence items on bokeh bg
-→ [EVIDENCE-CLOSEUP] with red highlights
+→ [MAP-ANNOTATION] with red highlights (circles/arrows on footage)
 → [FINANCIAL-CARD] for safe contents / money discrepancy
 → Building toward body discovery
 
@@ -449,7 +450,7 @@ CLIMAX BEAT 4: Body Found (47:00-48:30)
 RESOLUTION BEAT 5: Arrest + Legal (48:30-50:00)
 → [INTERROGATION] footage — suspect in grey room, lawyers up
 → [COURTROOM] footage — judge, proceedings
-→ [MUGSHOT-CARD] — split screen: mugshot left, RED charges right
+→ [INFO-CARD] — split screen: mugshot + RED charges/sentence sections (replaces [MUGSHOT-CARD])
 → [TIMELINE-MARKER] — current case status
 → Narrator epilogue: 2-3 sentences on what happened next
 → Final [TR-FADE] to black → end card
@@ -461,7 +462,7 @@ This is where the most sophisticated visual elements appear:
 - [BODY-DIAGRAM] (forensic illustration)
 - [INTERROGATION] (new footage source)
 - [COURTROOM] (new footage source)
-- [MUGSHOT-CARD] (final resolution graphic)
+- [INFO-CARD] (final resolution graphic — replaces [MUGSHOT-CARD])
 
 The progressive escalation means viewers see NEW visual elements for the first time in the climax — keeping the visual language fresh even 45 minutes in.
 
@@ -597,20 +598,20 @@ DURATION: 90 seconds
 #### People & Characters
 | Code | What | When |
 |------|------|------|
-| [PIP-SINGLE] | One File Viewer photo over footage/map | Any character mention |
-| [PIP-DUAL] | Two File Viewer photos side by side | Phone calls between two people |
-| [MUGSHOT-CARD] | Split: mugshot left, RED charges right | Final resolution |
+| [PHOTO-VIEWER] / [PIP-SINGLE] | macOS-style photo window over footage/map → `PHOTO_VIEWER` | Any character mention |
+| [PHOTO-VIEWER-DUAL] / [PIP-DUAL] | Two macOS photo windows side by side → `PHOTO_VIEWER` | Phone calls between two people |
+| [INFO-CARD] / [MUGSHOT-CARD] | Split: photo + structured sections (charges, sentence) → `INFO_CARD` | Final resolution |
 | [LOWER-THIRD] | Name + role bar (dark bg, red accent line) | First intro of each character |
 
 #### Investigation & Evidence
 | Code | What | When |
 |------|------|------|
-| [POLICE-DB] | Fake database app with photo + fields | Investigation/research scenes |
+| [NOTEPAD] / [POLICE-DB] | macOS text editor with typewriter animation → `NOTEPAD` | Investigation/research scenes |
 | [DESKTOP-PHOTOS] | Windows desktop with Photo Viewer windows | Showing detective research |
-| [EVIDENCE-CLOSEUP] | Bodycam zoom with red highlight circle/arrow | Evidence on camera |
+| [MAP-ANNOTATION] / [EVIDENCE-CLOSEUP] | Red SVG circles, arrows, rects on footage → `MAP_ANNOTATION` | Evidence on camera |
 | [EVIDENCE-DISPLAY] | Evidence items on bokeh/blurred background | Composed evidence reveal (climax) |
 | [BODY-DIAGRAM] | Forensic line drawing of body + injuries | Cause of death description |
-| [DOCUMENT-MOCKUP] | Phone/document on dark bg, red highlights | Text evidence, court filings |
+| [NOTEPAD] / [DOCUMENT-MOCKUP] | macOS text editor for documents → `NOTEPAD` | Text evidence, court filings |
 | [TEXT-CHAT] | iMessage/SMS/Snapchat chat bubble recreation | Text message evidence |
 | [SOCIAL-POST] | Social media post mockup (platform-specific) | Social media evidence, suspect/victim posts |
 | [EVIDENCE-BOARD] | Red-string corkboard showing connections | Complex relationship webs (5+ people) |
@@ -631,8 +632,12 @@ DURATION: 90 seconds
 | [TIMELINE-SEQUENCE] | Animated horizontal timeline with cursor/nodes | Act transitions, multi-year cases |
 | [FINANCIAL-CARD] | Red dollar amount, grey description | Money reveals |
 | [NEWS-MONTAGE] | Stacked newspaper headlines sliding in | Media coverage, public impact |
-| [CAPTION-ANIMATED] | Bold white animated subtitles | Always — entire video |
-| [SPLIT-INFO] | Split screen: text card left, footage right | Key data alongside footage |
+| [CAPTION-ANIMATED] | Bold white animated subtitles, supports `{red:keyword}` color markup | Always — entire video |
+| [INFO-CARD] / [SPLIT-INFO] | Split photo + structured sections → `INFO_CARD` | Key data alongside footage |
+| [DRAMATIC-QUOTE] | Large colored italic text splash on footage → `DRAMATIC_QUOTE` | Maximum-impact quotes |
+| [BULLET-LIST] | Staggered reveal text bars with corner brackets → `BULLET_LIST` | Charges, evidence lists, summaries |
+| [SOURCE-BADGE] | Corner label for footage type (ACTUAL/REENACTMENT) → `SOURCE_BADGE` | Real footage, reenactments |
+| [WATERMARK] | Persistent channel logo/text | Every video (project config) |
 
 #### Courtroom & Resolution
 | Code | What | When |
@@ -693,26 +698,27 @@ The video introduces progressively more **complex compositions** as it progresse
 
 ```
 ACT 1 (foundation — broad palette, simple compositions):
-  Bodycam + [PIP-SINGLE] + [MAP-FLAT] + [MAP-3D] + [WAVEFORM-AERIAL]
+  Bodycam + [PHOTO-VIEWER] + [MAP-FLAT] + [MAP-3D] + [WAVEFORM-AERIAL]
   + [LOWER-THIRD] + [TIMELINE-MARKER] + [BROLL-DARK]
-  + [DOCUMENT-MOCKUP] (for early evidence like phone/text)
+  + [NOTEPAD] (for early evidence like phone/text — replaces [DOCUMENT-MOCKUP])
+  + [SOURCE-BADGE: "ACTUAL"] on real footage
   Compositions: single-layer. One visual element at a time.
 
 ACT 2 (layered — same palette, multi-element compositions):
-  + [DESKTOP-PHOTOS] + [POLICE-DB] + [PIP-DUAL] + [FINANCIAL-CARD]
-  + [TEXT-CHAT] + [SOCIAL-POST] + [NEWS-MONTAGE]
+  + [DESKTOP-PHOTOS] + [NOTEPAD] (replaces [POLICE-DB]) + [PHOTO-VIEWER-DUAL] + [FINANCIAL-CARD]
+  + [TEXT-CHAT] + [SOCIAL-POST] + [NEWS-MONTAGE] + [BULLET-LIST]
   Compositions: two-layer. PIP over footage. Waveform over aerial.
   New in Act 2: contradiction stacking gets visual support (side-by-side quotes, timeline comparisons)
 
 ACT 3 (complex — new high-impact elements):
-  + [QUOTE-CARD] + [SPLIT-INFO] + [MAP-TACTICAL] + [EVIDENCE-BOARD]
-  + [FLOW-DIAGRAM] + [TIMELINE-SEQUENCE]
+  + [QUOTE-CARD] + [DRAMATIC-QUOTE] + [INFO-CARD] (replaces [SPLIT-INFO]) + [MAP-TACTICAL]
+  + [EVIDENCE-BOARD] + [FLOW-DIAGRAM] + [TIMELINE-SEQUENCE] + [MAP-ANNOTATION]
   + Extended real footage sequences (3-5 min unbroken bodycam/interrogation/trial)
   Compositions: multi-layer composites. Split screens. Footage with overlaid data.
 
 ACT 4 (maximum — climax-only elements, first appearances):
   + [EVIDENCE-DISPLAY] + [BODY-DIAGRAM]
-  + [INTERROGATION] + [COURTROOM] + [MUGSHOT-CARD]
+  + [INTERROGATION] + [COURTROOM] + [INFO-CARD] (replaces [MUGSHOT-CARD])
   Compositions: everything available. The viewer sees visual elements
   for the first time in the climax — keeping the visual language fresh even 45 minutes in.
 ```
@@ -988,27 +994,32 @@ segments/
 - [ ] [BRAND-STING] frame
 - [ ] [DISCLAIMER] card
 - [ ] [MAP-FLAT], [MAP-3D], [MAP-TACTICAL], [MAP-PULSE] for property
-- [ ] [PIP-SINGLE] for each character (File Viewer style)
-- [ ] [PIP-DUAL] for each phone call pair
-- [ ] [POLICE-DB] mockup with victim data
+- [ ] [PHOTO-VIEWER] for each character (macOS window style) → `PHOTO_VIEWER`
+- [ ] [PHOTO-VIEWER-DUAL] for each phone call pair → `PHOTO_VIEWER`
+- [ ] [NOTEPAD] mockup with victim data (replaces [POLICE-DB]) → `NOTEPAD`
 - [ ] [DESKTOP-PHOTOS] with victim/missing person photos
 - [ ] [LOWER-THIRD] for each character
 - [ ] [QUOTE-CARD] for 4-6 key statements (teal accent)
+- [ ] [DRAMATIC-QUOTE] splashes for 2-3 maximum-impact quotes → `DRAMATIC_QUOTE`
 - [ ] [TIMELINE-MARKER] for 3-4 time jumps
 - [ ] [FINANCIAL-CARD] for money reveals
 - [ ] [EVIDENCE-DISPLAY] composed evidence shot (bokeh bg)
 - [ ] [BODY-DIAGRAM] forensic illustration
-- [ ] [DOCUMENT-MOCKUP] for text evidence
-- [ ] [SPLIT-INFO] panels for key data
+- [ ] [NOTEPAD] for text evidence/documents (replaces [DOCUMENT-MOCKUP]) → `NOTEPAD`
+- [ ] [INFO-CARD] panels for key data (replaces [SPLIT-INFO]) → `INFO_CARD`
+- [ ] [BULLET-LIST] for charge lists, evidence summaries → `BULLET_LIST`
+- [ ] [SOURCE-BADGE] for footage type labels → `SOURCE_BADGE`
+- [ ] [MAP-ANNOTATION] for evidence highlights (replaces [EVIDENCE-CLOSEUP]) → `MAP_ANNOTATION`
 - [ ] [TEXT-CHAT] message recreations (if text evidence exists)
 - [ ] [SOCIAL-POST] mockups (if social media evidence exists)
 - [ ] [EVIDENCE-BOARD] connection diagram (if 5+ connected individuals)
 - [ ] [FLOW-DIAGRAM] money/process flow (if financial crime)
 - [ ] [TIMELINE-SEQUENCE] animated timeline (if case spans 6+ months)
 - [ ] [NEWS-MONTAGE] headline stack (if high-profile media coverage)
-- [ ] [MUGSHOT-CARD] split: mugshot + RED charges
+- [ ] [INFO-CARD] with charges/sentence (replaces [MUGSHOT-CARD]) → `INFO_CARD`
 - [ ] [WAVEFORM-AERIAL] for each 911/phone call
-- [ ] [CAPTION-ANIMATED] subtitle file (ASS/SRT)
+- [ ] [CAPTION-ANIMATED] subtitle file with `{red:keyword}` color markup
+- [ ] [WATERMARK] channel branding — project config
 
 ### Narration (1-2 hours)
 - [ ] Generate TTS (ElevenLabs, deep male, low variability)
@@ -1124,7 +1135,7 @@ BRIDGE OUT: "With that said, let's get back to [character], who [re-hook]..."
 [... climax + resolution beats ...]
 
 ### Final Card
-VISUAL: [MUGSHOT-CARD] — charges in RED
+VISUAL: [INFO-CARD] — charges in RED (replaces [MUGSHOT-CARD])
 NARRATOR: "[2-3 sentence epilogue. Case status.]"
 TRANSITION: [TR-FADE] to black
 ```
