@@ -37,6 +37,7 @@ import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWin
 import { VideoPlayerWindowOverlay, VideoPlayerWindow } from './remotion/cards/VideoPlayerWindow';
 import { PhoneMockupOverlay, PhoneMockup } from './remotion/visuals/PhoneMockup';
 import { DesktopMontageOverlay, DesktopMontage } from './remotion/visuals/DesktopMontage';
+import { TransformWrapper } from './remotion/TransformWrapper';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -91,50 +92,79 @@ function SegmentVisual({ seg, knownFiles, fps }: { seg: BeeSegment; knownFiles: 
   const VisualComponent = VISUAL_COMPONENTS[contentType];
   if (VisualComponent) {
     const visual = seg.visual[0];
-    return <VisualComponent content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * fps)} />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <VisualComponent content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * fps)} />
+      </TransformWrapper>
+    );
   }
 
   // TEXT_CHAT visual: render as full-screen chat conversation
   if (contentType === 'TEXT_CHAT') {
     const visual = seg.visual[0];
-    return <TextChat content={visual?.content || '[]'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <TextChat content={visual?.content || '[]'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />
+      </TransformWrapper>
+    );
   }
 
   // WAVEFORM visual: render as audio visualization (911 calls, etc.)
   if (contentType === 'WAVEFORM' || contentType === 'WAVEFORM-AERIAL' || contentType === 'WAVEFORM-DARK') {
     const visual = seg.visual[0];
-    return <AudioVisualization content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <AudioVisualization content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />
+      </TransformWrapper>
+    );
   }
 
   // SOCIAL_POST visual: render as full-screen social media post
   if (contentType === 'SOCIAL_POST' || contentType === 'SOCIAL-POST') {
     const visual = seg.visual[0];
-    return <SocialPost content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <SocialPost content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />
+      </TransformWrapper>
+    );
   }
 
   // MAP visual: render as animated map
   const MAP_TYPES = new Set(['MAP', 'MAP-FLAT', 'MAP-3D', 'MAP-TACTICAL', 'MAP-PULSE', 'MAP-ROUTE']);
   if (MAP_TYPES.has(contentType)) {
     const visual = seg.visual[0];
-    return <AnimatedMap content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <AnimatedMap content={visual?.content || ''} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />
+      </TransformWrapper>
+    );
   }
 
   // EVIDENCE_BOARD visual: render as full-screen evidence board
   if (contentType === 'EVIDENCE_BOARD' || contentType === 'EVIDENCE-BOARD') {
     const visual = seg.visual[0];
-    return <EvidenceBoard content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />;
+    return (
+      <TransformWrapper transform={visual?.transform}>
+        <EvidenceBoard content={visual?.content || '{}'} metadata={visual} durationInFrames={Math.round(seg.duration * 30)} mode="visual" />
+      </TransformWrapper>
+    );
   }
 
   if (!isRealFile(src) || !knownFiles.has(src!)) {
     return <PlaceholderFrame type={contentType} title={seg.title} />;
   }
 
-  const visual = isImage
+  const media = isImage
     ? <SafeImg src={mediaUrl(src!)} type={contentType} title={seg.title} style={mediaStyle} />
     : <SafeVideo src={mediaUrl(src!)} type={contentType} title={seg.title} style={mediaStyle} />;
 
-  const graded = <AbsoluteFill style={{ filter: colorFilter }}>{visual}</AbsoluteFill>;
-  return kenBurns ? <KenBurns effect={kenBurns}>{graded}</KenBurns> : graded;
+  const graded = <AbsoluteFill style={{ filter: colorFilter }}>{media}</AbsoluteFill>;
+  const withKenBurns = kenBurns ? <KenBurns effect={kenBurns}>{graded}</KenBurns> : graded;
+  return (
+    <TransformWrapper transform={seg.visual[0]?.transform}>
+      {withKenBurns}
+    </TransformWrapper>
+  );
 }
 
 // Renders all overlays for a segment using the registry
@@ -149,7 +179,9 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDurati
         const clampedDur = Math.min(defaultDur, segDuration - offset);
         return (
           <Sequence key={`lt-${i}`} from={offset} durationInFrames={clampedDur}>
-            <LowerThird name={name} role={role} durationInFrames={clampedDur} />
+            <TransformWrapper transform={lt.transform}>
+              <LowerThird name={name} role={role} durationInFrames={clampedDur} />
+            </TransformWrapper>
           </Sequence>
         );
       })}
@@ -164,7 +196,9 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDurati
         const clampedDur = Math.min(dur, segDuration - offset);
         return (
           <Sequence key={`ov-${i}`} from={offset} durationInFrames={clampedDur}>
-            <Component content={entry.content} metadata={entry} durationInFrames={clampedDur} />
+            <TransformWrapper transform={entry.transform}>
+              <Component content={entry.content} metadata={entry} durationInFrames={clampedDur} />
+            </TransformWrapper>
           </Sequence>
         );
       })}
