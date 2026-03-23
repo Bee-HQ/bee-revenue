@@ -59,11 +59,12 @@ export function parsePhotoViewerData(
   };
 }
 
-function MacWindowChrome({ title, children, nameLabel, roleLabel }: {
+function MacWindowChrome({ title, children, nameLabel, roleLabel, nameLabelStyle }: {
   title: string;
   children: React.ReactNode;
   nameLabel: string;
   roleLabel?: string;
+  nameLabelStyle?: React.CSSProperties;
 }) {
   return (
     <div style={{
@@ -97,6 +98,7 @@ function MacWindowChrome({ title, children, nameLabel, roleLabel }: {
       {/* Name label */}
       <div style={{
         background: '#1a1a1a', padding: '10px 16px', borderTop: '1px solid #333',
+        ...nameLabelStyle,
       }}>
         <div style={{
           color: '#fff', fontSize: 18, fontWeight: 700,
@@ -159,6 +161,14 @@ function PhotoViewerCardVisual({
     extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
   });
 
+  // Name label slide up
+  const nameLabelY = interpolate(frame, [20, 30].map(f => Math.round(f * timingMultiplier)), [20, 0], {
+    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+  });
+  const nameLabelOpacity = interpolate(frame, [20, 30].map(f => Math.round(f * timingMultiplier)), [0, 1], {
+    extrapolateLeft: 'clamp', extrapolateRight: 'clamp',
+  });
+
   const cardWidth = data.cards.length === 1 ? 420 : 360;
   const staggerDelay = Math.round(8 * timingMultiplier);
 
@@ -179,7 +189,7 @@ function PhotoViewerCardVisual({
 
           return (
             <div key={i} style={{ width: cardWidth, opacity: cardOpacity }}>
-              <MacWindowChrome title={data.windowTitle} nameLabel={card.name} roleLabel={card.role}>
+              <MacWindowChrome title={data.windowTitle} nameLabel={card.name} roleLabel={card.role} nameLabelStyle={{ opacity: nameLabelOpacity, transform: `translateY(${nameLabelY}px)` }}>
                 <div style={{ opacity: photoOpacity }}>
                   <PhotoArea src={card.src} />
                 </div>
