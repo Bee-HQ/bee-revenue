@@ -37,6 +37,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   VIDEO_PLAYER: 8,
   MAP_ANNOTATION: 6,
   DRAMATIC_QUOTE: 4,
+  PHONE_MOCKUP: 6,
 };
 
 export const NAMED_COLORS: Record<string, string> = {

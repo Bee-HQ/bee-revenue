@@ -35,6 +35,7 @@ import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoV
 import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
 import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWindow';
 import { VideoPlayerWindowOverlay, VideoPlayerWindow } from './remotion/cards/VideoPlayerWindow';
+import { PhoneMockupOverlay, PhoneMockup } from './remotion/visuals/PhoneMockup';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -58,6 +59,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   VIDEO_PLAYER: VideoPlayerWindowOverlay,
   MAP_ANNOTATION: MapAnnotation,
   DRAMATIC_QUOTE: DramaticQuote,
+  PHONE_MOCKUP: PhoneMockupOverlay,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
@@ -68,6 +70,7 @@ const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   INFO_CARD: InfoCard,
   NOTEPAD: NotepadWindow,
   VIDEO_PLAYER: VideoPlayerWindow,
+  PHONE_MOCKUP: PhoneMockup,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
