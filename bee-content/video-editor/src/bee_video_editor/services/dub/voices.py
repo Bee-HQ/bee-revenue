@@ -46,6 +46,12 @@ def _clone_voice(sample_path: Path, name: str) -> str:
 
 def _default_voice(speaker: str) -> str:
     """Return a default ElevenLabs voice ID based on speaker index."""
-    defaults = ["Daniel", "Charlotte", "Brian", "Lily", "George"]
+    defaults = [
+        "onwK4e9ZLuTAKqWV03F9",  # Daniel
+        "XB0fDUnXU5powFXDhCwa",  # Charlotte
+        "nPczCjzI2devNBz1zQrb",  # Brian
+        "pFZP5JQG7iQjIQuC4Bku",  # Lily
+        "JBFqnCBsd6RMkjVDRZzb",  # George
+    ]
     idx = int(speaker.split("_")[-1]) if "_" in speaker else 0
     return defaults[idx % len(defaults)]

@@ -23,7 +23,9 @@ class TestDiarize:
         audio_path.touch()
         output_path = tmp_path / "diarization.json"
         voices_dir = tmp_path / "voices"
-        with patch("bee_video_editor.services.dub.diarize._diarize_pyannote") as mock:
+        with patch("bee_video_editor.services.dub.diarize._diarize_pyannote") as mock, \
+             patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
             mock.return_value = [
                 {"start_ms": 0, "end_ms": 5000, "speaker": "speaker_0"},
                 {"start_ms": 5000, "end_ms": 10000, "speaker": "speaker_1"},

@@ -35,7 +35,10 @@ def translate_segments(
 def _translate_claude(segments: list[dict], lang: str, model: str, style: str | None) -> list[dict]:
     """Translate segments using Claude API."""
     import anthropic
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+    client = anthropic.Anthropic(api_key=api_key)
     lang_name = LANG_NAMES.get(lang, lang)
     style_instruction = style or (
         f"Translate to {lang_name} as a native speaker telling a funny dating story. "

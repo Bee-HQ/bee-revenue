@@ -76,22 +76,26 @@ def _mix_tts_segments(segments: list[dict], tts_dir: Path, output: Path) -> None
     """Concatenate TTS segments with silence padding at correct timestamps."""
     inputs = []
     filter_parts = []
-    for i, seg in enumerate(segments):
+    input_idx = 0
+    for seg in segments:
         seg_file = tts_dir / f"seg_{seg['id']:03d}.mp3"
         if not seg_file.exists():
             continue
         inputs.extend(["-i", str(seg_file)])
         delay_ms = seg["start_ms"]
-        filter_parts.append(f"[{i}:a]adelay={delay_ms}|{delay_ms}[a{i}]")
+        filter_parts.append(f"[{input_idx}:a]adelay={delay_ms}|{delay_ms}[a{input_idx}]")
+        input_idx += 1
 
     if not filter_parts:
         return
 
-    mix_inputs = "".join(f"[a{i}]" for i in range(len(filter_parts)))
-    filter_parts.append(f"{mix_inputs}amix=inputs={len(filter_parts)}:duration=longest")
+    mix_inputs = "".join(f"[a{i}]" for i in range(input_idx))
+    filter_parts.append(f"{mix_inputs}amix=inputs={input_idx}:duration=longest")
     filter_str = ";".join(filter_parts)
     cmd = ["ffmpeg", "-y"] + inputs + ["-filter_complex", filter_str, str(output)]
-    subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {result.stderr}")
 
 
 def _mix_with_background(foreground: Path, background: Path, output: Path, bg_volume: float) -> None:
@@ -102,7 +106,9 @@ def _mix_with_background(foreground: Path, background: Path, output: Path, bg_vo
         f"[1:a]volume={bg_volume}[bg];[0:a][bg]amix=inputs=2:duration=first",
         "-ac", "2", str(output),
     ]
-    subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {result.stderr}")
 
 
 def _replace_audio(video: Path, audio: Path, output: Path) -> None:
@@ -112,4 +118,6 @@ def _replace_audio(video: Path, audio: Path, output: Path) -> None:
         "-c:v", "copy", "-map", "0:v", "-map", "1:a",
         "-shortest", str(output),
     ]
-    subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg failed: {result.stderr}")

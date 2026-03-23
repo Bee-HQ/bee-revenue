@@ -84,12 +84,14 @@ def _extract_voice_samples(
             part = voices_dir / f"_tmp_{speaker}_{i}.mp3"
             start_s = seg["start_ms"] / 1000
             duration_s = (seg["end_ms"] - seg["start_ms"]) / 1000
-            subprocess.run(
+            result = subprocess.run(
                 ["ffmpeg", "-y", "-i", str(audio_path),
                  "-ss", str(start_s), "-t", str(duration_s),
                  "-vn", "-acodec", "mp3", "-b:a", "192k", str(part)],
                 capture_output=True,
             )
+            if result.returncode != 0:
+                raise RuntimeError(f"FFmpeg failed: {result.stderr}")
             if part.exists():
                 parts.append(part)
         if len(parts) == 1:
@@ -97,11 +99,13 @@ def _extract_voice_samples(
         elif parts:
             list_file = voices_dir / f"_concat_{speaker}.txt"
             list_file.write_text("\n".join(f"file '{p.name}'" for p in parts))
-            subprocess.run(
+            result = subprocess.run(
                 ["ffmpeg", "-y", "-f", "concat", "-safe", "0",
                  "-i", str(list_file), "-c", "copy", str(sample_path)],
                 capture_output=True,
             )
+            if result.returncode != 0:
+                raise RuntimeError(f"FFmpeg failed: {result.stderr}")
             list_file.unlink(missing_ok=True)
         for p in parts:
             p.unlink(missing_ok=True)

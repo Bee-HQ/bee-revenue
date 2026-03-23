@@ -16,6 +16,11 @@ def generate_dubbed_audio(
     similarity_boost: float = 0.75,
 ) -> Path:
     """Generate TTS audio for each translated segment."""
+    from elevenlabs import ElevenLabs
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        raise ValueError("ELEVENLABS_API_KEY not set")
+    client = ElevenLabs(api_key=api_key)
     translations = json.loads(translations_path.read_text())
     manifest = json.loads(manifest_path.read_text())
     tts_dir.mkdir(parents=True, exist_ok=True)
@@ -33,6 +38,7 @@ def generate_dubbed_audio(
                 model=model,
                 stability=stability,
                 similarity_boost=similarity_boost,
+                client=client,
             )
             status.set(seg_id, "tts", SegmentState.COMPLETED)
         except Exception as e:
@@ -48,18 +54,21 @@ def _generate_segment(
     model: str,
     stability: float,
     similarity_boost: float,
+    client=None,
 ) -> None:
     """Generate TTS for a single segment using ElevenLabs."""
-    from elevenlabs import ElevenLabs
-    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
-    if not api_key:
-        raise ValueError("ELEVENLABS_API_KEY not set")
-    client = ElevenLabs(api_key=api_key)
+    from elevenlabs import ElevenLabs, VoiceSettings
+    if client is None:
+        api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+        if not api_key:
+            raise ValueError("ELEVENLABS_API_KEY not set")
+        client = ElevenLabs(api_key=api_key)
     audio_generator = client.text_to_speech.convert(
         text=text,
         voice_id=voice_id,
         model_id=model,
         output_format="mp3_44100_128",
+        voice_settings=VoiceSettings(stability=stability, similarity_boost=similarity_boost),
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:

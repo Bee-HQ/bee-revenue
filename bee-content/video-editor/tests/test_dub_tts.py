@@ -30,7 +30,10 @@ class TestTTS:
 
     def test_generates_audio_per_segment(self, tmp_path):
         trans_path, manifest_path, tts_dir, status = self._setup(tmp_path)
-        with patch("bee_video_editor.services.dub.tts._generate_segment") as mock:
+        with patch("bee_video_editor.services.dub.tts._generate_segment") as mock, \
+             patch("elevenlabs.ElevenLabs") as mock_elevenlabs, \
+             patch.dict("os.environ", {"ELEVENLABS_API_KEY": "test-key"}):
+            mock_elevenlabs.return_value = MagicMock()
             mock.return_value = True
             generate_dubbed_audio(trans_path, manifest_path, tts_dir, status)
             assert mock.call_count == 2
@@ -40,7 +43,10 @@ class TestTTS:
         status.set("seg_000", "tts", SegmentState.COMPLETED)
         tts_dir.mkdir(parents=True)
         (tts_dir / "seg_000.mp3").write_bytes(b"audio")
-        with patch("bee_video_editor.services.dub.tts._generate_segment") as mock:
+        with patch("bee_video_editor.services.dub.tts._generate_segment") as mock, \
+             patch("elevenlabs.ElevenLabs") as mock_elevenlabs, \
+             patch.dict("os.environ", {"ELEVENLABS_API_KEY": "test-key"}):
+            mock_elevenlabs.return_value = MagicMock()
             mock.return_value = True
             generate_dubbed_audio(trans_path, manifest_path, tts_dir, status)
             assert mock.call_count == 1

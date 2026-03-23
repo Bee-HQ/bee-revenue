@@ -77,7 +77,7 @@ class DubConfig(BaseModel):
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.model_dump(), indent=2))
+        path.write_text(json.dumps(self.model_dump(exclude_defaults=True), indent=2))
 
 
 class DubSegment(BaseModel):

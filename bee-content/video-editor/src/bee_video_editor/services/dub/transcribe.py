@@ -25,7 +25,10 @@ def transcribe_audio(
 def _whisper_api(audio_path: Path, model: str) -> list[dict]:
     """Transcribe using OpenAI Whisper API."""
     from openai import OpenAI
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+    client = OpenAI(api_key=api_key)
     with open(audio_path, "rb") as f:
         response = client.audio.transcriptions.create(
             model="whisper-1",

@@ -17,8 +17,13 @@ def run(
 ):
     """Run the full dubbing pipeline."""
     from bee_video_editor.services.dub.pipeline import run_pipeline
+    from bee_video_editor.services.dub.models import DubConfig
     project = Path(project_dir)
     project.mkdir(parents=True, exist_ok=True)
+    config_path = project / "dub.json"
+    config = DubConfig.load(config_path) if config_path.exists() else DubConfig()
+    config.voices.mode = voices
+    config.save(config_path)
     url = source if source.startswith("http") else None
     run_pipeline(project, url=url, lang=lang)
 
