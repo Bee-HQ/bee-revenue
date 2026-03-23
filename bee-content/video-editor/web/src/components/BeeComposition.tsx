@@ -27,6 +27,7 @@ import { SourceBadge } from './remotion/SourceBadge';
 import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
 import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoViewerCard';
 import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
+import { Watermark } from './remotion/Watermark';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -231,6 +232,12 @@ export const BeeComposition: React.FC<{
           </Sequence>
         );
       })}
+      {/* Watermark — project-level, rendered on top of everything */}
+      {storyboard.watermark?.enabled && (
+        <AbsoluteFill style={{ zIndex: 9999 }}>
+          <Watermark config={storyboard.watermark} />
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
     </QualityProvider>
   );

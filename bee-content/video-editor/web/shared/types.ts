@@ -74,6 +74,14 @@ export interface RenderRecord {
   duration: number;
 }
 
+export interface WatermarkConfig {
+  text?: string;
+  src?: string;
+  position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  opacity: number;
+  enabled: boolean;
+}
+
 export interface BeeProject {
   version: number;
   title: string;
@@ -84,6 +92,7 @@ export interface BeeProject {
   segments: BeeSegment[];
   production: ProductionState;
   quality?: 'standard' | 'premium' | 'social';
+  watermark?: WatermarkConfig;
 }
 export interface MediaFile {
   name: string;
