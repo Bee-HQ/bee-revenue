@@ -188,7 +188,7 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 
 **Key features:**
 - Load `.md` storyboard → react-timeline-editor multi-track timeline (V1/A1/A2/A3/OV1) with clips as colored blocks proportional to duration
-- Remotion Player shows composited video preview with 14 animated overlay/visual components (see Remotion Components below)
+- Remotion Player shows composited video preview with 21 animated overlay/visual components (see Remotion Components below)
 - Clip property panel (right sidebar Props tab): color grade picker, volume slider, trim inputs, transition picker
 - AI panel (right sidebar AI tab): B-Roll stock search from narration, caption generation, auto color grade suggestions
 - Timeline interactions: drag/resize clips with backend sync, split at playhead (S key), zoom slider, snap toggle, undo/redo history (50 snapshots)
@@ -210,12 +210,12 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 
 ### Remotion Components (`web/src/components/remotion/`)
 
-14 animated React components that render in the Remotion Player preview and MP4 export:
+21 animated React components that render in the Remotion Player preview and MP4 export:
 
 | Component | Trigger | Description |
 |-----------|---------|-------------|
 | LowerThird | `LOWER_THIRD` overlay | Animated slide-in name/role bar |
-| CaptionOverlay | NAR audio | Karaoke/phrase word-by-word captions |
+| CaptionOverlay | NAR audio | Karaoke/phrase word-by-word captions with `{color:keyword}` markup |
 | KenBurns | `ken_burns` metadata | 7 zoom/pan presets on images |
 | QuoteCard | `QUOTE_CARD` overlay | Animated quote with accent bar, author fade-in |
 | FinancialCard | `FINANCIAL_CARD` overlay | Counting dollar amount, slide-up panel |
@@ -228,6 +228,13 @@ React 19 + TypeScript + Vite + Tailwind + Zustand + react-timeline-editor + Remo
 | SocialPost | `SOCIAL_POST` visual/overlay | Facebook/Instagram/Twitter, slide/reveal/phone animations |
 | PictureInPicture | `PIP` visual/overlay | Corner PiP, side-by-side, top-bottom with any source combo |
 | AudioVisualization | `WAVEFORM`, `AUDIO_VIS` | Animated bars/waveform/pulse for 911 calls with background media |
+| PhotoViewerCard | `PHOTO_VIEWER` overlay/visual | macOS-style photo window with name label, multi-card support |
+| SourceBadge | `SOURCE_BADGE` overlay | [ACTUAL]/[REENACTMENT] corner label |
+| BulletList | `BULLET_LIST` overlay/visual | Staggered reveal text bars for charge sheets |
+| InfoCard | `INFO_CARD` overlay/visual | Split photo + structured sections (charges, sentencing) |
+| Watermark | project-level config | Persistent semi-transparent channel logo/text |
+| NotepadWindow | `NOTEPAD` overlay/visual | macOS-style text editor with typewriter animation |
+| MapAnnotation | `MAP_ANNOTATION` overlay | Red SVG circles, paths, rects on aerial footage |
 
 Components receive content via `OverlayEntry.content` or `VisualEntry` fields. Configuration uses top-level fields on entries (platform, animation, style, coordinates, etc.) — no nested `metadata` objects. All support both visual (full-screen) and overlay modes via the `OVERLAY_COMPONENTS` registry in `BeeComposition.tsx`.
 

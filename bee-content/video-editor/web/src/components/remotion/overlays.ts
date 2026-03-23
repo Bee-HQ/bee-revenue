@@ -21,6 +21,10 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   WAVEFORM: 8,
   CALLOUT: 4,
   KINETIC_TEXT: 5,
+  SOURCE_BADGE: 30,
+  BULLET_LIST: 6,
+  PHOTO_VIEWER: 5,
+  INFO_CARD: 6,
   LOTTIE: 4,
   ATMOSPHERE: 10,
   GLITCH: 3,
@@ -29,16 +33,37 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   TITLE_CARD: 4,
   SCREEN_MOCKUP: 10,
   THREE_D: 8,
+  NOTEPAD: 6,
+  MAP_ANNOTATION: 6,
 };
 
+export const NAMED_COLORS: Record<string, string> = {
+  red: '#dc2626',
+  teal: '#0d9488',
+  gold: '#d97706',
+  white: '#ffffff',
+};
+
+export function resolveColor(color: string): string {
+  return NAMED_COLORS[color] || color;
+}
+
 /** Parse "quote text — Author" into parts */
-export function parseQuoteContent(content: string): { quote: string; author: string } {
+export function parseQuoteContent(content: string, metadata?: Record<string, any> | null): { quote: string; author: string } {
+  if (!content && metadata) {
+    return { quote: metadata.quote || metadata.text || '', author: metadata.author || '' };
+  }
   const parts = content.split(/\s*[—–]\s*/);
   return { quote: parts[0]?.trim() || content, author: parts[1]?.trim() || '' };
 }
 
 /** Parse "$1.4 million — Description" into parts */
-export function parseDollarAmount(text: string): { displayValue: string; numericValue: number; description: string } {
+export function parseDollarAmount(text: string, metadata?: Record<string, any> | null): { displayValue: string; numericValue: number; description: string } {
+  if (!text && metadata) {
+    const amount = metadata.amount || metadata.value || '';
+    const desc = metadata.description || '';
+    text = desc ? `${amount} — ${desc}` : amount;
+  }
   const parts = text.split(/\s*[—–]\s*/);
   const dollarPart = parts[0]?.trim() || text;
   const description = parts[1]?.trim() || '';
@@ -55,7 +80,10 @@ export function parseDollarAmount(text: string): { displayValue: string; numeric
 }
 
 /** Parse "Name — Role" for LowerThird adapter */
-export function parseLowerThirdContent(content: string): { name: string; role?: string } {
+export function parseLowerThirdContent(content: string, metadata?: Record<string, any> | null): { name: string; role?: string } {
+  if (!content && metadata) {
+    return { name: metadata.text || metadata.name || '', role: metadata.subtext || metadata.role || undefined };
+  }
   const parts = content.split(/\s*[—–]\s*/);
   return { name: parts[0]?.trim() || content, role: parts[1]?.trim() || undefined };
 }

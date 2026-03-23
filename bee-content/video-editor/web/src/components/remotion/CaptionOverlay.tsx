@@ -1,4 +1,30 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { resolveColor } from './overlays';
+
+export interface CaptionWord {
+  text: string;
+  color?: string;
+}
+
+export function parseCaptionWords(text: string): CaptionWord[] {
+  if (!text) return [];
+  const result: CaptionWord[] = [];
+  const regex = /\{([^:}]+):([^}]+)\}|(\S+)/g;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1] !== undefined && match[2] !== undefined) {
+      const color = resolveColor(match[1]);
+      for (const word of match[2].split(/\s+/)) {
+        if (word) result.push({ text: word, color });
+      }
+    } else if (match[3] !== undefined) {
+      result.push({ text: match[3], color: undefined });
+    }
+  }
+
+  return result;
+}
 
 interface Props {
   text: string;
@@ -10,15 +36,14 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
   const { durationInFrames } = useVideoConfig();
 
   if (!text) return null;
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return null;
+  const captionWords = parseCaptionWords(text);
+  if (captionWords.length === 0) return null;
 
   if (style === 'phrase') {
-    // Show 3-5 words at a time
-    const chunkSize = Math.min(5, Math.max(3, Math.ceil(words.length / Math.ceil(words.length / 4))));
-    const chunks: string[][] = [];
-    for (let i = 0; i < words.length; i += chunkSize) {
-      chunks.push(words.slice(i, i + chunkSize));
+    const chunkSize = Math.min(5, Math.max(3, Math.ceil(captionWords.length / Math.ceil(captionWords.length / 4))));
+    const chunks: CaptionWord[][] = [];
+    for (let i = 0; i < captionWords.length; i += chunkSize) {
+      chunks.push(captionWords.slice(i, i + chunkSize));
     }
     const framesPerChunk = Math.floor(durationInFrames / chunks.length);
     const currentChunkIndex = Math.min(Math.floor(frame / framesPerChunk), chunks.length - 1);
@@ -30,23 +55,30 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
           background: 'rgba(0, 0, 0, 0.7)',
           padding: '10px 28px',
           borderRadius: 8,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '0 8px',
         }}>
-          <span style={{
-            color: '#fff',
-            fontSize: 42,
-            fontWeight: 700,
-            fontFamily: 'Arial, Helvetica, sans-serif',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-          }}>
-            {currentChunk.join(' ')}
-          </span>
+          {currentChunk.map((cw, i) => (
+            <span key={i} style={{
+              color: cw.color || '#fff',
+              fontSize: 42,
+              fontWeight: 700,
+              fontFamily: 'Arial, Helvetica, sans-serif',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+            }}>
+              {cw.text}
+            </span>
+          ))}
         </div>
       </AbsoluteFill>
     );
   }
 
-  // Karaoke: highlight word by word (use full text length including spaces for accurate timing)
-  const totalChars = text.length;
+  // Karaoke: highlight word by word
+  const plainText = captionWords.map(w => w.text).join(' ');
+  const totalChars = plainText.length;
   let charsSoFar = 0;
 
   return (
@@ -61,20 +93,21 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
         gap: '0 8px',
         maxWidth: '80%',
       }}>
-        {words.map((word, i) => {
-          if (i > 0) charsSoFar += 1; // account for space between words
+        {captionWords.map((cw, i) => {
+          if (i > 0) charsSoFar += 1;
           const wordStart = (charsSoFar / totalChars) * durationInFrames;
-          const wordEnd = ((charsSoFar + word.length) / totalChars) * durationInFrames;
-          charsSoFar += word.length;
+          const wordEnd = ((charsSoFar + cw.text.length) / totalChars) * durationInFrames;
+          charsSoFar += cw.text.length;
 
           const isActive = frame >= wordStart && frame <= wordEnd;
           const isPast = frame > wordEnd;
+          const highlightColor = cw.color || '#fbbf24';
 
           return (
             <span
               key={i}
               style={{
-                color: isPast || isActive ? '#fbbf24' : '#ffffff',
+                color: isPast || isActive ? highlightColor : '#ffffff',
                 fontSize: 42,
                 fontWeight: 700,
                 fontFamily: 'Arial, Helvetica, sans-serif',
@@ -83,7 +116,7 @@ export const CaptionOverlay: React.FC<Props> = ({ text, style = 'karaoke' }) => 
                 transform: isActive ? 'scale(1.05)' : 'scale(1)',
               }}
             >
-              {word}
+              {cw.text}
             </span>
           );
         })}

@@ -23,6 +23,13 @@ import type { OverlayProps } from './remotion/overlays';
 import { QualityProvider } from './remotion/primitives';
 import { CalloutOverlay, Callout } from './remotion/Callout';
 import { KineticTextOverlay, KineticText } from './remotion/KineticText';
+import { SourceBadge } from './remotion/SourceBadge';
+import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
+import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoViewerCard';
+import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
+import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWindow';
+import { MapAnnotation } from './remotion/MapAnnotation';
+import { Watermark } from './remotion/Watermark';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -38,11 +45,21 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   WAVEFORM: AudioVisualizationOverlay,
   CALLOUT: CalloutOverlay,
   KINETIC_TEXT: KineticTextOverlay,
+  SOURCE_BADGE: SourceBadge,
+  BULLET_LIST: BulletListOverlay,
+  PHOTO_VIEWER: PhotoViewerCardOverlay,
+  INFO_CARD: InfoCardOverlay,
+  NOTEPAD: NotepadWindowOverlay,
+  MAP_ANNOTATION: MapAnnotation,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   KINETIC_TEXT: KineticText,
   CALLOUT: Callout,
+  BULLET_LIST: BulletList,
+  PHOTO_VIEWER: PhotoViewerCard,
+  INFO_CARD: InfoCard,
+  NOTEPAD: NotepadWindow,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
@@ -112,7 +129,7 @@ function SegmentOverlays({ seg, segDuration, fps }: { seg: BeeSegment; segDurati
     <>
       {/* LowerThird -- special case (different props interface) */}
       {seg.overlay.filter(o => o.type === 'LOWER_THIRD').map((lt, i) => {
-        const { name, role } = parseLowerThirdContent(lt.content);
+        const { name, role } = parseLowerThirdContent(lt.content, lt);
         const defaultDur = Math.min(DEFAULT_DURATIONS.LOWER_THIRD * fps, segDuration);
         const offset = lt.startOffset ? Math.round(lt.startOffset * fps) : 0;
         const clampedDur = Math.min(defaultDur, segDuration - offset);
@@ -220,6 +237,12 @@ export const BeeComposition: React.FC<{
           </Sequence>
         );
       })}
+      {/* Watermark — project-level, rendered on top of everything */}
+      {storyboard.watermark?.enabled && (
+        <AbsoluteFill style={{ zIndex: 9999 }}>
+          <Watermark config={storyboard.watermark} />
+        </AbsoluteFill>
+      )}
     </AbsoluteFill>
     </QualityProvider>
   );
