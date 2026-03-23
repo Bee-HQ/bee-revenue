@@ -20,7 +20,7 @@ function parseTimecode(tc: string): number {
 
 // ---------- Visual type normalization ----------
 
-const VISUAL_TYPE_MAP: Record<string, string> = {
+export const VISUAL_TYPE_MAP: Record<string, string> = {
   // Maps
   'MAP-FLAT': 'MAP', 'MAP-3D': 'MAP', 'MAP-TACTICAL': 'MAP',
   'MAP-PULSE': 'MAP', 'MAP-ROUTE': 'MAP',
