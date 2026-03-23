@@ -42,6 +42,7 @@ async function init() {
   // 2. Load config
   const config = await loadMenuConfig('/menu.json');
   const { restaurant, items } = config;
+  document.title = `${restaurant.name} — AR Menu`;
 
   // 3. Show loading screen
   const loading = createLoadingScreen(app, {
@@ -72,15 +73,14 @@ async function init() {
 
   async function showItem(index) {
     const item = getItemByIndex(items, index);
-    loading.setStatus(`Loading ${item.name}...`);
-
-    if (currentModel) {
-      scene.remove(currentModel);
-      currentModel = null;
-    }
 
     const model = await loadModel(item.models.glb, (p) => loading.setProgress(p));
     applyTransform(model, item.transform);
+
+    if (currentModel) {
+      scene.remove(currentModel);
+    }
+
     scene.add(model);
     currentModel = model;
     currentIndex = index;
@@ -116,6 +116,20 @@ async function init() {
     controls.update();
   });
 
+  // UI visibility toggle for AR mode
+  const uiElements = [];
+  const itemInfoEl = document.getElementById('item-info');
+  if (itemInfoEl) uiElements.push(itemInfoEl);
+  const dotsEl = document.getElementById('carousel-dots');
+  if (dotsEl) uiElements.push(dotsEl);
+  const hintEl = document.getElementById('swipe-hint');
+  if (hintEl) uiElements.push(hintEl);
+
+  function setUIVisible(visible) {
+    const display = visible ? '' : 'none';
+    uiElements.forEach((el) => { el.style.display = display; });
+  }
+
   // 10. Layer 2: Native AR button
   if (features.canNativeAR) {
     const arBtn = document.createElement('button');
@@ -140,6 +154,7 @@ async function init() {
       });
     });
     app.appendChild(arBtn);
+    uiElements.push(arBtn);
   }
 
   // 11. Layer 3: MindAR button (feature-detected)
@@ -154,6 +169,7 @@ async function init() {
       font-size: 0.85rem; font-weight: 600; cursor: pointer;
       backdrop-filter: blur(4px);
     `;
+    uiElements.push(scanBtn);
     scanBtn.addEventListener('click', async () => {
       try {
         const { createMindARSession } = await import('./ar/mind-ar.js');
@@ -161,6 +177,7 @@ async function init() {
         const { createStickyMode } = await import('./ar/sticky-mode.js');
 
         controls.enabled = false;
+        setUIVisible(false);
 
         const hud = createARHud(app);
         hud.show();
@@ -174,13 +191,24 @@ async function init() {
           camera,
         });
 
+        function exitAR() {
+          try { session.stop(); } catch (_) { /* MindAR may not have fully started */ }
+          sticky.stop();
+          hud.hide();
+          controls.enabled = true;
+          setUIVisible(true);
+          // Clean up any extra canvases MindAR created
+          const canvases = app.querySelectorAll('canvas');
+          if (canvases.length > 1) {
+            for (let i = 1; i < canvases.length; i++) canvases[i].remove();
+          }
+        }
+
         const sticky = createStickyMode({
           timeoutMs: 10000,
           onTimeout: () => {
             sm.send('TIMEOUT');
-            session.stop();
-            hud.hide();
-            controls.enabled = true;
+            exitAR();
           },
         });
 
@@ -189,7 +217,6 @@ async function init() {
           sm.send('TARGET_FOUND');
           sticky.stop();
           hud.showTracking();
-          if (arModel) session.getAnchorGroup().remove(arModel);
           const item = getItemByIndex(items, currentIndex);
           loadModel(item.models.glb).then((model) => {
             applyTransform(model, item.transform);
@@ -207,10 +234,7 @@ async function init() {
 
         hud.onBack(() => {
           sm.send('BACK');
-          session.stop();
-          sticky.stop();
-          hud.hide();
-          controls.enabled = true;
+          exitAR();
         });
 
         sm.send('START_AR');
@@ -219,6 +243,7 @@ async function init() {
         console.error('MindAR failed:', err);
         scanBtn.style.display = 'none';
         controls.enabled = true;
+        setUIVisible(true);
       }
     });
     app.appendChild(scanBtn);

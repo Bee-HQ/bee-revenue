@@ -5,7 +5,7 @@ export function createLoadingScreen(container, branding = {}) {
   overlay.id = 'loading-screen';
   overlay.innerHTML = `
     <div class="loading-content">
-      <h1 class="loading-title">${name}</h1>
+      <h1 class="loading-title"></h1>
       <p class="loading-subtitle">AR Menu</p>
       <div class="loading-bar-track">
         <div class="loading-bar-fill"></div>
@@ -13,6 +13,7 @@ export function createLoadingScreen(container, branding = {}) {
       <p class="loading-status">Loading 3D models...</p>
     </div>
   `;
+  overlay.querySelector('.loading-title').textContent = name;
   overlay.style.cssText = `
     position: fixed; inset: 0; z-index: 1000;
     display: flex; align-items: center; justify-content: center;

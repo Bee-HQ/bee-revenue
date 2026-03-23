@@ -18,7 +18,7 @@ export function detectFeatures({ userAgent, mediaDevices, xrSystem, platform, ca
     hasWebXR,
     isInAppBrowser: inApp,
     canMindAR: hasCamera && !inApp,
-    canNativeAR: canQuickLook || hasWebXR || (isAndroid && hasCamera),
+    canNativeAR: (isIOS && canQuickLook) || (isAndroid && hasCamera),
   };
 }
 
