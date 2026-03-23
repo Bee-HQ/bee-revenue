@@ -2,12 +2,15 @@ import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { useQuality } from '../primitives/QualityContext';
 import { CornerBrackets } from '../primitives';
+import { resolveColor } from '../overlays';
 import type { OverlayProps } from '../overlays';
 
 export interface BulletListData {
   items: string[];
   accent: 'red' | 'teal' | 'gold' | 'white';
   style: 'stagger' | 'cascade' | 'instant';
+  textColor: string;
+  barStyle: 'solid' | 'transparent' | 'none';
 }
 
 const ACCENT_COLORS: Record<BulletListData['accent'], string> = {
@@ -40,6 +43,8 @@ export function parseBulletListData(
     items,
     accent: (metadata?.accent as BulletListData['accent']) || 'red',
     style: (metadata?.style as BulletListData['style']) || 'stagger',
+    textColor: metadata?.textColor ? resolveColor(metadata.textColor) : '#ffffff',
+    barStyle: (metadata?.barStyle as BulletListData['barStyle']) || 'solid',
   };
 }
 
@@ -51,7 +56,7 @@ function BulletListVisual({
   const { springConfig, timingMultiplier } = useQuality();
   const staggerFrames = Math.round(8 * timingMultiplier);
   const accentColor = ACCENT_COLORS[data.accent] || ACCENT_COLORS.red;
-  const fontSize = data.items.length > 6 ? 18 : 22;
+  const fontSize = data.items.length === 1 ? 36 : data.items.length > 6 ? 18 : 22;
 
   const exitOpacity = interpolate(
     frame, [durationInFrames - 15, durationInFrames], [1, 0],
@@ -75,13 +80,14 @@ function BulletListVisual({
               transform: `translateX(${translateX}px)`,
               opacity,
               marginLeft: indent,
-              background: 'rgba(0, 0, 0, 0.75)',
+              background: data.barStyle === 'none' ? 'transparent' : data.barStyle === 'transparent' ? 'rgba(0,0,0,0.4)' : 'rgba(0, 0, 0, 0.75)',
               padding: '14px 24px',
               alignSelf: 'flex-start',
             }}>
               <CornerBrackets color={accentColor}>
                 <span style={{
-                  color: '#fff',
+                  color: data.textColor,
+                  textShadow: data.barStyle === 'none' ? '2px 2px 8px rgba(0,0,0,0.9)' : undefined,
                   fontSize,
                   fontWeight: 800,
                   fontFamily: "'Arial Black', Arial, sans-serif",
