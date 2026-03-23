@@ -3,6 +3,7 @@ import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig
 import { useQuality } from '../primitives/QualityContext';
 import { mediaUrl } from '../SafeMedia';
 import type { OverlayProps } from '../overlays';
+import { AnimatedBG } from './AnimatedBG';
 
 export interface PhotoViewerCardInfo {
   name: string;
@@ -174,9 +175,10 @@ function PhotoViewerCardVisual({
 
   return (
     <AbsoluteFill style={{
-      backgroundColor: background,
+      backgroundColor: background?.startsWith('animated-') ? undefined : background,
       justifyContent: 'center', alignItems: 'center',
     }}>
+      {background?.startsWith('animated-') && <AnimatedBG preset={background} />}
       <div style={{
         display: 'flex', gap: 24, opacity: exitOpacity,
         transform: enterTransform,
@@ -209,5 +211,6 @@ export const PhotoViewerCardOverlay: React.FC<OverlayProps> = (props) => {
 
 export const PhotoViewerCard: React.FC<OverlayProps> = (props) => {
   const data = parsePhotoViewerData(props.content, props.metadata);
-  return <PhotoViewerCardVisual data={data} durationInFrames={props.durationInFrames} background="#000" />;
+  const bg = props.metadata?.background || '#000';
+  return <PhotoViewerCardVisual data={data} durationInFrames={props.durationInFrames} background={bg} />;
 };

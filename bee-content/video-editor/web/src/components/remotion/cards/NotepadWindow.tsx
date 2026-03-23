@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { useQuality } from '../primitives/QualityContext';
 import type { OverlayProps } from '../overlays';
+import { AnimatedBG } from './AnimatedBG';
 
 export interface NotepadData {
   lines: string[];
@@ -114,8 +115,7 @@ function NotepadWindowVisual({
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', ...bgStyle }}>
       {background?.startsWith('animated-') && (
         <AbsoluteFill>
-          {/* AnimatedBG will be integrated in Task 8 */}
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: '#0a1628' }} />
+          <AnimatedBG preset={background} />
         </AbsoluteFill>
       )}
       <div style={{
