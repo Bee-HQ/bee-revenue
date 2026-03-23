@@ -61,4 +61,14 @@ describe('parseCaptionWords', () => {
       { text: 'property', color: '#0d9488' },
     ]);
   });
+
+  test('parses magenta named color', () => {
+    const result = parseCaptionWords('{magenta:threatening}');
+    expect(result).toEqual([{ text: 'threatening', color: '#e91e8a' }]);
+  });
+
+  test('parses pink named color', () => {
+    const result = parseCaptionWords('{pink:emphasis}');
+    expect(result).toEqual([{ text: 'emphasis', color: '#ec4899' }]);
+  });
 });

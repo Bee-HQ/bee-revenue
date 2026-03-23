@@ -39,4 +39,36 @@ describe('parseBulletListData', () => {
     expect(result.accent).toBe('red');
     expect(result.style).toBe('stagger');
   });
+
+  test('defaults textColor to white', () => {
+    const result = parseBulletListData('FIRST DEGREE MURDER');
+    expect(result.textColor).toBe('#ffffff');
+  });
+
+  test('reads textColor from metadata', () => {
+    const result = parseBulletListData('FIRST DEGREE MURDER', { textColor: 'red' });
+    expect(result.textColor).toBe('#dc2626');
+  });
+
+  test('reads hex textColor from metadata', () => {
+    const result = parseBulletListData('GUILTY', { textColor: '#00ff00' });
+    expect(result.textColor).toBe('#00ff00');
+  });
+
+  test('reads barStyle from metadata', () => {
+    const result = parseBulletListData('line1\nline2', { barStyle: 'none' });
+    expect(result.barStyle).toBe('none');
+  });
+
+  test('defaults barStyle to solid', () => {
+    const result = parseBulletListData('line1');
+    expect(result.barStyle).toBe('solid');
+  });
+
+  test('single item still parses correctly (verdict mode)', () => {
+    const result = parseBulletListData('FIRST DEGREE MURDER', { textColor: 'red', accent: 'red' });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toBe('FIRST DEGREE MURDER');
+    expect(result.textColor).toBe('#dc2626');
+  });
 });

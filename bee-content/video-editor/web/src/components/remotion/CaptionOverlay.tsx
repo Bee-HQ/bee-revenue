@@ -30,13 +30,17 @@ interface Props {
   text: string;
   style?: 'karaoke' | 'phrase';
   captionStyle?: 'box' | 'stroke';
-  position?: 'bottom' | 'top' | 'center';
+  position?: 'bottom' | 'top' | 'center' | 'top-left' | 'top-right' | 'center-left' | 'center-right';
 }
 
 const POSITION_STYLES: Record<NonNullable<Props['position']>, React.CSSProperties> = {
   bottom: { justifyContent: 'flex-end', padding: '0 40px 120px' },
   top: { justifyContent: 'flex-start', padding: '80px 40px 0' },
   center: { justifyContent: 'center', padding: '0 40px' },
+  'top-left': { justifyContent: 'flex-start', alignItems: 'flex-start', padding: '80px 40px 0' },
+  'top-right': { justifyContent: 'flex-start', alignItems: 'flex-end', padding: '80px 40px 0' },
+  'center-left': { justifyContent: 'center', alignItems: 'flex-start', padding: '0 40px' },
+  'center-right': { justifyContent: 'center', alignItems: 'flex-end', padding: '0 40px' },
 };
 
 const STROKE_STYLE: React.CSSProperties = {

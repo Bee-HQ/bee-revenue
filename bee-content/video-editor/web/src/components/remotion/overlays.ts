@@ -34,8 +34,11 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   SCREEN_MOCKUP: 10,
   THREE_D: 8,
   NOTEPAD: 6,
+  VIDEO_PLAYER: 8,
   MAP_ANNOTATION: 6,
   DRAMATIC_QUOTE: 4,
+  PHONE_MOCKUP: 6,
+  DESKTOP_MONTAGE: 10,
 };
 
 export const NAMED_COLORS: Record<string, string> = {
@@ -44,6 +47,8 @@ export const NAMED_COLORS: Record<string, string> = {
   gold: '#d97706',
   green: '#16a34a',
   white: '#ffffff',
+  magenta: '#e91e8a',
+  pink: '#ec4899',
 };
 
 export function resolveColor(color: string): string {
