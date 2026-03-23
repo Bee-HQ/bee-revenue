@@ -3,7 +3,6 @@ import { useProjectStore } from '../stores/project';
 import { api } from '../api/client';
 import { toast } from '../stores/toast';
 import type { TransformConfig, PositionPreset } from '../../shared/transform';
-import { TRANSFORM_DEFAULTS } from '../../shared/transform';
 
 const GRID_LABELS: PositionPreset[] = [
   'top-left', 'top', 'top-right',
@@ -26,9 +25,8 @@ interface Props {
 
 export function TransformSection({ segmentId, clipType, layerIndex, segment }: Props) {
   const entry = clipType === 'v' ? segment.visual[layerIndex] : segment.overlay[layerIndex];
-  if (!entry) return null;
 
-  const current: TransformConfig = entry.transform || {};
+  const current: TransformConfig = entry?.transform || {};
   const pos = current.position || 'center';
   const [x, setX] = useState(current.x ?? 0);
   const [y, setY] = useState(current.y ?? 0);
@@ -37,19 +35,30 @@ export function TransformSection({ segmentId, clipType, layerIndex, segment }: P
   const [opacity, setOpacity] = useState(current.opacity ?? 1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const transformJson = JSON.stringify(entry?.transform);
   // Sync local state when segment data changes
   useEffect(() => {
-    const t = entry.transform || {};
+    const t = entry?.transform || {};
     setX(t.x ?? 0);
     setY(t.y ?? 0);
     setScale(t.scale ?? 1);
     setRotation(t.rotation ?? 0);
     setOpacity(t.opacity ?? 1);
-  }, [entry.transform]);
+  }, [transformJson]);
+
+  const [hiddenControls, setHiddenControls] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('bee-transform-hidden');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const [configuring, setConfiguring] = useState(false);
 
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, []);
+
+  if (!entry) return null;
 
   const updateTransform = async (patch: Partial<TransformConfig>) => {
     try {
@@ -70,6 +79,7 @@ export function TransformSection({ segmentId, clipType, layerIndex, segment }: P
   };
 
   const handleReset = async () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     try {
       const updateKey = clipType === 'v' ? 'visual_updates' : 'overlay_updates';
       await api.updateSegment(segmentId, {
@@ -82,14 +92,6 @@ export function TransformSection({ segmentId, clipType, layerIndex, segment }: P
       toast.error(e.message);
     }
   };
-
-  const [hiddenControls, setHiddenControls] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('bee-transform-hidden');
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch { return new Set(); }
-  });
-  const [configuring, setConfiguring] = useState(false);
 
   const toggleControl = (key: string) => {
     const next = new Set(hiddenControls);
