@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { resolveTransformStyle } from './TransformWrapper';
+import { resolveTransformStyle, isTransformActive } from './TransformWrapper';
 
 describe('resolveTransformStyle', () => {
   test('returns identity styles for undefined transform', () => {
@@ -58,5 +58,39 @@ describe('resolveTransformStyle', () => {
     const result = resolveTransformStyle({ scale: 2 });
     expect(result.outer.justifyContent).toBe('center');
     expect(result.outer.alignItems).toBe('center');
+  });
+});
+
+describe('isTransformActive', () => {
+  test('returns false for undefined', () => {
+    expect(isTransformActive(undefined)).toBe(false);
+  });
+
+  test('returns false for null', () => {
+    expect(isTransformActive(null)).toBe(false);
+  });
+
+  test('returns false for empty object', () => {
+    expect(isTransformActive({})).toBe(false);
+  });
+
+  test('returns false for center-only position', () => {
+    expect(isTransformActive({ position: 'center' })).toBe(false);
+  });
+
+  test('returns true for non-center position', () => {
+    expect(isTransformActive({ position: 'top-left' })).toBe(true);
+  });
+
+  test('returns true for scale', () => {
+    expect(isTransformActive({ scale: 0.8 })).toBe(true);
+  });
+
+  test('returns true for opacity', () => {
+    expect(isTransformActive({ opacity: 0.5 })).toBe(true);
+  });
+
+  test('returns true for position + scale', () => {
+    expect(isTransformActive({ position: 'center', scale: 1.5 })).toBe(true);
   });
 });
