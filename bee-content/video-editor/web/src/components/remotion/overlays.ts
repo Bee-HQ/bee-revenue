@@ -23,6 +23,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   KINETIC_TEXT: 5,
   SOURCE_BADGE: 30,
   BULLET_LIST: 6,
+  PHOTO_VIEWER: 5,
   LOTTIE: 4,
   ATMOSPHERE: 10,
   GLITCH: 3,
