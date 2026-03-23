@@ -27,6 +27,7 @@ import { SourceBadge } from './remotion/SourceBadge';
 import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
 import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoViewerCard';
 import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
+import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWindow';
 import { Watermark } from './remotion/Watermark';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
@@ -47,6 +48,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   BULLET_LIST: BulletListOverlay,
   PHOTO_VIEWER: PhotoViewerCardOverlay,
   INFO_CARD: InfoCardOverlay,
+  NOTEPAD: NotepadWindowOverlay,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
@@ -55,6 +57,7 @@ const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   BULLET_LIST: BulletList,
   PHOTO_VIEWER: PhotoViewerCard,
   INFO_CARD: InfoCard,
+  NOTEPAD: NotepadWindow,
 };
 
 // Renders the visual layer for a single segment (video/image/placeholder + color grade + Ken Burns)
