@@ -56,6 +56,10 @@ Read before reviewing:
 - **Variety:** Count unique visual codes used. A 50-minute video should use 8+ different types.
 - **First appearances:** Every character's first appearance should have `[LOWER-THIRD: "Name — Role"]`.
 - **Valid codes:** Check that all codes are from the visual bible. Flag any unrecognized codes.
+- **Emphasis moments:** Key reveals and dramatic beats should use `[KINETIC-TEXT]` with appropriate preset (punch for impact, highlight for evidence, flow for emotional beats, stack for lists/timelines).
+- **Text/social evidence:** Text message evidence should use `[TEXT-CHAT: platform]` with correct platform. Social media posts should use `[SOCIAL-POST: platform]`.
+- **Map variety:** Check that maps use appropriate animations — `[MAP-FLY-TO]` for dramatic location reveals, `[MAP-ORBIT]` for crime scenes, `[MAP-ROUTE]` for travel/pursuit sequences. Flag overuse of `[MAP-FLAT]` when a more dynamic option fits.
+- **Audio visualization:** 911 calls and real audio segments can use `[WAVEFORM-BARS]`, `[WAVEFORM-PULSE]`, or `[WAVEFORM-AERIAL]`. Vary across the video — don't use the same waveform style for every call.
 
 ### 5. Narrative Techniques
 

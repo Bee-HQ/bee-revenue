@@ -384,6 +384,56 @@
 }
 ```
 
+## Visual Polish Tests
+
+### seg-36 | DramaticQuote Red
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "DRAMATIC_QUOTE", "content": "I'm gonna need a lawyer", "color": "red", "italic": true}],
+  "music": [],
+  "duration": 5
+}
+```
+
+### seg-37 | DramaticQuote Green
+
+```bee-video:segment
+{
+  "visual": [{"type": "FOOTAGE", "src": null}],
+  "audio": [],
+  "overlay": [{"type": "DRAMATIC_QUOTE", "content": "Not guilty", "color": "green", "italic": false, "position": "bottom"}],
+  "music": [],
+  "duration": 5
+}
+```
+
+### seg-38 | BulletList with Corner Brackets
+
+```bee-video:segment
+{
+  "visual": [{"type": "BULLET_LIST", "src": null, "content": "FIRST DEGREE MURDER\nCONSPIRACY TO COMMIT\nOBSTRUCTION OF JUSTICE", "accent": "red", "style": "stagger"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
+### seg-39 | PhotoViewerCard Name Overlay
+
+```bee-video:segment
+{
+  "visual": [{"type": "PHOTO_VIEWER", "src": null, "content": "Deana Thetford — Suspect", "animation": "slide-up"}],
+  "audio": [],
+  "overlay": [],
+  "music": [],
+  "duration": 6
+}
+```
+
 ## Combination Tests
 
 ### seg-17 | LowerThird + QuoteCard stacked
