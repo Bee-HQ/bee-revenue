@@ -200,6 +200,8 @@ These are the known failure patterns, ordered by frequency:
 
 5. **Missing metadata destructure** — component's function signature doesn't destructure `metadata` from `OverlayProps`. Fix: add `metadata` to the destructured props.
 
+6. **Browser automation can't click timeline clips** — react-timeline-editor clips are small and coordinate-based clicks often miss. Each clip now has a `data-action-id` attribute and an `onClick` handler with `stopPropagation` (in `TimelineActionRenderer.tsx`). To select a clip via automation, use: `document.querySelector('[data-action-id="seg-01-ov-0"]').click()`. Action IDs follow the pattern `seg-{N}-{track}-{index}` (e.g., `seg-01-ov-0`, `seg-05-v-0`). For standard UI buttons (position grid, sliders, etc.), use the `find` tool with ref-based clicking.
+
 ## Key Files
 
 | File | What to check |

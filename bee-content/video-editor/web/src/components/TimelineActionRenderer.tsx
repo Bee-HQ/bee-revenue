@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import type { TimelineAction, TimelineRow } from '@xzdarcy/timeline-engine';
 import type { BeeTimelineAction } from '../adapters/timeline-adapter';
+import { useProjectStore } from '../stores/project';
 import { WaveformRenderer } from './WaveformRenderer';
 
 const TRACK_COLORS: Record<string, { bg: string; border: string; wave: string }> = {
@@ -20,6 +21,11 @@ function ActionClip({ action, row }: { action: BeeTimelineAction; row: TimelineR
   const isFirstAction = row.actions.length > 0 && row.actions[0].id === action.id;
   const containerRef = useRef<HTMLDivElement>(null);
   const [clipWidth, setClipWidth] = useState(100);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    useProjectStore.getState().selectAction(action.id, e.shiftKey);
+  }, [action.id]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -46,6 +52,8 @@ function ActionClip({ action, row }: { action: BeeTimelineAction; row: TimelineR
   return (
     <div
       ref={containerRef}
+      data-action-id={action.id}
+      onClick={handleClick}
       style={{
         background: colors.bg,
         borderLeft: `2px solid ${colors.border}`,

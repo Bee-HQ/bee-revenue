@@ -27,10 +27,24 @@ export function resolveTransformStyle(transform: TransformConfig | null | undefi
   };
 }
 
+export function isTransformActive(transform: TransformConfig | null | undefined): boolean {
+  if (!transform) return false;
+  const keys = Object.keys(transform);
+  if (keys.length === 0) return false;
+  // 'center' position with no other props is identity
+  if (keys.length === 1 && transform.position === 'center') return false;
+  return true;
+}
+
 export const TransformWrapper: React.FC<{
   transform?: TransformConfig | null;
   children: React.ReactNode;
 }> = ({ transform, children }) => {
+  // No transform = identity, render children as-is to preserve existing layout
+  if (!isTransformActive(transform)) {
+    return <>{children}</>;
+  }
+
   const styles = resolveTransformStyle(transform);
 
   return (
