@@ -10,6 +10,7 @@ from bee_video_editor.processors.ffmpeg import (
     COLOR_GRADE_PRESETS,
     XFADE_TRANSITIONS,
     FFmpegError,
+    extract_audio,
 )
 
 
@@ -375,3 +376,53 @@ class TestKenBurnsEffects:
             vf = args[vf_idx + 1]
             assert "zoompan" in vf
             assert "zoom+0.0015" in vf
+
+
+# --- extract_audio function tests ---
+
+class TestExtractAudio:
+    @patch("bee_video_editor.processors.ffmpeg.run_ffmpeg")
+    def test_extract_audio_command(self, mock_run, tmp_path):
+        src = tmp_path / "video.mp4"
+        src.touch()
+        out = tmp_path / "audio.mp3"
+
+        extract_audio(src, out)
+
+        args = mock_run.call_args[0][0]
+        assert "-vn" in args
+        assert str(out) in args
+
+    @patch("bee_video_editor.processors.ffmpeg.run_ffmpeg")
+    def test_extract_audio_default_codec(self, mock_run, tmp_path):
+        src = tmp_path / "video.mp4"
+        src.touch()
+        out = tmp_path / "audio.mp3"
+
+        extract_audio(src, out)
+
+        args = mock_run.call_args[0][0]
+        assert "-acodec" in args
+        assert "mp3" in args
+
+    @patch("bee_video_editor.processors.ffmpeg.run_ffmpeg")
+    def test_extract_audio_custom_codec_and_bitrate(self, mock_run, tmp_path):
+        src = tmp_path / "video.mp4"
+        src.touch()
+        out = tmp_path / "audio.aac"
+
+        extract_audio(src, out, codec="aac", bitrate="128k")
+
+        args = mock_run.call_args[0][0]
+        assert "aac" in args
+        assert "128k" in args
+
+    @patch("bee_video_editor.processors.ffmpeg.run_ffmpeg")
+    def test_extract_audio_returns_output_path(self, mock_run, tmp_path):
+        src = tmp_path / "video.mp4"
+        src.touch()
+        out = tmp_path / "audio.mp3"
+
+        result = extract_audio(src, out)
+
+        assert result == out

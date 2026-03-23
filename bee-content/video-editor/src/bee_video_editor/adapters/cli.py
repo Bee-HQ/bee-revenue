@@ -13,6 +13,10 @@ app = typer.Typer(
     help="AI-assisted video production from storyboards.",
     no_args_is_help=True,
 )
+
+from bee_video_editor.adapters.cli_dub import dub_app
+app.add_typer(dub_app, name="dub")
+
 console = Console()
 
 
