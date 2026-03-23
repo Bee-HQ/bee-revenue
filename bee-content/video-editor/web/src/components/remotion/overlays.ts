@@ -33,7 +33,20 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   TITLE_CARD: 4,
   SCREEN_MOCKUP: 10,
   THREE_D: 8,
+  NOTEPAD: 6,
+  MAP_ANNOTATION: 6,
 };
+
+export const NAMED_COLORS: Record<string, string> = {
+  red: '#dc2626',
+  teal: '#0d9488',
+  gold: '#d97706',
+  white: '#ffffff',
+};
+
+export function resolveColor(color: string): string {
+  return NAMED_COLORS[color] || color;
+}
 
 /** Parse "quote text — Author" into parts */
 export function parseQuoteContent(content: string, metadata?: Record<string, any> | null): { quote: string; author: string } {
