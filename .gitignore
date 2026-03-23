@@ -10,3 +10,14 @@ build/
 .claude/claudeclaw/
 uv.lock
 .worktrees/
+
+# macOS
+.DS_Store
+
+# Local project state
+.bee-project.json
+.bee-video/
+.serena/
+*.otio
+test-results/
+package-lock.json
