@@ -24,6 +24,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   SOURCE_BADGE: 30,
   BULLET_LIST: 6,
   PHOTO_VIEWER: 5,
+  INFO_CARD: 6,
   LOTTIE: 4,
   ATMOSPHERE: 10,
   GLITCH: 3,
