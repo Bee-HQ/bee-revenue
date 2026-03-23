@@ -1,4 +1,4 @@
-import { resolveColor } from './overlays';
+import { resolveColor } from '../overlays';
 
 export type AnnotationShape =
   | { type: 'circle'; x: number; y: number; r: number }
@@ -37,9 +37,9 @@ export function parseMapAnnotationData(
 }
 
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { useQuality } from './primitives/QualityContext';
-import { DrawPath } from './primitives/DrawPath';
-import type { OverlayProps } from './overlays';
+import { useQuality } from '../primitives/QualityContext';
+import { DrawPath } from '../primitives/DrawPath';
+import type { OverlayProps } from '../overlays';
 
 function pathSvgD(points: [number, number][]): string {
   if (points.length === 0) return '';

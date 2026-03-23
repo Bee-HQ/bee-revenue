@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig, continueRender, delayRender } from 'remotion';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 // --- Types ---
 

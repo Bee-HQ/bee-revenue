@@ -1,7 +1,7 @@
 // web/src/components/remotion/QuoteCard.tsx
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { OverlayProps } from './overlays';
-import { parseQuoteContent } from './overlays';
+import type { OverlayProps } from '../overlays';
+import { parseQuoteContent } from '../overlays';
 
 const ACCENT_COLORS: Record<string, string> = {
   red: '#dc2626', teal: '#0d9488', gold: '#d97706',
