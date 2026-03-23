@@ -108,7 +108,7 @@ describe('calculateSegmentPositions', () => {
 });
 
 // EvidenceBoard parser tests
-import { parseBoardData } from './EvidenceBoard';
+import { parseBoardData } from './visuals/EvidenceBoard';
 
 describe('parseBoardData', () => {
   test('parses valid JSON', () => {
@@ -137,7 +137,7 @@ describe('parseBoardData', () => {
 });
 
 // PictureInPicture parser tests
-import { parsePipData } from './PictureInPicture';
+import { parsePipData } from './visuals/PictureInPicture';
 
 describe('parsePipData', () => {
   test('parses valid JSON', () => {
@@ -160,7 +160,7 @@ describe('parsePipData', () => {
 });
 
 // AudioVisualization parser tests
-import { parseAudioVisData } from './AudioVisualization';
+import { parseAudioVisData } from './visuals/AudioVisualization';
 
 describe('parseAudioVisData', () => {
   test('parses valid JSON', () => {
@@ -178,7 +178,7 @@ describe('parseAudioVisData', () => {
 });
 
 // SocialPost parser tests
-import { parsePostData } from './SocialPost';
+import { parsePostData } from './visuals/SocialPost';
 
 describe('parsePostData', () => {
   test('parses valid JSON post', () => {
@@ -197,7 +197,7 @@ describe('parsePostData', () => {
 });
 
 // TextChat parser tests
-import { parseMessages } from './TextChat';
+import { parseMessages } from './visuals/TextChat';
 
 describe('parseMessages', () => {
   test('parses valid JSON messages', () => {

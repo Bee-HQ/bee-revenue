@@ -1,5 +1,5 @@
 import { AbsoluteFill, Video, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 interface PipSource {
   type: 'video' | 'image' | 'map' | 'color';

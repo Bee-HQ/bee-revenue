@@ -1,6 +1,6 @@
 // web/src/components/remotion/TimelineMarker.tsx
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 export const TimelineMarker: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();

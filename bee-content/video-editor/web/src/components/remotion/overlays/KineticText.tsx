@@ -1,7 +1,7 @@
 // web/src/components/remotion/KineticText.tsx
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { useQuality } from './primitives/QualityContext';
-import type { OverlayProps } from './overlays';
+import { useQuality } from '../primitives/QualityContext';
+import type { OverlayProps } from '../overlays';
 
 // ---------------------------------------------------------------------------
 // Types

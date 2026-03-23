@@ -1,6 +1,6 @@
 // web/src/components/remotion/TextOverlay.tsx
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 export const TextOverlay: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();

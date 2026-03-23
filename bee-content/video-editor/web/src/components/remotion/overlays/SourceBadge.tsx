@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 export interface SourceBadgeData {
   label: string;

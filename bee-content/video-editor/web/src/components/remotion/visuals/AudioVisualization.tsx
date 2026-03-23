@@ -1,5 +1,5 @@
 import { AbsoluteFill, Video, Img, interpolate, useCurrentFrame } from 'remotion';
-import type { OverlayProps } from './overlays';
+import type { OverlayProps } from '../overlays';
 
 interface AudioVisData {
   style?: 'bars' | 'waveform' | 'pulse';

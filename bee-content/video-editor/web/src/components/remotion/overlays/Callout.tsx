@@ -1,8 +1,8 @@
 // web/src/components/remotion/Callout.tsx
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { DrawPath } from './primitives/DrawPath';
-import { SpringReveal } from './primitives/SpringReveal';
-import type { OverlayProps } from './overlays';
+import { DrawPath } from '../primitives/DrawPath';
+import { SpringReveal } from '../primitives/SpringReveal';
+import type { OverlayProps } from '../overlays';
 
 // ---------------------------------------------------------------------------
 // SVG path generators (pure functions, exported for testing)

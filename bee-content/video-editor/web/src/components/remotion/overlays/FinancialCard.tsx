@@ -1,7 +1,7 @@
 // web/src/components/remotion/FinancialCard.tsx
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import type { OverlayProps } from './overlays';
-import { parseDollarAmount } from './overlays';
+import type { OverlayProps } from '../overlays';
+import { parseDollarAmount } from '../overlays';
 
 export const FinancialCard: React.FC<OverlayProps> = ({ content, metadata, durationInFrames }) => {
   const frame = useCurrentFrame();

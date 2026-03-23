@@ -5,31 +5,34 @@ import { useProjectStore } from '../stores/project';
 import { PlaceholderFrame, isRealFile } from './remotion/PlaceholderFrame';
 import { SafeVideo, SafeImg, mediaUrl, IMAGE_EXTS, COLOR_FILTERS } from './remotion/SafeMedia';
 import { KenBurns } from './remotion/KenBurns';
-import { LowerThird } from './remotion/LowerThird';
 import { CaptionOverlay } from './remotion/CaptionOverlay';
-import { QuoteCard } from './remotion/QuoteCard';
-import { FinancialCard } from './remotion/FinancialCard';
-import { TextOverlay } from './remotion/TextOverlay';
-import { TimelineMarker } from './remotion/TimelineMarker';
 import { TransitionRenderer } from './remotion/TransitionRenderer';
-import { TextChat, TextChatOverlay } from './remotion/TextChat';
-import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/EvidenceBoard';
-import { AnimatedMap, AnimatedMapOverlay } from './remotion/AnimatedMap';
-import { SocialPost, SocialPostOverlay } from './remotion/SocialPost';
-import { PictureInPictureOverlay } from './remotion/PictureInPicture';
-import { AudioVisualization, AudioVisualizationOverlay } from './remotion/AudioVisualization';
 import { calculateSegmentPositions, parseLowerThirdContent, DEFAULT_DURATIONS } from './remotion/overlays';
 import type { OverlayProps } from './remotion/overlays';
 import { QualityProvider } from './remotion/primitives';
-import { CalloutOverlay, Callout } from './remotion/Callout';
-import { KineticTextOverlay, KineticText } from './remotion/KineticText';
-import { SourceBadge } from './remotion/SourceBadge';
+import { Watermark } from './remotion/Watermark';
+// overlays/
+import { LowerThird } from './remotion/overlays/LowerThird';
+import { QuoteCard } from './remotion/overlays/QuoteCard';
+import { FinancialCard } from './remotion/overlays/FinancialCard';
+import { TextOverlay } from './remotion/overlays/TextOverlay';
+import { TimelineMarker } from './remotion/overlays/TimelineMarker';
+import { CalloutOverlay, Callout } from './remotion/overlays/Callout';
+import { KineticTextOverlay, KineticText } from './remotion/overlays/KineticText';
+import { SourceBadge } from './remotion/overlays/SourceBadge';
+import { MapAnnotation } from './remotion/overlays/MapAnnotation';
+// visuals/
+import { TextChat, TextChatOverlay } from './remotion/visuals/TextChat';
+import { EvidenceBoard, EvidenceBoardOverlay } from './remotion/visuals/EvidenceBoard';
+import { AnimatedMap, AnimatedMapOverlay } from './remotion/visuals/AnimatedMap';
+import { SocialPost, SocialPostOverlay } from './remotion/visuals/SocialPost';
+import { PictureInPictureOverlay } from './remotion/visuals/PictureInPicture';
+import { AudioVisualization, AudioVisualizationOverlay } from './remotion/visuals/AudioVisualization';
+// cards/
 import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
 import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoViewerCard';
 import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
 import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWindow';
-import { MapAnnotation } from './remotion/MapAnnotation';
-import { Watermark } from './remotion/Watermark';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
