@@ -21,6 +21,7 @@ export const DEFAULT_DURATIONS: Record<string, number> = {
   WAVEFORM: 8,
   CALLOUT: 4,
   KINETIC_TEXT: 5,
+  SOURCE_BADGE: 30,
   LOTTIE: 4,
   ATMOSPHERE: 10,
   GLITCH: 3,

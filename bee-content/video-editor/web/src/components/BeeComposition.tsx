@@ -23,6 +23,7 @@ import type { OverlayProps } from './remotion/overlays';
 import { QualityProvider } from './remotion/primitives';
 import { CalloutOverlay, Callout } from './remotion/Callout';
 import { KineticTextOverlay, KineticText } from './remotion/KineticText';
+import { SourceBadge } from './remotion/SourceBadge';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   QUOTE_CARD: QuoteCard,
@@ -38,6 +39,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   WAVEFORM: AudioVisualizationOverlay,
   CALLOUT: CalloutOverlay,
   KINETIC_TEXT: KineticTextOverlay,
+  SOURCE_BADGE: SourceBadge,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
