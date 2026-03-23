@@ -17,11 +17,8 @@ Read before reviewing:
    - Valid JSON block structure
    - Visual/audio/overlay type definitions
    - Required fields per type
-3. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - Act percentages
-   - Visual rules (no shot > 12 seconds, Ken Burns on stills, etc.)
-   - Audio rules (levels, music continuity)
-   - Production rules section
+
+Production rules are inlined below in the review checklist.
 
 ## Review Checklist
 

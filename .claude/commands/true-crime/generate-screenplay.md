@@ -29,26 +29,15 @@ Ask: "Where should I save the screenplay?"
 **Read ALL of these before generating.** They are your source material and quality standards:
 
 1. **Case research** — the file from step 1. Pay special attention to:
-   - Section 5 (Narrative Angles) — use the hook, dramatic moments, central irony, and act structure suggestions to inform your screenplay structure
-   - Section 2 (Footage Inventory) — only reference real audio clips that are marked **YES** in availability
+   - Section 5 (Narrative Angles) — use the hook, dramatic moments, central irony, and act structure suggestions
+   - Section 2 (Footage Inventory) — only reference real audio clips marked **YES** in availability
    - Section 4 (Key Evidence) — pull verbatim quotes from here
    - Section 8 (Production Notes) — respect the archetype recommendation and challenges
-2. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - Phase 2: Screenplay structure template
-   - Act percentages by archetype
-   - Runtime variants (short/long form)
-   - Open loop hierarchy
-   - 90-second narrator stretch rule
-   - Dramatic irony techniques
-   - Advanced narrative techniques (Section 5.4)
-3. **Visual bible** — `bee-content/discovery/true-crime/research/visual-storyboard-bible.md`
-   - Visual codes to tag each scene with
-4. **Narration style guide** — `bee-content/discovery/true-crime/channels/dr-insanity/narration-style-guide.md`
-   - Voice, tone, pacing, sentence rhythm
-5. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/screenplay-v2.md`
-   - Read this as a concrete example of the target output quality, format, and style
+2. **Reference example** — `bee-content/discovery/true-crime/cases/alex-murdaugh/screenplay-v2.md`
+   - Read this as the gold standard for output quality, format, and style
    - Match the level of detail, visual code density, and real audio integration frequency
-   - This is a trial-centric screenplay — adapt the pattern for your case's archetype
+
+All formula rules, visual codes, and narration style are inlined below — no external files needed.
 
 ## Screenplay Format
 
@@ -259,6 +248,63 @@ After the acts, include:
 - Longest narrator stretch: [N] seconds
 - Real audio integration rate: every [N] seconds average
 ```
+
+## Narration Style Guide (Dr Insanity DNA)
+
+<!-- Inlined from narration-style-guide.md -->
+
+### Voice & Tense
+- **Present tense** for the primary narrative: "Officers are dispatched." "She has no idea."
+- **Past tense** only for backstory: "She had already been married three times."
+- **Third person omniscient** — narrator knows everything, reveals strategically
+- **Never** use "we" to include the viewer. Viewer is an observer.
+- **No exclamation marks** or hyperbolic adjectives. Drama comes from understatement and juxtaposition.
+
+### Sentence Rhythm
+Average 15-22 words. Alternate:
+- **Short punch:** "This is where things become very peculiar." (7 words)
+- **Medium flow:** "Officers are dispatched to conduct a welfare check on the couple." (11 words)
+- **Long context:** "With all these findings combined, investigators begin to suspect they may be dealing with something far more serious than a missing person case." (23 words)
+
+Pattern: medium, medium, short punch, long context, short punch.
+
+### Cold Open Formula
+1. Real audio clip (most dramatic moment)
+2. Narrator: "This is [name], [age]-year-old [descriptor]."
+3. Dramatic irony: "In just a few seconds, [he/she] [is] about to [dramatic event]."
+4. 2-4 more audio clips from different phases
+5. Transition to story proper: time/place anchor
+
+### Character Introductions
+- **Victims** — warmth and specificity: "[Age]-year-old [Name] [is] [occupation]. [He/She] lives [location] with [family]."
+- **Suspects** — behavioral red flags: "[Name/relationship]. [Something normal]. But [ominous detail]."
+- **Officers** — professional context: "Detective [Name] with the [unit]"
+- **Witnesses** — relationship to case: "On the line is [Name] requesting a welfare check on [his/her] friend."
+
+### Key Phrases (from 17-video analysis)
+**Tension:** "What [they] don't realize is..." | "But that is about to change." | "Unknowingly..." | "Things are about to take a turn."
+**Reveals:** "And just like that..." | "Needless to say..." | "It's at this point that..." | "For the first time..."
+**Transitions:** "Following this..." | "In the days that follow..." | "At the same time..." | "Shortly after..."
+**Suspect behavior:** "[He/She] appears [visibly shaken / calm / cooperative]." | "[Name] sticks to [his/her] story."
+**Pre-sponsor:** "But before we get to that..."
+**Post-sponsor:** "With that said, let's get back to [the investigation] where [setup]."
+
+### Dramatic Irony (4-5 per video, 3+ types)
+- "What [they] don't know is that [shocking fact]."
+- "Officers are unknowingly [doing X that relates to hidden fact]."
+- "[Name] has no idea that [consequence is coming]."
+- "Police don't know it yet, but [suspect] is showing them [the crime scene]."
+
+### Open Loop Types
+- **Anchor loop:** The central mystery — opened in trailer, closed in Act 3/4
+- **Structural loops:** 2-3 major questions opened across Acts 1-2, each closed with a reveal
+- **Micro loops:** "But that is about to change" — opened and closed within 2-5 minutes
+
+### Closing Formula
+1. **Legal outcome:** "[Suspect] is [charged/found guilty/sentenced to] [details]."
+2. **Case context:** Brief investigator conclusion
+3. **Current status:** "As of [date], [name]'s case is still in [phase]."
+- No "like and subscribe." No sign-off catchphrase. Factual and restrained.
 
 ## Post-Generation
 

@@ -42,19 +42,7 @@ Ask: "Where should I save the storyboard?"
    - `[LOWER-THIRD:]`, `[QUOTE-CARD:]`, etc. — these become overlay entries
    - Act headers with timecodes — these set the segment timing
 
-2. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - Act percentage targets by archetype
-   - 90-second max narrator stretch rule
-   - Footage mix targets
-   - Visual palette progression
-   - Production rules (Section 7)
-
-3. **Visual storyboard bible** — `bee-content/discovery/true-crime/research/visual-storyboard-bible.md`
-   - Visual code → production spec mapping (colors, durations, effects, ken burns types)
-   - Overlay specs (lower thirds, quote cards, etc.)
-   - Use the bible to fill in JSON fields like `color`, `ken_burns`, `duration` for each visual type
-
-4. **Output format spec** — `bee-content/video-editor/docs/superpowers/specs/2026-03-19-otio-project-format-design.md`
+2. **Output format spec** — `bee-content/video-editor/docs/superpowers/specs/2026-03-19-otio-project-format-design.md`
    - **Read the "Full Example" section carefully** — this is the exact format you must produce
    - JSON block structure (`bee-video:project`, `bee-video:segment`)
    - Visual/audio/overlay type definitions with required fields
@@ -172,6 +160,90 @@ If media files were found during the scan (step 5):
 - Match `[STOCK]` with query "aerial farm" to files like `stock/aerial-farm-dusk-001.mp4`
 - Simple substring matching on filenames — not AI, not fuzzy
 - Only populate `src` if the match is unambiguous (one clear match). If multiple matches, leave `src: null`
+
+## Production Rules
+
+<!-- Inlined from screenplay-storyboard-formula.md + visual-storyboard-bible.md -->
+
+### Act Percentage Targets
+
+```
+TRAILER → OPENING → ACT 1 → ACT 2 → [SPONSOR] → ACT 3 → ACT 4
+(1-2 min) (0:30)  (6-12 min) (16-22 min) (0-1:30) (10-15 min) (5-10 min)
+  3%       1%      15-25%     35-45%      0-3%      20-30%     5-10%
+```
+
+### Timing Rules
+- No single segment > 60 seconds — split long scenes
+- No narrator stretch > 90 seconds without a real audio clip
+- Real audio should appear every 90-120 seconds
+- New information every 60-90 seconds
+
+### Color Palette
+
+| Element | Hex | Usage |
+|---------|-----|-------|
+| Background | `#0A0A0F` | Graphics, cards |
+| Primary text | `#FFFFFF` | Body text |
+| Secondary text | `#B4B4B4` | Roles, labels |
+| **Red** | `#DC2626` | Danger, charges, evidence highlights, financial amounts |
+| **Teal** | `#0D9488` | Information, identity, context, informational quotes |
+| **Gold** | `#D97706` | Victim, family, humanity, victim-voiced quotes |
+| **Green** | `#16A34A` | Positive outcomes, lesser charges |
+| **White** | `#FFFFFF` | Neutral accent |
+
+### Color Filter Presets
+Available for `"color"` field: `dark_crime`, `warm_victim`, `surveillance`, `noir`, `bodycam`, `cold_blue`, `sepia`, `vintage`, `bleach_bypass`, `night_vision`, `golden_hour`, `vhs`
+
+### Ken Burns Effects
+Available for `"ken_burns"` field: `zoom_in` (default), `zoom_out`, `pan_left`, `pan_right`, `pan_up`, `pan_down`, `zoom_in_pan_right`
+
+### Visual Element Specs
+
+**PHOTO_VIEWER (person identification):**
+- macOS window chrome: traffic lights, "Photo Viewer" title, menu bar
+- `content`: "Name — Role" or JSON array for multi-card
+- `animation`: slide-up (default), slide-left, scale
+- Duration: 5 seconds default
+
+**SOURCE_BADGE (footage label):**
+- Corner label: [ACTUAL], [REENACTMENT], [ACTUAL PHOTO]
+- Position: bottom-left (default)
+- Duration: fills segment (30s default, clamped to segment)
+
+**NOTEPAD (investigation notes):**
+- macOS window: Notepad title, File/Edit/Search/View/Help menu
+- `animation`: typewriter (default), lines, instant
+- Monospace font, blinking cursor
+- Duration: 6 seconds default
+
+**BULLET_LIST (charge sheet):**
+- Staggered text bars with corner bracket decorations
+- `accent`: red (default), teal, gold, white, green
+- `style`: stagger (default), cascade, instant
+- Duration: 6 seconds default
+
+**INFO_CARD (charges/sentencing):**
+- Split layout: sections on one side, optional photo on other
+- `sections`: [{header, body, color?}]
+- `photoSide`: right (default), left, none
+- Duration: 6 seconds default
+
+**DRAMATIC_QUOTE (splash text):**
+- Large colored italic text, no background box
+- `color`: red (default), any named or hex color
+- `italic`: true (default)
+- Duration: 4 seconds default
+
+**MAP_ANNOTATION (evidence highlights):**
+- SVG overlay with shapes: circle, path, rect
+- Coordinates normalized [0-1]
+- `color`: red (default), any named color
+- Duration: 6 seconds default
+
+**WATERMARK (persistent):**
+- Project-level config, not per-segment
+- `text` or `src` (image), position, opacity
 
 ## Output Structure
 

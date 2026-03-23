@@ -17,15 +17,8 @@ Read before reviewing:
 
 1. **The screenplay** (the file being reviewed)
 2. **Case research** (if available — for fact-checking quotes and sources)
-3. **Production formula** — `bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`
-   - Phase 2: Screenplay structure
-   - Act percentages by archetype
-   - Open loop rules
-   - Dramatic irony frequency
-   - 90-second narrator stretch rule
-4. **Narration style guide** — `bee-content/discovery/true-crime/channels/dr-insanity/narration-style-guide.md`
-   - Sentence rhythm
-   - Tone and vocabulary
+
+All formula rules and style references are inlined below.
 
 ## Review Checklist
 
@@ -128,3 +121,35 @@ If the screenplay needs work, provide specific, actionable fixes with scene refe
 If the user says yes, make the corrections directly in the file, then re-run the review checks on the updated file.
 
 If it's ready, say: "Screenplay is solid. Run `/true-crime:generate-storyboard` to create the storyboard."
+
+---
+
+## Reference: Formula Rules
+
+<!-- Inlined from screenplay-storyboard-formula.md -->
+
+### Act Percentage Targets
+- **Bodycam-Domestic:** Cold Open 5%, Act 1 12-15%, Act 2 40%, Act 3 25%, Act 4 8%
+- **Trial-Centric:** Cold Open 5%, Act 1 15-20%, Act 2 35-40%, Act 3 25%, Act 4 8%
+- **Interrogation-Centric:** Cold Open 5%, Act 1 10-12%, Act 2-3 60-65%, Act 4 8%
+- **Cold-Case:** Cold Open 5%, Act 1 15%, Act 2 30%, Act 3 30%, Act 4 10%
+
+### Key Rules
+- No narrator stretch > 90 seconds without real audio
+- Real audio every 90-120 seconds
+- 4-5 dramatic irony instances per video, 3+ types
+- 2-4 open loops active at all times (1 anchor + 1-2 structural + micro)
+- 35+ reveals per video (new information)
+- New info every 60-90 seconds
+
+### Narration Style (Dr Insanity DNA)
+- **Present tense** throughout main narrative
+- **Third person omniscient** — knows all, reveals strategically
+- **Sentence rhythm:** medium, medium, short punch, long context, short punch (avg 15-22 words)
+- **No exclamation marks**, no hyperbolic adjectives
+- **Key phrases:** "What they don't realize is..." | "But that is about to change." | "Unknowingly..." | "Needless to say..."
+- **Victim intros:** warmth + specificity. **Suspect intros:** red flags + foreshadowing
+- **Sponsor transition:** "But before we get to that..." / "With that said, let's get back to..."
+
+### Valid Visual Codes
+FOOTAGE, BODYCAM, INTERROGATION, COURTROOM, BROLL-DARK, BROLL-WARM, WAVEFORM-AERIAL, WAVEFORM-BARS, WAVEFORM-PULSE, MAP-FLAT, MAP-TACTICAL, MAP-FLY-TO, MAP-ORBIT, MAP-ROUTE, PHOTO, PHOTO-VIEWER, PHOTO-VIEWER-DUAL, PIP-CORNER, PIP-SPLIT, BLACK, BRAND-STING, DISCLAIMER, TRAILER, NOTEPAD, BULLET-LIST, INFO-CARD, LOWER-THIRD, TIMELINE-MARKER, QUOTE-CARD, FINANCIAL-CARD, TEXT-OVERLAY, KINETIC-TEXT, CAPTION, TEXT-CHAT, SOCIAL-POST, EVIDENCE-BOARD, EVIDENCE-DISPLAY, BODY-DIAGRAM, NEWS-MONTAGE, FLOW-DIAGRAM, TIMELINE-SEQUENCE, SOURCE-BADGE, MAP-ANNOTATION, DRAMATIC-QUOTE, CENSOR-BLUR
