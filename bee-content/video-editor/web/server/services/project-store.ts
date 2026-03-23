@@ -88,12 +88,22 @@ class ProjectStore {
     const project = this.get();
     const seg = this.findSegment(project, segId);
 
-    // visual_updates: [{index, color?, kenBurns?, trim?, src?}]
+    // visual_updates: [{index, color?, kenBurns?, trim?, src?, transform?}]
     if (Array.isArray(updates.visual_updates)) {
       for (const u of updates.visual_updates as Array<Record<string, any>>) {
-        const { index, ...rest } = u;
+        const { index, transform, ...rest } = u;
         if (typeof index === 'number' && seg.visual[index]) {
-          Object.assign(seg.visual[index], rest);
+          if (transform !== undefined && transform !== null) {
+            seg.visual[index].transform = {
+              ...(seg.visual[index] as any).transform,
+              ...transform,
+            };
+          } else if (transform === null) {
+            delete (seg.visual[index] as any).transform;
+          }
+          if (Object.keys(rest).length) {
+            Object.assign(seg.visual[index], rest);
+          }
         }
       }
     }
@@ -104,6 +114,26 @@ class ProjectStore {
         const { index, ...rest } = u;
         if (typeof index === 'number' && seg.audio[index]) {
           Object.assign(seg.audio[index], rest);
+        }
+      }
+    }
+
+    // overlay_updates: [{index, transform?, ...rest}]
+    if (Array.isArray(updates.overlay_updates)) {
+      for (const u of updates.overlay_updates as Array<Record<string, any>>) {
+        const { index, transform, ...rest } = u;
+        if (typeof index === 'number' && seg.overlay[index]) {
+          if (transform !== undefined && transform !== null) {
+            seg.overlay[index].transform = {
+              ...(seg.overlay[index] as any).transform,
+              ...transform,
+            };
+          } else if (transform === null) {
+            delete (seg.overlay[index] as any).transform;
+          }
+          if (Object.keys(rest).length) {
+            Object.assign(seg.overlay[index], rest);
+          }
         }
       }
     }

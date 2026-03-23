@@ -1,11 +1,14 @@
 // --- New BeeProject format ---
 
+import type { TransformConfig } from './transform';
+
 export interface VisualEntry {
   type: string;
   src: string | null;
   trim?: [number, number];
   color?: string;
   kenBurns?: string;
+  transform?: TransformConfig;
   query?: string;
   lat?: number;
   lng?: number;
@@ -26,6 +29,7 @@ export interface OverlayEntry {
   duration?: number;
   platform?: string;
   animation?: string;
+  transform?: TransformConfig;
   [key: string]: any;
 }
 
