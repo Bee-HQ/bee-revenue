@@ -28,6 +28,7 @@ import { BulletListOverlay, BulletList } from './remotion/cards/BulletList';
 import { PhotoViewerCardOverlay, PhotoViewerCard } from './remotion/cards/PhotoViewerCard';
 import { InfoCardOverlay, InfoCard } from './remotion/cards/InfoCard';
 import { NotepadWindowOverlay, NotepadWindow } from './remotion/cards/NotepadWindow';
+import { MapAnnotation } from './remotion/MapAnnotation';
 import { Watermark } from './remotion/Watermark';
 
 const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
@@ -49,6 +50,7 @@ const OVERLAY_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
   PHOTO_VIEWER: PhotoViewerCardOverlay,
   INFO_CARD: InfoCardOverlay,
   NOTEPAD: NotepadWindowOverlay,
+  MAP_ANNOTATION: MapAnnotation,
 };
 
 const VISUAL_COMPONENTS: Record<string, React.FC<OverlayProps>> = {
