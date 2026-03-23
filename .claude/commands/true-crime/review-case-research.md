@@ -10,7 +10,21 @@ Ask: "Which case research file should I review?"
 
 ## Review Process
 
-Read the case research file and the production formula (`bee-content/discovery/true-crime/research/screenplay-storyboard-formula.md`, Section 1: Case Selection Criteria).
+Read the case research file. Evaluate against the case selection criteria below.
+
+<!-- Inlined from screenplay-storyboard-formula.md Phase 1 — universal requirements -->
+
+**Universal requirements (dealbreakers marked):**
+- 20+ minutes of real footage (any type) — **DEALBREAKER**
+- Clear victim + clear suspect — **DEALBREAKER**
+- Suspect confronted on camera (interview, interrogation, trial, OR bodycam) — **DEALBREAKER**
+- Self-incriminating moment — Strongly preferred
+- 2+ separate audio sources (911, bodycam, interview, trial) — Strongly preferred
+- Financial angle ($$ amounts) — Preferred
+- Multiple witnesses with conflicting info — Preferred
+- Property/location with visual interest — Preferred
+
+**Archetype identification:** The case should fit one of: **A) Bodycam-Domestic** (55%+ bodycam), **B) Trial-Centric** (35-40% trial), **C) Interrogation-Centric** (40-50% interrogation), **D) Cold Case** (30% mixed). Total real content target: 60%+ (archetypes A-C), 50%+ (archetype D).
 
 Evaluate against these criteria:
 
